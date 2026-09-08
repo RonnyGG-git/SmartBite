@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Roles — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Roles</h1>
+    <p>Gestión de roles y permisos del sistema</p>
+  </div>
+  <a href="{% url 'cuentas:rol_crear' %}" class="btn btn-primary">+ Nuevo Rol</a>
+</div>
+
+<div class="grid grid-2">
+  {% for rol in roles %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <h3 style="margin:0;">{{ rol.get_nombre_display }}</h3>
+        <p style="color:#9ca3af; margin:4px 0 0;">{{ rol.descripcion|default:"Sin descripción" }}</p>
+      </div>
+      <span class="badge {% if rol.activo %}badge-success{% else %}badge-danger{% endif %}">
+        {% if rol.activo %}Activo{% else %}Inactivo{% endif %}
+      </span>
+    </div>
+    <p style="color:#9ca3af; font-size:13px;">{{ rol.permisos.count }} permisos asignados</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'cuentas:rol_permisos' rol.pk %}" class="btn btn-sm btn-ghost">🔐 Permisos</a>
+      <a href="{% url 'cuentas:rol_editar' rol.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+      <a href="{% url 'cuentas:rol_eliminar' rol.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state">No hay roles registrados.</div>
+  {% endfor %}
+</div>
+{% endblock %}

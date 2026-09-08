@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Movimientos de Inventario — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Movimientos</h1><p>Historial de entradas y salidas de inventario</p></div></div>
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead><tr><th>Ítem</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th><th>Fecha</th></tr></thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.item.nombre }}</td>
+        <td><span class="badge {% if m.tipo == 'ENTRADA' %}badge-success{% else %}badge-danger{% endif %}">{{ m.get_tipo_display }}</span></td>
+        <td>{{ m.cantidad }}</td>
+        <td>{{ m.motivo }}</td>
+        <td>{{ m.creado_en|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5"><div class="empty-state">No hay movimientos registrados.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

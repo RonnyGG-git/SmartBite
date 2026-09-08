@@ -1,0 +1,24 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Bite{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+</head>
+<body>
+  {% if user.is_authenticated %}
+    <div class="layout">
+      {% include "includes/sidebar.html" %}
+      <main class="main">
+        {% for mensaje in messages %}
+          <div class="alert alert-{{ mensaje.tags }}">{{ mensaje }}</div>
+        {% endfor %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  {% else %}
+    {% block content_publico %}{% endblock %}
+  {% endif %}
+</body>
+</html>

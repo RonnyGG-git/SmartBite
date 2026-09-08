@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo|default:"Formulario" }} — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ titulo }}</h1></div>
+</div>
+<div class="card" style="max-width:640px;">
+  {% if form.non_field_errors %}
+    <div class="alert alert-error">{{ form.non_field_errors }}</div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions">
+      <a href="javascript:history.back()" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

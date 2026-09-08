@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión — Smart Bite{% endblock %}
+{% block content_publico %}
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at top left, #16213e, transparent 40%), radial-gradient(circle at bottom right, #1b1464, transparent 40%), #050816;">
+  <div class="card" style="width:100%; max-width:400px;">
+    <h1 style="text-align:center; margin-top:0;">🍽️ Smart Bite</h1>
+    <p style="text-align:center; color:#9ca3af; margin-bottom:24px;">Inicia sesión para continuar</p>
+
+    {% if form.errors %}
+      <div class="alert alert-error">Email o contraseña incorrectos.</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="margin-bottom:16px;">
+        <label for="{{ form.username.id_for_label }}">Email</label>
+        {{ form.username }}
+      </div>
+      <div style="margin-bottom:16px;">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Iniciar sesión</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

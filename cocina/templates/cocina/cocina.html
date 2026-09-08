@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Cocina — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Cocina</h1><p>Órdenes pendientes de preparar</p></div></div>
+<div class="grid grid-3">
+  {% for orden in ordenes %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+      <h3 style="margin:0;">Mesa {{ orden.mesa.numero }} — #{{ orden.id }}</h3>
+      <span class="badge {% if orden.estado == 'PENDIENTE' %}badge-warning{% else %}badge-info{% endif %}">{{ orden.get_estado_display }}</span>
+    </div>
+    <ul style="padding-left:18px; color:#cbd5e1;">
+      {% for d in orden.detalles.all %}
+        <li>{{ d.cantidad }} × {{ d.producto.nombre }}</li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-primary" style="width:100%;">Ver Orden</a>
+  </div>
+  {% empty %}
+  <div class="empty-state">No hay órdenes pendientes 🎉</div>
+  {% endfor %}
+</div>
+{% endblock %}

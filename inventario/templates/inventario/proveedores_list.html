@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Proveedores — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Proveedores</h1><p>Gestión de proveedores de insumos</p></div>
+  <a href="{% url 'inventario:proveedor_crear' %}" class="btn btn-primary">+ Nuevo Proveedor</a>
+</div>
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+      {% for p in proveedores %}
+      <tr>
+        <td>{{ p.nombre }}</td>
+        <td>{{ p.contacto|default:"—" }}</td>
+        <td>{{ p.telefono|default:"—" }}</td>
+        <td>
+          <span class="badge {% if p.activo %}badge-success{% else %}badge-danger{% endif %}">
+            {% if p.activo %}Activo{% else %}Inactivo{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'inventario:proveedor_editar' p.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <a href="{% url 'inventario:proveedor_eliminar' p.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5"><div class="empty-state">No hay proveedores registrados.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

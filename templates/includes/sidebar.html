@@ -1,0 +1,47 @@
+{% with rol=user.rol.nombre %}
+<aside class="sidebar">
+  <div class="sidebar-brand">🍽️ Smart Bite</div>
+
+  {% if rol == "ADMINISTRADOR" %}
+    <a class="sidebar-item" href="{% url 'reportes:dashboard' %}">📊 Dashboard</a>
+    <a class="sidebar-item" href="{% url 'reportes:reportes' %}">📈 Reportes</a>
+    <a class="sidebar-item" href="{% url 'restaurantes:restaurantes_list' %}">🏢 Restaurantes</a>
+    <a class="sidebar-item" href="{% url 'restaurantes:sucursales_list' %}">🏬 Sucursales</a>
+    <a class="sidebar-item" href="{% url 'cuentas:usuarios_list' %}">👥 Usuarios</a>
+    <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}">🔐 Roles</a>
+  {% endif %}
+
+  {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" or rol == "JEFE_COCINA" %}
+    <a class="sidebar-item" href="{% url 'catalogo:productos_list' %}">🍔 Productos</a>
+    <a class="sidebar-item" href="{% url 'inventario:inventario_list' %}">📦 Inventario</a>
+  {% endif %}
+
+  {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" %}
+    <a class="sidebar-item" href="{% url 'inventario:compras_list' %}">🛒 Compras</a>
+    <a class="sidebar-item" href="{% url 'inventario:proveedores_list' %}">🚚 Proveedores</a>
+    <a class="sidebar-item" href="{% url 'catalogo:categorias_list' %}">🏷️ Categorías</a>
+    <a class="sidebar-item" href="{% url 'inventario:movimientos_list' %}">📊 Movimientos</a>
+  {% endif %}
+
+  {% if rol == "ADMINISTRADOR" or rol == "JEFE_COCINA" %}
+    <a class="sidebar-item" href="{% url 'recetas:recetas_list' %}">🍳 Recetas</a>
+    <a class="sidebar-item" href="{% url 'cocina:cocina' %}">🔥 Cocina</a>
+  {% endif %}
+
+  {% if rol == "ADMINISTRADOR" or rol == "MESERO" %}
+    <a class="sidebar-item" href="{% url 'operativo:mesas_list' %}">🪑 Mesas</a>
+  {% endif %}
+
+  {% if rol == "ADMINISTRADOR" or rol == "CAJERO" %}
+    <a class="sidebar-item" href="{% url 'caja:pagos_list' %}">💳 Pagos</a>
+    <a class="sidebar-item" href="{% url 'caja:ventas_list' %}">💰 Ventas</a>
+  {% endif %}
+
+  <form method="post" action="{% url 'cuentas:logout' %}" style="margin-top: 24px;">
+    {% csrf_token %}
+    <button type="submit" class="sidebar-item" style="width: 100%; border: none; background: none; cursor: pointer; text-align: left;">
+      🚪 Cerrar sesión
+    </button>
+  </form>
+</aside>
+{% endwith %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Productos — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Productos</h1>
+    <p>Administra el menú y disponibilidad de productos</p>
+  </div>
+  <div style="display:flex; gap:12px;">
+    <a href="{% url 'catalogo:categorias_list' %}" class="btn btn-ghost">🏷️ Categorías</a>
+    <a href="{% url 'catalogo:producto_crear' %}" class="btn btn-primary">+ Nuevo Producto</a>
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr><th>Producto</th><th>Precio</th><th>Categoría</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for producto in productos %}
+      <tr>
+        <td><strong>{{ producto.nombre }}</strong><br><span style="color:#6b7280; font-size:12px;">ID #{{ producto.id }}</span></td>
+        <td style="color:#4ade80; font-weight:700;">{{ producto.precio|moneda }}</td>
+        <td><span class="badge badge-info">{{ producto.categoria.nombre }}</span></td>
+        <td>{{ producto.sucursal.nombre }}</td>
+        <td>
+          <span class="badge {% if producto.disponible %}badge-success{% else %}badge-danger{% endif %}">
+            {% if producto.disponible %}Disponible{% else %}No Disponible{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'catalogo:producto_editar' producto.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <form method="post" action="{% url 'catalogo:producto_toggle_disponibilidad' producto.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-secondary">
+              {% if producto.disponible %}Desactivar{% else %}Activar{% endif %}
+            </button>
+          </form>
+          <a href="{% url 'catalogo:producto_eliminar' producto.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="empty-state">No hay productos registrados.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

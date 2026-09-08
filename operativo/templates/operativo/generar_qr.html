@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}QR Mesa {{ mesa.numero }} — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>QR — Mesa {{ mesa.numero }}</h1><p>El cliente escanea este código para ver el menú y pedir</p></div></div>
+<div class="card" style="max-width:420px; text-align:center;">
+  <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Mesa {{ mesa.numero }}" style="width:100%; border-radius:16px; background:white; padding:16px;">
+  <p style="color:#9ca3af; font-size:13px; word-break:break-all; margin-top:16px;">{{ url_menu }}</p>
+  <a href="{% url 'operativo:mesas_list' %}" class="btn btn-secondary" style="width:100%; margin-top:12px;">← Volver a Mesas</a>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Menú — Smart Bite{% endblock %}
+{% block content_publico %}
+<div style="max-width:720px; margin:0 auto; padding:32px 20px;">
+  <h1 style="text-align:center;">🍽️ Menú {% if mesa %}— Mesa {{ mesa.numero }}{% endif %}</h1>
+
+  {% for categoria in categorias %}
+    <h2 style="margin-top:32px; color:#a78bfa;">{{ categoria.nombre }}</h2>
+    <div class="grid grid-2">
+      {% for producto in categoria.productos.all %}
+        {% if producto.disponible %}
+        <div class="card">
+          {% if producto.url_imagen %}
+            <img src="{{ producto.url_imagen }}" alt="{{ producto.nombre }}" style="width:100%; border-radius:12px; margin-bottom:12px;">
+          {% endif %}
+          <h3 style="margin:0 0 4px;">{{ producto.nombre }}</h3>
+          <p style="color:#9ca3af; font-size:13px;">{{ producto.descripcion }}</p>
+          <p style="color:#4ade80; font-weight:700; font-size:18px;">{{ producto.precio|moneda }}</p>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% empty %}
+    <div class="empty-state">No hay productos disponibles en este momento.</div>
+  {% endfor %}
+</div>
+{% endblock %}

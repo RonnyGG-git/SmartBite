@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Cobrar Orden #{{ orden.id }} — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Cobrar Orden #{{ orden.id }}</h1><p>Mesa {{ orden.mesa.numero }}</p></div></div>
+
+<div class="card" style="max-width:480px;">
+  <div class="card" style="text-align:center; border-color:#22c55e; margin-bottom:20px;">
+    <p style="color:#9ca3af; margin:0;">Total a cobrar</p>
+    <h2 style="color:#4ade80; margin:4px 0 0;">{{ orden.total|moneda }}</h2>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions">
+      <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">✓ Cobrar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Nueva Compra — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Nueva Compra</h1><p>Registra una orden de compra a un proveedor</p></div></div>
+<div class="card" style="max-width:720px;">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <h3>Ítems a comprar</h3>
+    {{ formset.management_form }}
+    {% for f in formset %}
+      <div class="form-grid" style="border-bottom:1px solid #1f2937; padding-bottom:12px; margin-bottom:12px;">
+        {{ f.as_p }}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <a href="{% url 'inventario:compras_list' %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Crear Compra</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

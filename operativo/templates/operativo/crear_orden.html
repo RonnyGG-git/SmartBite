@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Nueva Orden — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Nueva Orden</h1><p>Selecciona la mesa y el cliente (opcional)</p></div></div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr;">
+  <div class="card">
+    <h2 style="margin-top:0;">Información de la Orden</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <a href="{% url 'operativo:mesas_list' %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Crear Orden →</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Cliente rápido</h3>
+    <p style="color:#9ca3af; font-size:13px;">¿El cliente no existe todavía? Créalo aquí y luego selecciónalo en el formulario.</p>
+    <form method="post" action="{% url 'operativo:crear_cliente_rapido' %}">
+      {% csrf_token %}
+      {{ cliente_form.as_p }}
+      <button type="submit" class="btn btn-secondary" style="width:100%;">Guardar Cliente</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

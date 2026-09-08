@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Orden #{{ orden.id }} — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Orden #{{ orden.id }} — Mesa {{ orden.mesa.numero }}</h1>
+    {% if orden.cliente %}<p>👤 {{ orden.cliente.nombre }}</p>{% endif %}
+  </div>
+  <span class="badge {% if orden.estado == 'CANCELADA' %}badge-danger{% elif orden.estado == 'ENTREGADA' %}badge-info{% elif orden.estado == 'LISTA' %}badge-success{% else %}badge-warning{% endif %}">
+    {{ orden.get_estado_display }}
+  </span>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr;">
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div style="padding:20px; border-bottom:1px solid #1f2937; display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">Productos ({{ orden.detalles.count }})</h2>
+    </div>
+    <table>
+      <tbody>
+        {% for d in orden.detalles.all %}
+        <tr>
+          <td>
+            <strong>{{ d.producto.nombre }}</strong><br>
+            <span style="color:#6b7280; font-size:13px;">{{ d.cantidad }} × {{ d.precio_unitario|moneda }}</span>
+          </td>
+          <td style="text-align:right; font-weight:700;">{{ d.subtotal|moneda }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2"><div class="empty-state">No hay productos en esta orden.</div></td></tr>
+        {% endfor %}
+        <tr><td style="font-weight:700;">Total</td><td style="text-align:right; font-weight:700; color:#4ade80; font-size:20px;">{{ orden.total|moneda }}</td></tr>
+      </tbody>
+    </table>
+
+    {% if not orden.es_final %}
+    <div style="padding:20px; border-top:1px solid #1f2937;">
+      <h3 style="margin-top:0;">Agregar producto</h3>
+      <form method="post" action="{% url 'operativo:agregar_producto' orden.pk %}" style="display:flex; gap:12px; align-items:flex-end;">
+        {% csrf_token %}
+        <div style="flex:2;">{{ agregar_form.producto }}</div>
+        <div style="flex:1;">{{ agregar_form.cantidad }}</div>
+        <button type="submit" class="btn btn-primary">+ Agregar</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Resumen</h3>
+    <p style="color:#9ca3af;">Fecha</p>
+    <p>{{ orden.creado_en|date:"d/m/Y H:i" }}</p>
+
+    {% if not orden.es_final %}
+      <h3>Cambiar Estado</h3>
+      <form method="post" action="{% url 'operativo:cambiar_estado_orden' orden.pk %}" style="display:flex; flex-direction:column; gap:8px;">
+        {% csrf_token %}
+        {% if orden.estado == "PENDIENTE" %}
+          <button type="submit" name="estado" value="EN_PREPARACION" class="btn btn-secondary">🔥 Enviar a Cocina</button>
+        {% elif orden.estado == "EN_PREPARACION" %}
+          <button type="submit" name="estado" value="LISTA" class="btn btn-secondary">✓ Marcar como Lista</button>
+        {% elif orden.estado == "LISTA" %}
+          <button type="submit" name="estado" value="ENTREGADA" class="btn btn-secondary">🚀 Marcar Entregada</button>
+        {% endif %}
+        <button type="submit" name="estado" value="CANCELADA" class="btn btn-danger">✕ Cancelar Orden</button>
+      </form>
+
+      <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary" style="width:100%; margin-top:16px;">
+        💰 Cobrar — {{ orden.total|moneda }}
+      </a>
+    {% else %}
+      <div class="alert {% if orden.estado == 'ENTREGADA' %}alert-success{% else %}alert-error{% endif %}" style="text-align:center;">
+        {% if orden.estado == "ENTREGADA" %}✓ Orden completada y cobrada{% else %}✕ Orden cancelada{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

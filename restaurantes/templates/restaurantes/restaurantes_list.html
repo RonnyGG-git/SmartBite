@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Restaurantes — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Restaurantes</h1>
+    <p>Gestión de restaurantes del sistema</p>
+  </div>
+  <a href="{% url 'restaurantes:restaurante_crear' %}" class="btn btn-primary">+ Nuevo Restaurante</a>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:28px;">
+  <div class="card card-stat" style="border-color:#3b82f6;">
+    <p>Total</p><h2 style="color:#3b82f6;">{{ restaurantes|length }}</h2>
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr><th>Restaurante</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for r in restaurantes %}
+      <tr>
+        <td><strong>{{ r.nombre }}</strong><br><span style="color:#6b7280; font-size:12px;">{{ r.direccion }}</span></td>
+        <td>{{ r.nif }}</td>
+        <td>{{ r.email }}</td>
+        <td>{{ r.telefono|default:"—" }}</td>
+        <td>
+          <span class="badge {% if r.activo %}badge-success{% else %}badge-danger{% endif %}">
+            {% if r.activo %}Activo{% else %}Inactivo{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'restaurantes:restaurante_editar' r.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <a href="{% url 'restaurantes:restaurante_eliminar' r.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="empty-state">No hay restaurantes registrados.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

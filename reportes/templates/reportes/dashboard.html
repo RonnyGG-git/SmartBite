@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Dashboard — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Dashboard</h1><p>Resumen general del sistema</p></div></div>
+
+<div class="grid grid-3" style="margin-bottom:28px;">
+  <div class="card card-stat" style="border-color:#3b82f6;"><p>Usuarios activos</p><h2 style="color:#3b82f6;">{{ total_usuarios }}</h2></div>
+  <div class="card card-stat" style="border-color:#a78bfa;"><p>Productos</p><h2 style="color:#a78bfa;">{{ total_productos }}</h2></div>
+  <div class="card card-stat" style="border-color:#22c55e;"><p>Mesas ocupadas</p><h2 style="color:#22c55e;">{{ mesas_ocupadas }} / {{ total_mesas }}</h2></div>
+  <div class="card card-stat" style="border-color:#eab308;"><p>Órdenes hoy</p><h2 style="color:#eab308;">{{ ordenes_hoy }}</h2></div>
+  <div class="card card-stat" style="border-color:#22c55e;"><p>Ventas hoy</p><h2 style="color:#22c55e;">{{ ventas_hoy|moneda }}</h2></div>
+  <div class="card card-stat" style="border-color:#ef4444;"><p>Ítems con stock bajo</p><h2 style="color:#ef4444;">{{ items_stock_bajo|length }}</h2></div>
+</div>
+
+{% if items_stock_bajo %}
+<div class="card">
+  <h2 style="margin-top:0;">⚠ Ítems con stock bajo</h2>
+  <table>
+    <thead><tr><th>Ítem</th><th>Stock actual</th><th>Mínimo</th><th>Sucursal</th></tr></thead>
+    <tbody>
+      {% for item in items_stock_bajo %}
+      <tr><td>{{ item.nombre }}</td><td style="color:#ef4444; font-weight:700;">{{ item.stock_actual }}</td><td>{{ item.stock_minimo }}</td><td>{{ item.sucursal.nombre }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

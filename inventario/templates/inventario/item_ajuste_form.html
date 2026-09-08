@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Ajustar Stock — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Ajustar Stock</h1><p>{{ item.nombre }} — Stock actual: {{ item.stock_actual }} {{ item.unidad_medida }}</p></div></div>
+<div class="card" style="max-width:480px;">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions">
+      <a href="{% url 'inventario:inventario_list' %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Confirmar Ajuste</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

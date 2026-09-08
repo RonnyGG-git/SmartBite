@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Usuarios — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Usuarios</h1>
+    <p>Gestión de usuarios del sistema</p>
+  </div>
+  <a href="{% url 'cuentas:usuario_crear' %}" class="btn btn-primary">+ Nuevo Usuario</a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th><th>Email</th><th>Rol</th><th>Sucursal</th><th>Estado</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for usuario in usuarios %}
+      <tr>
+        <td>{{ usuario.nombre }}</td>
+        <td>{{ usuario.email }}</td>
+        <td>{{ usuario.rol|default:"—" }}</td>
+        <td>{{ usuario.sucursal|default:"—" }}</td>
+        <td>
+          <span class="badge {% if usuario.is_active %}badge-success{% else %}badge-danger{% endif %}">
+            {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'cuentas:usuario_editar' usuario.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <form method="post" action="{% url 'cuentas:usuario_toggle_activo' usuario.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-secondary">
+              {% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="empty-state">No hay usuarios registrados.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

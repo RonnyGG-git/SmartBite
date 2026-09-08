@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Sucursales — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Sucursales</h1>
+    <p>Gestión de sucursales por restaurante</p>
+  </div>
+  <a href="{% url 'restaurantes:sucursal_crear' %}" class="btn btn-primary">+ Nueva Sucursal</a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr><th>Sucursal</th><th>Restaurante</th><th>Dirección</th><th>Estado</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sucursales %}
+      <tr>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.restaurante.nombre }}</td>
+        <td>{{ s.direccion|default:"—" }}</td>
+        <td>
+          <span class="badge {% if s.activo %}badge-success{% else %}badge-danger{% endif %}">
+            {% if s.activo %}Activa{% else %}Inactiva{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'restaurantes:sucursal_editar' s.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <a href="{% url 'restaurantes:sucursal_eliminar' s.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5"><div class="empty-state">No hay sucursales registradas.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

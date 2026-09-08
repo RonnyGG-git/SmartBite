@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Permisos de {{ rol }} — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Permisos — {{ rol.get_nombre_display }}</h1>
+    <p>Selecciona los permisos que tendrá este rol</p>
+  </div>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto; margin-bottom:20px;">
+      {% for checkbox in form.permisos %}
+        <label style="display:flex; align-items:center; gap:10px; background:#0f172a; border:1px solid #2e3b55; border-radius:12px; padding:12px; cursor:pointer;">
+          {{ checkbox.tag }}
+          <span style="color:white; font-size:14px;">{{ checkbox.choice_label }}</span>
+        </label>
+      {% empty %}
+        <p style="color:#9ca3af;">No hay permisos registrados. Créalos desde el panel de administración.</p>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <a href="{% url 'cuentas:roles_list' %}" class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Guardar Permisos</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

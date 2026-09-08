@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Categorías — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Categorías</h1>
+    <p>Agrupa los productos del menú</p>
+  </div>
+  <a href="{% url 'catalogo:categoria_crear' %}" class="btn btn-primary">+ Nueva Categoría</a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead><tr><th>Nombre</th><th>Productos</th><th>Acciones</th></tr></thead>
+    <tbody>
+      {% for categoria in categorias %}
+      <tr>
+        <td>{{ categoria.nombre }}</td>
+        <td>{{ categoria.productos.count }}</td>
+        <td>
+          <a href="{% url 'catalogo:categoria_editar' categoria.pk %}" class="btn btn-sm btn-ghost">Editar</a>
+          <a href="{% url 'catalogo:categoria_eliminar' categoria.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3"><div class="empty-state">No hay categorías registradas.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
