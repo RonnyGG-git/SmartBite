@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 -80 1440 1142.5" width="1400">
+<rect x="10" y="-80" width="1440" height="1142.5" fill="#1e1e2e"/>
+<rect x="60" y="40" width="260" height="140" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="190.0" y="76.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">CategoriaInsumo</text>
+<text x="190.0" y="96.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">---------------------</text>
+<text x="190.0" y="116.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">nombre: VARCHAR(100)</text>
+<text x="190.0" y="136.39999999999998" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">creado_en: TIMESTAMPTZ</text>
+<text x="190.0" y="156.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">actualizado_en: TIMESTAMPTZ</text>
+<rect x="60" y="260" width="440" height="340" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="3" opacity="1.0"/>
+<text x="280.0" y="306.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">ItemInventario</text>
+<text x="280.0" y="326.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">---------------------</text>
+<text x="280.0" y="346.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">codigo_unico: VARCHAR(30)</text>
+<text x="280.0" y="366.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">nombre: VARCHAR(150)</text>
+<text x="280.0" y="386.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">descripcion: VARCHAR(255)</text>
+<text x="280.0" y="406.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">unidad_medida: VARCHAR(20)</text>
+<text x="280.0" y="426.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">stock_actual: NUMERIC(12,3)</text>
+<text x="280.0" y="446.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">stock_minimo: NUMERIC(12,3)</text>
+<text x="280.0" y="466.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">costo_unitario: NUMERIC(10,2)</text>
+<text x="280.0" y="486.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">fecha_vencimiento: DATE</text>
+<text x="280.0" y="506.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">dias_alerta_vencimiento: INTEGER</text>
+<text x="280.0" y="526.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">activo: BOOLEAN</text>
+<text x="280.0" y="546.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">creado_en: TIMESTAMPTZ</text>
+<text x="280.0" y="566.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">actualizado_en: TIMESTAMPTZ</text>
+<rect x="640" y="260" width="400" height="320" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="3" opacity="1.0"/>
+<text x="840.0" y="306.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">MovimientoInventario</text>
+<text x="840.0" y="326.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">---------------------</text>
+<text x="840.0" y="346.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">tipo: VARCHAR(10)</text>
+<text x="840.0" y="366.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">cantidad_movimiento: NUMERIC(12,3)</text>
+<text x="840.0" y="386.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">cantidad_objetivo: NUMERIC(12,3)</text>
+<text x="840.0" y="406.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">stock_anterior: NUMERIC(12,3)</text>
+<text x="840.0" y="426.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">stock_nuevo: NUMERIC(12,3)</text>
+<text x="840.0" y="446.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">motivo: VARCHAR(255)</text>
+<text x="840.0" y="466.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">causa_perdida: VARCHAR(20)</text>
+<text x="840.0" y="486.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">origen_perdida: VARCHAR(10)</text>
+<text x="840.0" y="506.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">requiere_aprobacion: BOOLEAN</text>
+<text x="840.0" y="526.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">aprobado_en: TIMESTAMPTZ</text>
+<text x="840.0" y="546.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">creado_en: TIMESTAMPTZ</text>
+<rect x="40" y="700" width="300" height="160" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="190.0" y="736.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">SolicitudReabastecimiento</text>
+<text x="190.0" y="756.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">---------------------</text>
+<text x="190.0" y="776.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">cantidad_sugerida: NUMERIC(12,3)</text>
+<text x="190.0" y="796.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">estado: VARCHAR(10)</text>
+<text x="190.0" y="816.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">creado_en: TIMESTAMPTZ</text>
+<text x="190.0" y="836.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">actualizado_en: TIMESTAMPTZ</text>
+<rect x="380" y="700" width="300" height="160" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="736.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">ItemInventarioHistorial</text>
+<text x="530.0" y="756.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">---------------------</text>
+<text x="530.0" y="776.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">campo: VARCHAR(50)</text>
+<text x="530.0" y="796.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">valor_anterior: TEXT</text>
+<text x="530.0" y="816.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">valor_nuevo: TEXT</text>
+<text x="530.0" y="836.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">creado_en: TIMESTAMPTZ</text>
+<rect x="360" y="50" width="180" height="120" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="450.0" y="106.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">Sucursal</text>
+<text x="450.0" y="126.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">&lt;&lt;externo&gt;&gt;</text>
+<rect x="1180" y="300" width="240" height="120" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1300.0" y="356.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">Compra</text>
+<text x="1300.0" y="376.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">&lt;&lt;externo&gt;&gt;</text>
+<rect x="1180" y="470" width="240" height="440" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1300.0" y="686.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">Usuario</text>
+<text x="1300.0" y="706.4" fill="#e5e5e5" font-size="16" text-anchor="middle" font-family="Segoe UI, sans-serif">&lt;&lt;externo&gt;&gt;</text>
+<polyline points="190.0,260 190.0,180" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="640,420.0 500,420.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="190.0,700 190.0,600" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="450.0,700 450.0,600" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="450.0,260 450.0,170" fill="none" stroke="#8a8a9a" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="450.0,170.0 444.5,182.9 455.5,182.9" fill="#8a8a9a"/>
+<text x="458.0" y="221.8" fill="#c9c9d4" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">sucursal_id</text>
+<polyline points="1040,360.0 1180,360.0" fill="none" stroke="#8a8a9a" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1180.0,360.0 1167.1,354.5 1167.1,365.5" fill="#8a8a9a"/>
+<text x="1071.84" y="348.4" fill="#c9c9d4" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">compra_id</text>
+<polyline points="1040,530.0 1180,530.0" fill="none" stroke="#8a8a9a" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1180.0,530.0 1167.1,524.5 1167.1,535.5" fill="#8a8a9a"/>
+<text x="1059.12" y="554.4" fill="#c9c9d4" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">usuario_id</text>
+<text x="1059.12" y="574.4" fill="#c9c9d4" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">aprobado_por</text>
+<polyline points="680,780.0 1180,780.0" fill="none" stroke="#8a8a9a" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1180.0,780.0 1167.1,774.5 1167.1,785.5" fill="#8a8a9a"/>
+<text x="887.6" y="768.4" fill="#c9c9d4" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">usuario_id</text>
+<text x="198" y="200.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">1</text>
+<text x="198" y="252.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">0..*</text>
+<text x="508" y="412.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">1</text>
+<text x="598.08" y="412.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">0..*</text>
+<text x="198" y="620.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">1</text>
+<text x="198" y="692.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">0..*</text>
+<text x="458" y="620.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">1</text>
+<text x="458" y="692.4" fill="#a0a0a0" font-size="16" text-anchor="start" font-family="Segoe UI, sans-serif">0..*</text>
+<text x="40" y="978.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Línea sólida = asociación con FK real, con la multiplicidad en cada extremo</text>
+<text x="40" y="1003.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Línea punteada con flecha = dependencia hacia una tabla de otro módulo, todavía sin FK física (Decisión #4 del plan)</text>
+<text x="40" y="1028.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Atributos = columnas reales con su tipo SQL; no se listan id ni las FK (las FK son las asociaciones)</text>
+<text x="403.52" y="-21.300000000000004" fill="#e5e5e5" font-size="28" text-anchor="start" font-family="Segoe UI, sans-serif">Diagrama de Clases - Inventario (Smart Bite)</text>
+<text x="381.79" y="10.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Estructura del esquema de datos (5 tablas reales + dependencias externas)</text>
+</svg>

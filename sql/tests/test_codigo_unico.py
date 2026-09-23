@@ -1,3 +1,6 @@
+import threading
+import time
+
 import psycopg2
 import pytest
 
@@ -59,3 +62,62 @@ def test_permite_actualizar_otros_campos_sin_tocar_el_codigo(cursor):
     )
     cursor.execute("SELECT codigo_unico FROM item_inventario WHERE id = %s", (insumo_id,))
     assert cursor.fetchone()[0] == codigo_original
+
+
+# --- Verificación posterior (2026-09-23) ---
+
+def test_prefijo_usa_solo_letras_de_la_categoria(cursor):
+    # ADR 0002: "3 letras mayúsculas". Con un guion dentro de las 3 primeras
+    # posiciones, el segundo insumo fallaba al leer el secuencial del primero.
+    categoria_id = _crear_categoria(cursor, nombre="Té-hierbas")
+    id1 = _crear_insumo(cursor, categoria_id, nombre="Manzanilla")
+    id2 = _crear_insumo(cursor, categoria_id, nombre="Menta")
+    cursor.execute(
+        "SELECT codigo_unico FROM item_inventario WHERE id IN (%s, %s) ORDER BY id", (id1, id2)
+    )
+    assert [r[0] for r in cursor.fetchall()] == ["TEH-00001", "TEH-00002"]
+
+
+def test_dos_altas_concurrentes_misma_categoria_y_sucursal(esquema, database_url):
+    # Con MAX()+1 sin bloqueo, las dos transacciones calculaban el mismo
+    # secuencial y la segunda moría por UniqueViolation.
+    setup_conn = psycopg2.connect(database_url)
+    setup_conn.autocommit = True
+    with setup_conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO categoria_insumo (nombre) VALUES ('Concurrencia código') RETURNING id"
+        )
+        categoria_id = cur.fetchone()[0]
+    setup_conn.close()
+
+    barrera = threading.Barrier(2)
+    resultados = {}
+
+    def alta(nombre):
+        conn = psycopg2.connect(database_url)
+        try:
+            with conn.cursor() as cur:
+                barrera.wait()
+                cur.execute(
+                    """
+                    INSERT INTO item_inventario (nombre, unidad_medida, categoria_id, sucursal_id)
+                    VALUES (%s, 'kg', %s, 997) RETURNING codigo_unico
+                    """,
+                    (nombre, categoria_id),
+                )
+                resultados[nombre] = cur.fetchone()[0]
+                time.sleep(0.5)  # la transacción sigue abierta mientras la otra intenta
+            conn.commit()
+        except psycopg2.Error as error:
+            conn.rollback()
+            resultados[nombre] = type(error).__name__
+        finally:
+            conn.close()
+
+    hilos = [threading.Thread(target=alta, args=(f"Insumo concurrente {n}",)) for n in (1, 2)]
+    for hilo in hilos:
+        hilo.start()
+    for hilo in hilos:
+        hilo.join()
+
+    assert sorted(resultados.values()) == ["CON-00001", "CON-00002"]

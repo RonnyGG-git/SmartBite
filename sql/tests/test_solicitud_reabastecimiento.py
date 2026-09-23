@@ -143,3 +143,14 @@ def test_dos_salidas_concurrentes_generan_una_sola_solicitud(esquema, database_u
     verify_conn.close()
 
     assert cantidad_solicitudes == 1
+
+
+def test_rechaza_cantidad_sugerida_no_positiva(cursor):
+    # Verificación posterior (2026-09-23): faltaba el CHECK.
+    insumo_id = _crear_insumo_con_minimo(cursor, stock_minimo=10)
+    with pytest.raises(psycopg2.errors.CheckViolation):
+        cursor.execute(
+            "INSERT INTO solicitud_reabastecimiento (item_inventario_id, cantidad_sugerida) "
+            "VALUES (%s, 0)",
+            (insumo_id,),
+        )

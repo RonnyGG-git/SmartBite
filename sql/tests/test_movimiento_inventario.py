@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import psycopg2
 import pytest
 
@@ -102,17 +104,14 @@ def test_consultar_movimientos_filtrando_por_insumo_tipo_y_fecha(cursor):
     otro_insumo_id = _crear_insumo_y_categoria(cursor, categoria_nombre="Cárnicos",
                                                 nombre="Otro insumo")
 
-    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5)
+    # El primer movimiento se inserta ya con fecha de hace 10 días para poder
+    # filtrar por rango (el kardex no admite UPDATE para retroceder la fecha).
+    hace_10_dias = datetime.now(timezone.utc) - timedelta(days=10)
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5,
+                      creado_en=hace_10_dias)
     reciente_id = _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=2)
     _crear_movimiento(cursor, otro_insumo_id, "ENTRADA", cantidad_movimiento=5)
     _crear_movimiento(cursor, otro_insumo_id, "SALIDA", cantidad_movimiento=1)
-
-    # Retrocedemos la fecha del primer movimiento para poder filtrar por rango.
-    cursor.execute(
-        "UPDATE movimiento_inventario SET creado_en = now() - interval '10 days' "
-        "WHERE item_inventario_id = %s AND tipo = 'ENTRADA'",
-        (insumo_id,),
-    )
 
     cursor.execute(
         """
@@ -123,3 +122,24 @@ def test_consultar_movimientos_filtrando_por_insumo_tipo_y_fecha(cursor):
         (insumo_id,),
     )
     assert [r[0] for r in cursor.fetchall()] == [reciente_id]
+
+
+# --- Verificación posterior (2026-09-23): el kardex es de solo agregar ---
+
+def test_kardex_no_permite_editar_un_movimiento(cursor):
+    # Editar la cantidad de un movimiento ya aplicado dejaba el stock sin
+    # ningún movimiento que lo explique (rompe la trazabilidad de RF-18).
+    insumo_id = _crear_insumo_y_categoria(cursor)
+    mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
+    with pytest.raises(psycopg2.errors.RaiseException):
+        cursor.execute(
+            "UPDATE movimiento_inventario SET cantidad_movimiento = 999 WHERE id = %s",
+            (mov_id,),
+        )
+
+
+def test_kardex_no_permite_borrar_un_movimiento(cursor):
+    insumo_id = _crear_insumo_y_categoria(cursor)
+    mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
+    with pytest.raises(psycopg2.errors.RaiseException):
+        cursor.execute("DELETE FROM movimiento_inventario WHERE id = %s", (mov_id,))

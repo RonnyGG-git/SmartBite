@@ -1,0 +1,120 @@
+title: Diagrama de Clases - Inventario (Smart Bite)
+subtitle: Estructura del esquema de datos (5 tablas reales + dependencias externas)
+theme: dark
+
+# Layout: todas las aristas son rectas entre cajas alineadas (sin codos). La
+# skill aplica el mismo `offset` a los dos extremos de una flecha, así que
+# con codos o cajas desalineadas los extremos terminan fuera de la caja.
+#   fila 1: CategoriaInsumo, Sucursal      (encima de ItemInventario)
+#   fila 2: ItemInventario, MovimientoInventario, Compra
+#   fila 3: SolicitudReabastecimiento, ItemInventarioHistorial (debajo de
+#           ItemInventario), Usuario a la derecha (alto, recibe dos flechas)
+
+nodes:
+  - id: categoria
+    label: "CategoriaInsumo\n---------------------\nnombre: VARCHAR(100)\ncreado_en: TIMESTAMPTZ\nactualizado_en: TIMESTAMPTZ"
+    x: 60
+    y: 40
+    w: 260
+    h: 140
+    color: cyan
+    size: 16
+
+  - id: item
+    label: "ItemInventario\n---------------------\ncodigo_unico: VARCHAR(30)\nnombre: VARCHAR(150)\ndescripcion: VARCHAR(255)\nunidad_medida: VARCHAR(20)\nstock_actual: NUMERIC(12,3)\nstock_minimo: NUMERIC(12,3)\ncosto_unitario: NUMERIC(10,2)\nfecha_vencimiento: DATE\ndias_alerta_vencimiento: INTEGER\nactivo: BOOLEAN\ncreado_en: TIMESTAMPTZ\nactualizado_en: TIMESTAMPTZ"
+    x: 60
+    y: 260
+    w: 440
+    h: 340
+    color: cyan
+    size: 16
+    stroke_width: 3
+
+  - id: movimiento
+    label: "MovimientoInventario\n---------------------\ntipo: VARCHAR(10)\ncantidad_movimiento: NUMERIC(12,3)\ncantidad_objetivo: NUMERIC(12,3)\nstock_anterior: NUMERIC(12,3)\nstock_nuevo: NUMERIC(12,3)\nmotivo: VARCHAR(255)\ncausa_perdida: VARCHAR(20)\norigen_perdida: VARCHAR(10)\nrequiere_aprobacion: BOOLEAN\naprobado_en: TIMESTAMPTZ\ncreado_en: TIMESTAMPTZ"
+    x: 640
+    y: 260
+    w: 400
+    h: 320
+    color: cyan
+    size: 16
+    stroke_width: 3
+
+  - id: solicitud
+    label: "SolicitudReabastecimiento\n---------------------\ncantidad_sugerida: NUMERIC(12,3)\nestado: VARCHAR(10)\ncreado_en: TIMESTAMPTZ\nactualizado_en: TIMESTAMPTZ"
+    x: 40
+    y: 700
+    w: 300
+    h: 160
+    color: cyan
+    size: 16
+
+  - id: historial
+    label: "ItemInventarioHistorial\n---------------------\ncampo: VARCHAR(50)\nvalor_anterior: TEXT\nvalor_nuevo: TEXT\ncreado_en: TIMESTAMPTZ"
+    x: 380
+    y: 700
+    w: 300
+    h: 160
+    color: cyan
+    size: 16
+
+  # externas: tablas de otros módulos que todavía no existen en Neon
+  - id: sucursal
+    label: "Sucursal\n<<externo>>"
+    x: 360
+    y: 50
+    w: 180
+    h: 120
+    color: gray
+    style: dashed
+    size: 16
+
+  - id: compra
+    label: "Compra\n<<externo>>"
+    x: 1180
+    y: 300
+    w: 240
+    h: 120
+    color: gray
+    style: dashed
+    size: 16
+
+  - id: usuario
+    label: "Usuario\n<<externo>>"
+    x: 1180
+    y: 470
+    w: 240
+    h: 440
+    color: gray
+    style: dashed
+    size: 16
+
+edges:
+  # asociaciones reales (FK), sin etiqueta: la multiplicidad va en cada
+  # extremo como nota (ver notes)
+  - {from: item, to: categoria, arrow: none, from_side: top, to_side: bottom}
+  - {from: movimiento, to: item, arrow: none, from_side: left, to_side: right}
+  - {from: solicitud, to: item, arrow: none, from_side: top, to_side: bottom}
+  - {from: historial, to: item, arrow: none, from_side: top, to_side: bottom, offset: -80}
+
+  # dependencias hacia tablas externas sin FK física (Decisión #4 del plan)
+  - {from: item, to: sucursal, label: "sucursal_id", label_size: 16, style: dashed, color: gray, arrow: end, from_side: top, to_side: bottom, label_pos: right}
+  - {from: movimiento, to: compra, label: "compra_id", label_size: 16, style: dashed, color: gray, arrow: end, from_side: right, to_side: left}
+  - {from: movimiento, to: usuario, label: "usuario_id\naprobado_por", label_size: 16, style: dashed, color: gray, arrow: end, from_side: right, to_side: left, offset: 110, label_pos: below}
+  - {from: historial, to: usuario, label: "usuario_id", label_size: 16, style: dashed, color: gray, arrow: end, from_side: right, to_side: left}
+
+notes:
+  # multiplicidades UML en cada extremo de las asociaciones reales
+  - {text: "1",    x: 198, y: 184, size: 16}   # categoría
+  - {text: "0..*", x: 198, y: 236, size: 16}   # insumos de la categoría
+  - {text: "1",    x: 508, y: 396, size: 16}   # insumo
+  - {text: "0..*", x: 632, y: 396, size: 16, align: right}   # movimientos del insumo
+  - {text: "1",    x: 198, y: 604, size: 16}   # insumo
+  - {text: "0..*", x: 198, y: 676, size: 16}   # solicitudes del insumo
+  - {text: "1",    x: 458, y: 604, size: 16}   # insumo
+  - {text: "0..*", x: 458, y: 676, size: 16}   # cambios del insumo
+
+  # leyenda
+  - {text: "Línea sólida = asociación con FK real, con la multiplicidad en cada extremo", x: 40, y: 960, align: left}
+  - {text: "Línea punteada con flecha = dependencia hacia una tabla de otro módulo, todavía sin FK física (Decisión #4 del plan)", x: 40, y: 985, align: left}
+  - {text: "Atributos = columnas reales con su tipo SQL; no se listan id ni las FK (las FK son las asociaciones)", x: 40, y: 1010, align: left}

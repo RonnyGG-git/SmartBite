@@ -1,0 +1,109 @@
+title: Diagrama de Casos de Uso - Inventario (Smart Bite)
+subtitle: Qué puede hacer cada actor dentro del módulo de Inventario
+type: casos-de-uso
+theme: dark
+
+grid:
+  # 200 px entre la columna A y la B: <<include>> mide ~90 px y con menos
+  # espacio cualquier etiqueta termina encima de una linea.
+  cols: {act_izq: 20, uc_a: 380, uc_b: 880, act_der: 1240}
+  rows:
+    f1: 140
+    f2: 230
+    f3: 320
+    f4: 410
+    f5: 500
+    f6: 590
+    f7: 680
+    f8: 770
+    f9: 860
+    f10: 950
+    f11: 1040
+    f12: 1130
+    f13: 1220
+  node: {w: 300, h: 70}
+
+nodes:
+  - id: limite
+    label: INVENTARIO
+    x: 340
+    y: 100
+    w: 840
+    h: 1230
+    color: purple
+    zone: true
+    size: 20
+
+  # actores (fuera del límite) - cajas altas para que cada asociación
+  # salga horizontal a la altura de su caso de uso
+  - {id: almacen, label: "Jefe de\nAlmacén",          x: 20,   y: 60,   w: 230, h: 1330, color: cyan, size: 19}
+  - {id: compras, label: "Módulo de\nCompras",        x: 1240, y: 560,  w: 220, h: 300,  color: gray, size: 18}
+  - {id: menu,    label: "Módulo de Menú",            x: 1240, y: 1130, w: 220, h: 70,   color: gray, size: 18}
+  - {id: admin,   label: "Módulo de\nAdministración", x: 1240, y: 1220, w: 220, h: 80,   color: gray, size: 18}
+
+  # columna A: los 13 casos de uso con actor directo (Jefe de Almacén)
+  - {id: uc01, shape: ellipse, label: "Registrar producto",               col: uc_a, row: f1,  color: cyan}
+  - {id: uc02, shape: ellipse, label: "Consultar inventario",             col: uc_a, row: f2,  color: cyan}
+  - {id: uc03, shape: ellipse, label: "Actualizar producto",              col: uc_a, row: f3,  color: cyan}
+  - {id: uc16, shape: ellipse, label: "Desactivar producto",              col: uc_a, row: f4,  color: cyan}
+  - {id: uc04, shape: ellipse, label: "Controlar existencias",            col: uc_a, row: f5,  color: cyan}
+  - {id: uc15, shape: ellipse, label: "Enviar solicitud de\nreabastecimiento", col: uc_a, row: f6, color: cyan}
+  - {id: uc05, shape: ellipse, label: "Registrar entrada\nde inventario", col: uc_a, row: f7,  color: cyan}
+  - {id: uc06, shape: ellipse, label: "Registrar salida\nde inventario",  col: uc_a, row: f8,  color: cyan}
+  - {id: uc08, shape: ellipse, label: "Realizar ajuste\nde inventario",   col: uc_a, row: f9,  color: cyan}
+  - {id: uc07, shape: ellipse, label: "Consultar movimientos\nde inventario", col: uc_a, row: f10, color: cyan}
+  - {id: uc09, shape: ellipse, label: "Controlar productos\npróximos a vencer", col: uc_a, row: f11, color: cyan}
+  - {id: uc10, shape: ellipse, label: "Registrar pérdida\nde producto",   col: uc_a, row: f12, color: cyan}
+  - {id: uc12, shape: ellipse, label: "Generar reporte\nde inventario",   col: uc_a, row: f13, color: cyan}
+
+  # columna B: los 4 casos "satélite" sin asociación con el Jefe de Almacén
+  # (13, 11 y 17 solo se invocan vía include/extend; 14 además lo usa Menú).
+  # uc14 va en f12 (no f13) para que la asociación Administración -> uc12
+  # pase libre por debajo de ella.
+  - {id: uc13, shape: ellipse, label: "Clasificar producto\npor categoría", w: 260, col: uc_b, row: f1,  color: purple, style: dashed}
+  - {id: uc11, shape: ellipse, label: "Consultar stock mínimo",           w: 260, col: uc_b, row: f5,  color: purple, style: dashed}
+  - {id: uc17, shape: ellipse, label: "Registrar movimiento\nde inventario", w: 260, col: uc_b, row: f8, color: purple, style: dashed}
+  - {id: uc14, shape: ellipse, label: "Consultar stock\ndisponible",      w: 260, col: uc_b, row: f12, color: purple, style: dashed}
+
+edges:
+  # asociaciones actor - caso de uso (línea sólida, sin punta) - todas
+  # dentro de la columna A: nunca cruzan nada, salen horizontales
+  # uc01/uc02/uc10/uc12 fuerzan from_side/to_side: están tan cerca de las
+  # puntas de la caja alta del actor que best_sides() (distancia centro a
+  # centro) las confunde con conexiones arriba/abajo en vez de al costado.
+  - {from: almacen, to: uc01, arrow: none, from_side: right, to_side: left}
+  - {from: almacen, to: uc02, arrow: none, from_side: right, to_side: left}
+  - {from: almacen, to: uc03, arrow: none}
+  - {from: almacen, to: uc16, arrow: none}
+  - {from: almacen, to: uc04, arrow: none}
+  - {from: almacen, to: uc15, arrow: none}
+  - {from: almacen, to: uc05, arrow: none}
+  - {from: almacen, to: uc06, arrow: none}
+  - {from: almacen, to: uc08, arrow: none}
+  - {from: almacen, to: uc07, arrow: none}
+  - {from: almacen, to: uc09, arrow: none}
+  - {from: almacen, to: uc10, arrow: none, from_side: right, to_side: left}
+  - {from: almacen, to: uc12, arrow: none, from_side: right, to_side: left}
+  # offsets: las lineas de Compras llegan un poco por encima/debajo del
+  # centro de uc05/uc15, lejos de donde salen sus include/extend y etiquetas
+  - {from: compras, to: uc05, arrow: none, color: gray, from_side: left, to_side: right, offset: -28}
+  - {from: compras, to: uc15, arrow: none, color: gray, from_side: left, to_side: right, offset: 22}
+  - {from: menu,    to: uc14, arrow: none, color: gray}
+  - {from: admin,   to: uc12, arrow: none, color: gray, from_side: left, to_side: right, offset: 18}
+
+  # include / extend (línea punteada, con punta)
+  - {from: uc01, to: uc13, label: "<<include>>", style: dashed, color: purple, label_pos: above, label_offset: 22}
+  - {from: uc04, to: uc11, label: "<<include>>", style: dashed, color: purple, label_pos: above, label_offset: 22}
+  # las tres flechas que llegan a uc17 (y las dos de uc11) entran por lados
+  # distintos: si convergen en un mismo punto no queda lugar para etiquetas
+  - {from: uc15, to: uc11, label: "<<extend>>",  style: dashed, color: purple, from_side: right, to_side: bottom, label_pos: above, label_offset: 22}
+  - {from: uc05, to: uc17, label: "<<include>>", style: dashed, color: purple, from_side: right, to_side: top, label_pos: above, label_offset: 22}
+  - {from: uc06, to: uc17, label: "<<include>>", style: dashed, color: purple, from_side: right, to_side: left, label_pos: above, label_offset: 22}
+  - {from: uc08, to: uc17, label: "<<include>>", style: dashed, color: purple, from_side: right, to_side: bottom, label_pos: below, label_offset: 22}
+  - {from: uc10, to: uc09, label: "<<extend>>", style: dashed, color: purple, from_side: top, to_side: bottom, label_pos: left}
+  - {from: uc12, to: uc14, label: "<<include>>", style: dashed, color: purple, from_side: right, to_side: bottom, label_pos: above, label_offset: 22}
+
+notes:
+  - {text: "Línea sólida = asociación actor - caso de uso", x: 340, y: 1380}
+  - {text: "Línea punteada = <<include>> obligatorio  /  <<extend>> condicional", x: 340, y: 1405}
+  - {text: "Casos 13, 11 y 17: sin actor, se invocan desde otro caso de uso  /  14: además lo consulta el Módulo de Menú", x: 340, y: 1430}

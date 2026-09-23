@@ -125,3 +125,29 @@ def test_dos_salidas_concurrentes_no_dejan_stock_negativo(esquema, database_url)
     # Con stock=5 y dos salidas de 3 cada una, solo una puede tener éxito.
     assert list(resultados.values()).count("OK") == 1
     assert list(resultados.values()).count("RECHAZADO") == 1
+
+
+# --- Verificación posterior (2026-09-23) ---
+
+def test_salida_insuficiente_informa_el_stock_disponible(cursor):
+    # RF-14: "informará el stock insuficiente". Antes el error solo traía el
+    # nombre de la constraint, sin decir cuánto había ni cuánto se pidió.
+    insumo_id = _crear_insumo_y_categoria(cursor)
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=2)
+    with pytest.raises(psycopg2.errors.CheckViolation, match="Stock insuficiente"):
+        _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=5)
+
+
+def test_set_local_de_una_transaccion_anterior_no_rompe_los_movimientos(conn):
+    # Tras un SET LOCAL app.usuario_actual, la variable queda en '' (no
+    # NULL) el resto de la sesión, y el trigger de historial hacía
+    # ''::BIGINT en cada UPDATE de item_inventario — incluido el que hace
+    # cada movimiento. Con conexiones reutilizadas (Django, pooler), después
+    # de la primera edición de un insumo ningún movimiento funcionaba.
+    with conn.cursor() as cur:
+        cur.execute("SET LOCAL app.usuario_actual = 1")
+    conn.rollback()
+    with conn.cursor() as cur:
+        insumo_id = _crear_insumo_y_categoria(cur)
+        _crear_movimiento(cur, insumo_id, "ENTRADA", cantidad_movimiento=5)
+        assert _stock_actual(cur, insumo_id) == 5

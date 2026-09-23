@@ -2,6 +2,8 @@
 
 Fecha: 2026-09-23 · Suite: `pytest sql/tests` → 71 tests en verde, contra la
 rama de Neon `test-inventario-jose` (no la base real del equipo).
+**Actualizado tras la verificación posterior** (sección al final): 96 tests
+en verde, 13 defectos corregidos.
 
 ## RF por RF
 
@@ -78,3 +80,54 @@ migraciones) para reflejar `categoria_insumo`, `item_inventario`,
 `item_inventario_historial`, `movimiento_inventario` y
 `solicitud_reabastecimiento` — el tercer criterio de finalización de la
 spec, que ninguna tarea de esta ronda cubrió.
+
+## Verificación posterior (2026-09-23, segunda revisión)
+
+Una revisión adversarial del SQL ya validado (leerlo buscando cómo romperlo,
+no confirmando lo que se pensó al escribirlo) encontró defectos que los 71
+tests no veían. Cada uno se reprodujo primero contra la rama de prueba, se
+escribió un test que fallaba y recién después se corrigió el SQL.
+Resultado: `pytest sql/tests` → **96 tests en verde** (71 + 25 nuevos).
+
+| # | Defecto (reproducido) | RF | Corrección |
+|---|---|---|---|
+| 1 | Tras un `SET LOCAL app.usuario_actual`, la variable queda en `''` (no NULL) el resto de la sesión; `''::BIGINT` hacía fallar **todo movimiento posterior** en esa conexión (Django y los poolers reutilizan conexiones) | RF-4, RF-12/13 | `NULLIF(current_setting(...), '')` |
+| 2 | Mismo caso con `app.umbral_ajuste_aprobacion`: todo AJUSTE posterior fallaba | RF-17 | `NULLIF` |
+| 3 | Por el caso 1, `fn_generar_perdidas_vencimiento()` devolvía 0 **en silencio** (su `EXCEPTION WHEN OTHERS` tragaba el error) | RF-26 | se arregla con el caso 1 |
+| 4 | "Aprobar" un AJUSTE que ya se había aplicado solo volvía a fijar el stock y borraba el efecto de los movimientos posteriores | RF-17 | solo se aprueba un ajuste pendiente, una sola vez |
+| 5 | Un ajuste aprobado registraba el `stock_anterior` del momento de la solicitud, no el de la aprobación: el kardex dejaba de encadenar | RF-18 | se relee el stock con bloqueo al aprobar |
+| 6 | `fn_verificar_disponibilidad` descartaba los insumos inexistentes: una receta con un ingrediente inválido parecía disponible completa | RF-27 | `LEFT JOIN` → `disponible = false` |
+| 7 | El trigger de RF-7 bloqueaba **cualquier** UPDATE de un insumo inactivo (editar un dato, registrar la pérdida del stock restante, aprobar un ajuste), con un mensaje engañoso | RF-7 | `BEFORE UPDATE OF activo` |
+| 8 | `unidad_medida` y `sucursal_id` no quedaban en el historial | RF-4 | agregados al trigger |
+| 9 | `stock_actual` se podía cambiar con un UPDATE directo, o crear un insumo con stock, sin dejar rastro en el kardex | RF-12, trazabilidad | trigger que solo deja cambiar el stock vía movimientos |
+| 10 | El kardex y el historial se podían editar y borrar | RF-18, trazabilidad | tablas de solo agregar (salvo aprobar un ajuste) |
+| 11 | Dos altas simultáneas en la misma categoría y sucursal calculaban el mismo código y una fallaba con `UniqueViolation` | RF-1 | bloqueo consultivo por prefijo y sucursal |
+| 12 | Una categoría con guion en las 3 primeras letras (ej. "Té-hierbas") rompía el segundo alta; el prefijo podía no ser "3 letras" como dice el ADR 0002 | RF-1 | prefijo solo con letras |
+| 13 | El error de stock insuficiente solo nombraba la constraint, sin cifras | RF-14 | mensaje con disponible y solicitado |
+
+Además: `CHECK` de no negatividad en `costo_unitario`, `stock_minimo`,
+`dias_alerta_vencimiento` y `cantidad_sugerida > 0`; `actualizado_en` lo fija
+la base en cada UPDATE (antes solo lo refrescaban los movimientos, y
+`vista_reporte_inventario` lo expone para filtrar por fecha).
+
+**Test vacío corregido**: `test_permite_perdida_manual_por_otra_causa_el_mismo_dia`
+(uno de los dos tests de RF-38 en la tabla de arriba) usaba **otro insumo**,
+así que no probaba nada — el chequeo de RF-38 es por insumo. Ahora usa el
+mismo insumo.
+
+### Pendiente de decisión (no se cambió)
+- **RF-38 no dice lo mismo que el SQL.** La spec: no permitir una pérdida
+  *manual* si hay una *automática* "sin resolver". El plan y el SQL: no
+  permitir dos pérdidas por vencimiento (manuales o automáticas) *el mismo
+  día*. Hay que alinear uno con otro (cambio de Fase 8 si se toca la spec).
+- **Zona horaria**: la base está en GMT, así que "hoy" (RF-26 vencidos,
+  RF-38 mismo día) cambia a las 19:00 hora de Colombia — un insumo que vence
+  hoy se da por vencido esa misma noche. Se resuelve al desplegar con
+  `ALTER DATABASE ... SET timezone TO 'America/Bogota'` (afecta a todos los
+  módulos: decisión del equipo).
+- **El umbral de RF-17 lo fija la propia sesión** (`SET app.umbral...`):
+  quien registra el ajuste puede subirse el umbral y saltarse la aprobación.
+  Cuando existan roles, conviene moverlo a una tabla de configuración que
+  solo edite el Administrador.
+- RF-11 pide "señalar como no configurado" el insumo sin mínimo: hoy se
+  obtiene con `WHERE stock_minimo IS NULL`, no hay una vista dedicada.

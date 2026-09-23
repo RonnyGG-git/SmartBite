@@ -176,3 +176,21 @@ def test_disponibilidad_varios_insumos_a_la_vez(cursor):
     )
     resultado = dict(cursor.fetchall())
     assert resultado == {disponible_id: True, insuficiente_id: False}
+
+
+def test_disponibilidad_insumo_inexistente_se_reporta_no_disponible(cursor):
+    # Verificación posterior (2026-09-23): el JOIN descartaba en silencio el
+    # insumo desconocido, así que una receta con un ingrediente inexistente
+    # parecía disponible completa.
+    insumo_id = _crear_insumo_simple(cursor)
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
+
+    cursor.execute(
+        "SELECT item_inventario_id, disponible FROM fn_verificar_disponibilidad(%s::jsonb) "
+        "ORDER BY item_inventario_id",
+        (json.dumps([
+            {"item_inventario_id": insumo_id, "cantidad_requerida": 1},
+            {"item_inventario_id": 999999999, "cantidad_requerida": 1},
+        ]),),
+    )
+    assert cursor.fetchall() == [(insumo_id, True), (999999999, False)]

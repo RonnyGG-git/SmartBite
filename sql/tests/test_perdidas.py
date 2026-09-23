@@ -1,7 +1,7 @@
 import psycopg2
 import pytest
 
-from test_item_inventario import _crear_categoria, _crear_insumo
+from test_item_inventario import _crear_categoria, _crear_insumo, _set_usuario_actual
 from test_movimiento_inventario import _crear_movimiento
 
 
@@ -80,11 +80,41 @@ def test_permite_perdida_manual_por_otra_causa_el_mismo_dia(cursor):
     cursor.execute("SELECT fn_generar_perdidas_vencimiento()")
     assert cursor.fetchone()[0] == 1
 
-    # Ya no hay stock (la automática se llevó todo), pero un insumo distinto
-    # con causa distinta (DANIO) no debe verse bloqueado por RF-38.
-    otro_insumo_id = _crear_insumo_con_stock(cursor, 5, categoria_nombre="Cárnicos",
-                                              nombre="Otro insumo")
-    _crear_movimiento(cursor, otro_insumo_id, "SALIDA", cantidad_movimiento=2,
+    # Mismo insumo: entra mercancía nueva y se daña una parte. RF-38 solo
+    # mira la causa VENCIMIENTO, así que una pérdida por DANIO no se bloquea.
+    # (Verificación posterior: antes este test usaba OTRO insumo, y así no
+    # probaba nada de RF-38 — el chequeo es por insumo.)
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5)
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=2,
                        causa_perdida="DANIO", origen_perdida="MANUAL",
                        motivo="Golpe en bodega")
-    assert _stock_actual(cursor, otro_insumo_id) == 3
+    assert _stock_actual(cursor, insumo_id) == 3
+
+
+# --- Verificación posterior (2026-09-23) ---
+
+def test_perdidas_automaticas_no_se_omiten_si_la_sesion_ya_uso_set_local(conn):
+    # Con app.usuario_actual en '' (tras un SET LOCAL previo en la misma
+    # conexión), cada INSERT de pérdida fallaba por el cast y el EXCEPTION
+    # WHEN OTHERS de la función lo tragaba: devolvía 0 sin avisar.
+    with conn.cursor() as cur:
+        _set_usuario_actual(cur, 1)
+    conn.rollback()
+    with conn.cursor() as cur:
+        insumo_id = _crear_insumo_con_stock(cur, 4, fecha_vencimiento="2020-01-01")
+        cur.execute("SELECT fn_generar_perdidas_vencimiento()")
+        assert cur.fetchone()[0] == 1
+        assert _stock_actual(cur, insumo_id) == 0
+
+
+def test_registrar_perdida_de_un_insumo_inactivo(cursor):
+    # Dar de baja un insumo no debe impedir sacar el stock que le quedó. El
+    # trigger de RF-7 lo bloqueaba con un mensaje engañoso ("ya está
+    # inactivo") porque se disparaba en cualquier UPDATE del insumo.
+    insumo_id = _crear_insumo_con_stock(cursor, 6)
+    _set_usuario_actual(cursor, 1)
+    cursor.execute("UPDATE item_inventario SET activo = false WHERE id = %s", (insumo_id,))
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=6,
+                       causa_perdida="DANIO", origen_perdida="MANUAL",
+                       motivo="Retiro del stock restante")
+    assert _stock_actual(cursor, insumo_id) == 0
