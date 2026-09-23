@@ -4,4 +4,12 @@ __pycache__/
 db.sqlite3
 media/
 .env
+.env.test
 staticfiles/
+
+# Andamiaje de metodología SDD / trabajo con IA — no es parte del entregable
+# del equipo, no se sube al repo del curso.
+contexto/
+grafo-conocimiento/
+AGENTS.md
+CLAUDE.md
