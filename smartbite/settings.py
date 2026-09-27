@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'caja',
     'cocina',
     'menu_cliente',
+    'cliente',
     'reportes',
 ]
 

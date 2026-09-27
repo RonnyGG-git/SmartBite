@@ -8,17 +8,19 @@
     <h1>Insumos y stock</h1>
     <p>Controla existencias, mínimos y costos de cada insumo.</p>
   </div>
+  {% if puede_gestionar %}
   <div class="page-actions">
     <a href="{% url 'inventario:movimientos_list' %}" class="btn btn-ghost"><svg class="ico"><use href="#i-arrows"/></svg><span>Movimientos</span></a>
     <a href="{% url 'inventario:item_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo ítem</span></a>
   </div>
+  {% endif %}
 </div>
 
 <div class="card card-flush">
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Nombre</th><th class="num">Stock</th><th class="num">Mínimo</th><th>Unidad</th><th class="num">Costo unit.</th><th>Sucursal</th><th>Estado</th><th class="num">Acciones</th></tr>
+        <tr><th>Nombre</th><th class="num">Stock</th><th class="num">Mínimo</th><th>Unidad</th><th class="num">Costo unit.</th><th>Sucursal</th><th>Estado</th>{% if puede_gestionar %}<th class="num">Acciones</th>{% endif %}</tr>
       </thead>
       <tbody>
         {% for item in items %}
@@ -34,10 +36,10 @@
               {% if item.stock_bajo %}Stock bajo{% else %}Normal{% endif %}
             </span>
           </td>
-          <td class="actions">
+          {% if puede_gestionar %}<td class="actions">
             <a href="{% url 'inventario:item_ajustar' item.pk %}" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-sliders"/></svg><span>Ajustar</span></a>
             <a href="{% url 'inventario:item_editar' item.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
-          </td>
+          </td>{% endif %}
         </tr>
         {% empty %}
         <tr><td colspan="8">
@@ -45,7 +47,7 @@
             <svg class="ico"><use href="#i-box"/></svg>
             <strong>No hay ítems en inventario</strong>
             <span>Registra los insumos que usa la cocina para controlar su stock.</span>
-            <a href="{% url 'inventario:item_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo ítem</span></a>
+            {% if puede_gestionar %}<a href="{% url 'inventario:item_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo ítem</span></a>{% endif %}
           </div>
         </td></tr>
         {% endfor %}

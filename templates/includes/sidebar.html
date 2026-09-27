@@ -30,8 +30,9 @@
     {% if rol == "ADMINISTRADOR" or rol == "CAJERO" %}
       <div class="nav-group">
         <div class="nav-label">Caja</div>
-        <a class="sidebar-item" href="{% url 'caja:pagos_list' %}" data-match="/caja/"><svg class="ico"><use href="#i-card"/></svg>Pagos</a>
-        <a class="sidebar-item" href="{% url 'caja:ventas_list' %}"><svg class="ico"><use href="#i-receipt"/></svg>Ventas</a>
+        <a class="sidebar-item" href="{% url 'caja:por_cobrar' %}" data-match="/caja/ordenes/"><svg class="ico"><use href="#i-receipt"/></svg>Por cobrar</a>
+        <a class="sidebar-item" href="{% url 'caja:pagos_list' %}"><svg class="ico"><use href="#i-card"/></svg>Pagos</a>
+        <a class="sidebar-item" href="{% url 'caja:ventas_list' %}"><svg class="ico"><use href="#i-chart"/></svg>Ventas</a>
       </div>
     {% endif %}
 
@@ -39,9 +40,9 @@
       <div class="nav-group">
         <div class="nav-label">Catálogo e inventario</div>
         <a class="sidebar-item" href="{% url 'catalogo:productos_list' %}"><svg class="ico"><use href="#i-utensils"/></svg>Productos</a>
+        <a class="sidebar-item" href="{% url 'catalogo:categorias_list' %}"><svg class="ico"><use href="#i-tag"/></svg>Categorías</a>
         <a class="sidebar-item" href="{% url 'inventario:inventario_list' %}"><svg class="ico"><use href="#i-box"/></svg>Inventario</a>
         {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" %}
-          <a class="sidebar-item" href="{% url 'catalogo:categorias_list' %}"><svg class="ico"><use href="#i-tag"/></svg>Categorías</a>
           <a class="sidebar-item" href="{% url 'inventario:compras_list' %}"><svg class="ico"><use href="#i-cart"/></svg>Compras</a>
           <a class="sidebar-item" href="{% url 'inventario:proveedores_list' %}"><svg class="ico"><use href="#i-truck"/></svg>Proveedores</a>
           <a class="sidebar-item" href="{% url 'inventario:movimientos_list' %}"><svg class="ico"><use href="#i-arrows"/></svg>Movimientos</a>
@@ -56,6 +57,7 @@
         <a class="sidebar-item" href="{% url 'restaurantes:sucursales_list' %}"><svg class="ico"><use href="#i-store"/></svg>Sucursales</a>
         <a class="sidebar-item" href="{% url 'cuentas:usuarios_list' %}"><svg class="ico"><use href="#i-users"/></svg>Usuarios</a>
         <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}"><svg class="ico"><use href="#i-key"/></svg>Roles</a>
+        <a class="sidebar-item" href="{% url 'cliente:retroalimentacion_list' %}"><svg class="ico"><use href="#i-info"/></svg>Sugerencias</a>
       </div>
     {% endif %}
   </nav>

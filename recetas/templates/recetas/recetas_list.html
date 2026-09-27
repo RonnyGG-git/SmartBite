@@ -7,16 +7,18 @@
     <h1>Recetas</h1>
     <p>Ingredientes que consume cada producto del inventario.</p>
   </div>
+  {% if puede_gestionar %}
   <div class="page-actions">
     <a href="{% url 'cocina:cocina' %}" class="btn btn-ghost"><svg class="ico"><use href="#i-flame"/></svg><span>Cocina</span></a>
     <a href="{% url 'recetas:receta_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva receta</span></a>
   </div>
+  {% endif %}
 </div>
 
 <div class="card card-flush">
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Producto</th><th>Ingrediente</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">Stock disponible</th><th>Estado</th><th class="num">Acciones</th></tr></thead>
+      <thead><tr><th>Producto</th><th>Ingrediente</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">Stock disponible</th><th>Estado</th>{% if puede_gestionar %}<th class="num">Acciones</th>{% endif %}</tr></thead>
       <tbody>
         {% for receta in recetas %}
         <tr>
@@ -32,10 +34,10 @@
               {% if receta.activo %}Activa{% else %}Inactiva{% endif %}
             </span>
           </td>
-          <td class="actions">
+          {% if puede_gestionar %}<td class="actions">
             <a href="{% url 'recetas:receta_editar' receta.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
             <a href="{% url 'recetas:receta_eliminar' receta.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar receta de {{ receta.producto.nombre }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
-          </td>
+          </td>{% endif %}
         </tr>
         {% empty %}
         <tr><td colspan="7">
@@ -43,7 +45,7 @@
             <svg class="ico"><use href="#i-book"/></svg>
             <strong>No hay recetas registradas</strong>
             <span>Vincula productos con ítems de inventario para controlar el consumo.</span>
-            <a href="{% url 'recetas:receta_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva receta</span></a>
+            {% if puede_gestionar %}<a href="{% url 'recetas:receta_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva receta</span></a>{% endif %}
           </div>
         </td></tr>
         {% endfor %}

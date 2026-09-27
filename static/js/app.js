@@ -89,6 +89,7 @@
   (function envios() {
     document.addEventListener("submit", function (e) {
       var form = e.target;
+      if (e.defaultPrevented) return; // otro manejador ya canceló el envío
       if (form.dataset.enviando === "1") {
         e.preventDefault();
         return;
@@ -211,6 +212,57 @@
       });
     }, { rootMargin: "-40% 0px -55% 0px" });
     document.querySelectorAll(".menu-section[id]").forEach(function (s) { io.observe(s); });
+  })();
+
+  /* ---- Autopedido: selector de cantidades y total en vivo ---- */
+  (function autopedido() {
+    var form = document.querySelector("form[data-pedido]");
+    if (!form) return;
+    var barra = form.querySelector("[data-order-bar]");
+    var conteo = form.querySelector("[data-order-count]");
+    var totalEl = form.querySelector("[data-order-total]");
+    var inputs = form.querySelectorAll(".stepper-qty input");
+
+    function formatear(n) {
+      return "$" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    function recalcular(animar) {
+      var cantidad = 0;
+      var total = 0;
+      inputs.forEach(function (input) {
+        var max = parseInt(input.max, 10) || 20;
+        var v = Math.max(0, Math.min(max, parseInt(input.value, 10) || 0));
+        if (String(v) !== input.value) input.value = v;
+        var plato = input.closest(".dish");
+        plato.classList.toggle("is-selected", v > 0);
+        cantidad += v;
+        total += v * parseFloat(plato.dataset.precio || "0");
+      });
+      conteo.textContent = cantidad;
+      totalEl.textContent = formatear(total);
+      barra.classList.toggle("is-empty", cantidad === 0);
+      if (animar && !reduceMotion) {
+        totalEl.classList.remove("bump");
+        void totalEl.offsetWidth; // reinicia la animación
+        totalEl.classList.add("bump");
+      }
+    }
+
+    form.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-qty]");
+      if (!btn) return;
+      var input = btn.parentElement.querySelector("input");
+      input.value = (parseInt(input.value, 10) || 0) + parseInt(btn.dataset.qty, 10);
+      recalcular(true);
+    });
+    form.addEventListener("input", function (e) {
+      if (e.target.matches(".stepper-qty input")) recalcular(false);
+    });
+    // Sin platillos no se envía (el servidor también lo valida)
+    form.addEventListener("submit", function (e) {
+      if (barra.classList.contains("is-empty")) e.preventDefault();
+    }, true);
+    recalcular(false);
   })();
 
   /* ---- Acciones declarativas ---- */

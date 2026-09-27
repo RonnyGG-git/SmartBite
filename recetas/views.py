@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, usuario_tiene_rol
 
 from .forms import ProductoIngredienteForm
 from .models import ProductoIngrediente
@@ -16,6 +16,12 @@ class RecetaListView(RoleRequiredMixin, ListView):
     template_name = "recetas/recetas_list.html"
     context_object_name = "recetas"
     queryset = ProductoIngrediente.objects.select_related("producto", "item_inventario")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los roles de solo lectura no ven acciones que les darían 403
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
+        return contexto
 
 
 class RecetaCreateView(RoleRequiredMixin, CreateView):

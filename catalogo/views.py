@@ -3,12 +3,14 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, usuario_tiene_rol
 
 from .forms import CategoriaForm, ProductoForm
 from .models import Categoria, Producto
 
-ROLES_GESTION = ["ADMINISTRADOR", "JEFE_INVENTARIO"]
+# Platillos y categorías del menú: Administrador y Chef (Módulo de Menú del
+# diagrama de casos de uso). El Jefe de Inventario solo consulta.
+ROLES_GESTION = ["ADMINISTRADOR", "JEFE_COCINA"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_INVENTARIO", "JEFE_COCINA"]
 
 
@@ -18,6 +20,12 @@ class ProductoListView(RoleRequiredMixin, ListView):
     template_name = "catalogo/productos_list.html"
     context_object_name = "productos"
     queryset = Producto.objects.select_related("categoria", "sucursal")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los roles de solo lectura no ven acciones que les darían 403
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
+        return contexto
 
 
 class ProductoCreateView(RoleRequiredMixin, CreateView):
@@ -49,7 +57,7 @@ class ProductoDeleteView(RoleRequiredMixin, DeleteView):
 def producto_toggle_disponibilidad(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     usuario = request.user
-    permitido = usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_LECTURA)
+    permitido = usuario_tiene_rol(usuario, ROLES_GESTION)
     if permitido:
         producto.disponible = not producto.disponible
         producto.save(update_fields=["disponible"])
@@ -61,6 +69,12 @@ class CategoriaListView(RoleRequiredMixin, ListView):
     roles_permitidos = ROLES_LECTURA
     template_name = "catalogo/categorias_list.html"
     context_object_name = "categorias"
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los roles de solo lectura no ven acciones que les darían 403
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
+        return contexto
 
 
 class CategoriaCreateView(RoleRequiredMixin, CreateView):

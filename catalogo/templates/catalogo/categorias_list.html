@@ -8,29 +8,29 @@
     <h1>Categorías</h1>
     <p>Agrupan los productos del menú.</p>
   </div>
-  <a href="{% url 'catalogo:categoria_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva categoría</span></a>
+  {% if puede_gestionar %}<a href="{% url 'catalogo:categoria_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva categoría</span></a>{% endif %}
 </div>
 
 <div class="card card-flush medium">
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Nombre</th><th class="num">Productos</th><th class="num">Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th class="num">Productos</th>{% if puede_gestionar %}<th class="num">Acciones</th>{% endif %}</tr></thead>
       <tbody>
         {% for categoria in categorias %}
         <tr>
           <td class="cell-title">{{ categoria.nombre }}</td>
           <td class="num">{{ categoria.productos.count }}</td>
-          <td class="actions">
+          {% if puede_gestionar %}<td class="actions">
             <a href="{% url 'catalogo:categoria_editar' categoria.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
             <a href="{% url 'catalogo:categoria_eliminar' categoria.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar {{ categoria.nombre }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
-          </td>
+          </td>{% endif %}
         </tr>
         {% empty %}
         <tr><td colspan="3">
           <div class="empty-state">
             <svg class="ico"><use href="#i-tag"/></svg>
             <strong>No hay categorías registradas</strong>
-            <a href="{% url 'catalogo:categoria_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva categoría</span></a>
+            {% if puede_gestionar %}<a href="{% url 'catalogo:categoria_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva categoría</span></a>{% endif %}
           </div>
         </td></tr>
         {% endfor %}

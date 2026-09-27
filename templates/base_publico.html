@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% comment %}
+Layout para páginas públicas (sin sidebar). A diferencia de `content_publico`
+en base.html, se muestra igual haya o no una sesión abierta: un mesero logueado
+que abre el menú del cliente ve lo mismo que el comensal.
+{% endcomment %}
+{% block shell %}
+  <div id="contenido">
+    {% block content_publico %}{% endblock %}
+  </div>
+  {% include "includes/toasts.html" %}
+{% endblock %}

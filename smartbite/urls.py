@@ -15,6 +15,7 @@ urlpatterns = [
     path('caja/', include('caja.urls')),
     path('cocina/', include('cocina.urls')),
     path('menu/', include('menu_cliente.urls')),
+    path('cliente/', include('cliente.urls')),
     path('', include('reportes.urls')),
 ]
 

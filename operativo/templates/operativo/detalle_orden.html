@@ -57,7 +57,7 @@
       </table>
     </div>
 
-    {% if not orden.es_final %}
+    {% if puede_operar and orden.estado == "PENDIENTE" %}
     <div class="card-foot">
       <form method="post" action="{% url 'operativo:agregar_producto' orden.pk %}" class="add-row">
         {% csrf_token %}
@@ -81,25 +81,39 @@
       <div><dt>Mesa</dt><dd>{{ orden.mesa.numero }}</dd></div>
       <div><dt>Creada</dt><dd class="mono">{{ orden.creado_en|date:"d/m/Y H:i" }}</dd></div>
       <div><dt>Total</dt><dd class="mono money">{{ orden.total|moneda }}</dd></div>
+      <div><dt>Origen</dt><dd>{{ orden.get_origen_display }}</dd></div>
+      {% if orden.listo_estimado_en and not orden.es_final %}<div><dt>Listo aprox.</dt><dd class="mono">{{ orden.listo_estimado_en|time:"H:i" }}</dd></div>{% endif %}
     </dl>
 
     {% if not orden.es_final %}
-      <h3 class="section-title">Cambiar estado</h3>
-      <form method="post" action="{% url 'operativo:cambiar_estado_orden' orden.pk %}" class="stack stack-tight">
-        {% csrf_token %}
-        {% if orden.estado == "PENDIENTE" %}
-          <button type="submit" name="estado" value="EN_PREPARACION" class="btn btn-secondary"><svg class="ico"><use href="#i-flame"/></svg><span>Enviar a cocina</span></button>
-        {% elif orden.estado == "EN_PREPARACION" %}
-          <button type="submit" name="estado" value="LISTA" class="btn btn-secondary"><svg class="ico"><use href="#i-check"/></svg><span>Marcar como lista</span></button>
-        {% elif orden.estado == "LISTA" %}
-          <button type="submit" name="estado" value="ENTREGADA" class="btn btn-ok"><svg class="ico"><use href="#i-check"/></svg><span>Marcar entregada</span></button>
-        {% endif %}
-        <button type="submit" name="estado" value="CANCELADA" class="btn btn-quiet is-danger"><svg class="ico"><use href="#i-x"/></svg><span>Cancelar orden</span></button>
-      </form>
+      {% if orden.estado == "PENDIENTE" or orden.estado == "EN_PREPARACION" %}
+        <p class="notice mt-16"><svg class="ico"><use href="#i-flame"/></svg><span>{% if orden.estado == "PENDIENTE" %}En la cola de cocina. Puedes agregar productos o cancelarla hasta que el chef la empiece.{% else %}El chef la está preparando.{% endif %}</span></p>
+      {% endif %}
 
-      <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary btn-lg btn-block mt-16">
-        <svg class="ico"><use href="#i-card"/></svg><span>Cobrar {{ orden.total|moneda }}</span>
-      </a>
+      {% if puede_operar %}
+        {% if orden.estado == "LISTA" %}
+          {% if orden.cuenta_solicitada_en %}
+            <p class="notice notice-accent mt-16"><svg class="ico"><use href="#i-receipt"/></svg><span>Cuenta enviada a caja hace {{ orden.cuenta_solicitada_en|timesince }}.</span></p>
+          {% else %}
+            <form method="post" action="{% url 'operativo:solicitar_cuenta' orden.pk %}" class="mt-16">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-block"><svg class="ico"><use href="#i-receipt"/></svg><span>Solicitar cuenta</span></button>
+            </form>
+          {% endif %}
+        {% endif %}
+        {% if orden.estado == "PENDIENTE" %}
+          <form method="post" action="{% url 'operativo:cambiar_estado_orden' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <button type="submit" name="estado" value="CANCELADA" class="btn btn-quiet is-danger btn-block"><svg class="ico"><use href="#i-x"/></svg><span>Cancelar orden y liberar mesa</span></button>
+          </form>
+        {% endif %}
+      {% endif %}
+
+      {% if puede_cobrar %}
+        <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary btn-lg btn-block mt-16">
+          <svg class="ico"><use href="#i-card"/></svg><span>Cobrar {{ orden.total|moneda }}</span>
+        </a>
+      {% endif %}
     {% else %}
       <div class="alert {% if orden.estado == 'ENTREGADA' %}alert-success{% else %}alert-error{% endif %} mt-16">
         <svg class="ico"><use href="#{% if orden.estado == 'ENTREGADA' %}i-check{% else %}i-x{% endif %}"/></svg>

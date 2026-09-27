@@ -2,13 +2,15 @@ import base64
 from io import BytesIO
 
 import qrcode
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from catalogo.models import Producto
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
 from .models import Cliente, DetalleOrden, Mesa, Orden
@@ -16,6 +18,7 @@ from .models import Cliente, DetalleOrden, Mesa, Orden
 ROLES_ADMIN = ["ADMINISTRADOR"]
 ROLES_MESERO = ["ADMINISTRADOR", "MESERO"]
 ROLES_ORDEN = ["ADMINISTRADOR", "MESERO", "CAJERO"]
+ROLES_CAJA = ["ADMINISTRADOR", "CAJERO"]
 
 
 class MesaListView(RoleRequiredMixin, ListView):
@@ -52,8 +55,7 @@ class MesaDeleteView(RoleRequiredMixin, DeleteView):
 
 
 def crear_orden(request):
-    usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_MESERO)):
+    if not usuario_tiene_rol(request.user, ROLES_MESERO):
         return redirect("operativo:mesas_list")
 
     mesa_id = request.GET.get("mesaId")
@@ -77,11 +79,12 @@ def crear_orden(request):
     )
 
 
+@require_POST
+@rol_requerido(*ROLES_MESERO)
 def crear_cliente_rapido(request):
-    if request.method == "POST":
-        form = ClienteRapidoForm(request.POST)
-        if form.is_valid():
-            form.save()
+    form = ClienteRapidoForm(request.POST)
+    if form.is_valid():
+        form.save()
     return redirect(request.META.get("HTTP_REFERER", reverse("operativo:crear_orden")))
 
 
@@ -95,43 +98,78 @@ class DetalleOrdenView(RoleRequiredMixin, DetailView):
         contexto = super().get_context_data(**kwargs)
         productos_qs = Producto.objects.filter(disponible=True, sucursal=self.object.mesa.sucursal)
         contexto["agregar_form"] = AgregarProductoForm(productos_qs=productos_qs)
+        # Qué acciones ve cada rol (las vistas POST vuelven a validarlo)
+        contexto["puede_operar"] = usuario_tiene_rol(self.request.user, ROLES_MESERO)
+        contexto["puede_cobrar"] = usuario_tiene_rol(self.request.user, ROLES_CAJA)
         return contexto
 
 
 @require_POST
+@rol_requerido(*ROLES_MESERO)
 def agregar_producto(request, pk):
+    """CU-PED-06 Modificar pedido: solo antes de que cocina empiece a prepararlo."""
     orden = get_object_or_404(Orden, pk=pk)
+    if orden.estado != Orden.PENDIENTE:
+        messages.error(request, "La orden ya está en cocina; no se pueden agregar productos.")
+        return redirect("operativo:detalle_orden", pk=pk)
     productos_qs = Producto.objects.filter(disponible=True, sucursal=orden.mesa.sucursal)
-    if request.method == "POST":
-        form = AgregarProductoForm(request.POST, productos_qs=productos_qs)
-        if form.is_valid():
-            producto = form.cleaned_data["producto"]
-            DetalleOrden.objects.create(
-                orden=orden,
-                producto=producto,
-                cantidad=form.cleaned_data["cantidad"],
-                precio_unitario=producto.precio,
-            )
+    form = AgregarProductoForm(request.POST, productos_qs=productos_qs)
+    if form.is_valid():
+        producto = form.cleaned_data["producto"]
+        DetalleOrden.objects.create(
+            orden=orden,
+            producto=producto,
+            cantidad=form.cleaned_data["cantidad"],
+            precio_unitario=producto.precio,
+        )
+    return redirect("operativo:detalle_orden", pk=pk)
+
+
+# Transiciones que el Mesero puede hacer desde el detalle de la orden. Las de
+# preparación (PENDIENTE -> EN_PREPARACION -> LISTA) son del Chef, en cocina, y
+# el cierre (ENTREGADA) lo hace caja al cobrar, para que no haya ventas sin pago.
+TRANSICIONES_MESERO = {
+    Orden.CANCELADA: {Orden.PENDIENTE},  # CU-PED-07: antes de que se prepare
+}
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def solicitar_cuenta(request, pk):
+    """CU-PED-14 Solicitar cuenta (incluye CU-PED-15 Enviar total del pedido):
+    la orden pasa a la lista "Por cobrar" de caja."""
+    orden = get_object_or_404(Orden, pk=pk)
+    if orden.estado != Orden.LISTA:
+        messages.error(request, "Solo se puede pedir la cuenta de una orden lista y servida.")
+    elif orden.cuenta_solicitada_en is None:
+        orden.cuenta_solicitada_en = timezone.now()
+        orden.save(update_fields=["cuenta_solicitada_en", "actualizado_en"])
+        messages.success(request, f"Cuenta de la mesa {orden.mesa.numero} enviada a caja.")
     return redirect("operativo:detalle_orden", pk=pk)
 
 
 @require_POST
+@rol_requerido(*ROLES_MESERO)
 def cambiar_estado_orden(request, pk):
     orden = get_object_or_404(Orden, pk=pk)
-    if request.method == "POST":
-        form = CambiarEstadoOrdenForm(request.POST)
-        if form.is_valid():
-            orden.estado = form.cleaned_data["estado"]
-            orden.save(update_fields=["estado"])
-            if orden.estado in (Orden.ENTREGADA, Orden.CANCELADA):
-                orden.mesa.estado = Mesa.DISPONIBLE
-                orden.mesa.save(update_fields=["estado"])
+    form = CambiarEstadoOrdenForm(request.POST)
+    if form.is_valid():
+        nuevo = form.cleaned_data["estado"]
+        if orden.estado not in TRANSICIONES_MESERO.get(nuevo, set()):
+            messages.error(request, "Ese cambio de estado no está permitido para esta orden.")
+            return redirect("operativo:detalle_orden", pk=pk)
+        orden.estado = nuevo
+        orden.save(update_fields=["estado"])
+        if nuevo in (Orden.ENTREGADA, Orden.CANCELADA):
+            # CU-PED-21: al cancelar (o cerrar) el pedido la mesa queda libre
+            orden.mesa.estado = Mesa.DISPONIBLE
+            orden.mesa.save(update_fields=["estado"])
     return redirect("operativo:detalle_orden", pk=pk)
 
 
 def generar_qr(request, mesa_id):
     mesa = get_object_or_404(Mesa, pk=mesa_id)
-    url_menu = request.build_absolute_uri(reverse("menu_cliente:menu") + f"?mesa={mesa.id}")
+    url_menu = request.build_absolute_uri(reverse("cliente:mesa", args=[mesa.id]))
 
     imagen = qrcode.make(url_menu)
     buffer = BytesIO()
