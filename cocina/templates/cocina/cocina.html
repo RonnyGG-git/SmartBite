@@ -1,23 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Cocina — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Cocina</h1><p>Órdenes pendientes de preparar</p></div></div>
-<div class="grid grid-3">
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Pantalla de cocina</span>
+    <h1>Comandas</h1>
+    <p>Órdenes pendientes y en preparación, las más recientes primero.</p>
+  </div>
+  {% if ordenes %}<span class="badge badge-warning badge-lg badge-plain"><span class="pulse-dot" aria-hidden="true"></span>{{ ordenes|length }} en curso</span>{% endif %}
+</div>
+
+<div class="tickets stagger">
   {% for orden in ordenes %}
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-      <h3 style="margin:0;">Mesa {{ orden.mesa.numero }} — #{{ orden.id }}</h3>
-      <span class="badge {% if orden.estado == 'PENDIENTE' %}badge-warning{% else %}badge-info{% endif %}">{{ orden.get_estado_display }}</span>
-    </div>
-    <ul style="padding-left:18px; color:#cbd5e1;">
+  <article class="ticket" data-estado="{{ orden.estado }}">
+    <header class="ticket-head">
+      <div>
+        <div class="ticket-mesa">Mesa {{ orden.mesa.numero }}</div>
+        <div class="ticket-id">#{{ orden.id }} · {{ orden.creado_en|date:"H:i" }}</div>
+      </div>
+      <span class="ticket-state">
+        {% if orden.estado == "PENDIENTE" %}<span class="pulse-dot" aria-hidden="true"></span>{% endif %}
+        {{ orden.get_estado_display }}
+      </span>
+    </header>
+    <ul class="ticket-items">
       {% for d in orden.detalles.all %}
-        <li>{{ d.cantidad }} × {{ d.producto.nombre }}</li>
+        <li><span class="ticket-qty">{{ d.cantidad }}×</span><span>{{ d.producto.nombre }}</span></li>
+      {% empty %}
+        <li class="subtle">Sin productos todavía</li>
       {% endfor %}
     </ul>
-    <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-primary" style="width:100%;">Ver Orden</a>
-  </div>
+    <footer class="ticket-foot">
+      <span><svg class="ico ico-sm"><use href="#i-clock"/></svg> hace {{ orden.creado_en|timesince }}</span>
+      <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-sm">Ver orden<svg class="ico"><use href="#i-arrow-right"/></svg></a>
+    </footer>
+  </article>
   {% empty %}
-  <div class="empty-state">No hay órdenes pendientes 🎉</div>
+  <div class="empty-state">
+    <svg class="ico"><use href="#i-flame"/></svg>
+    <strong>No hay comandas pendientes</strong>
+    <span>Las órdenes enviadas a cocina aparecerán aquí.</span>
+  </div>
   {% endfor %}
 </div>
 {% endblock %}

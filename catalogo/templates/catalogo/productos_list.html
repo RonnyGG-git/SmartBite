@@ -4,47 +4,58 @@
 {% block content %}
 <div class="page-header">
   <div>
+    <span class="eyebrow">Catálogo</span>
     <h1>Productos</h1>
-    <p>Administra el menú y disponibilidad de productos</p>
+    <p>Administra el menú y la disponibilidad de cada producto.</p>
   </div>
-  <div style="display:flex; gap:12px;">
-    <a href="{% url 'catalogo:categorias_list' %}" class="btn btn-ghost">🏷️ Categorías</a>
-    <a href="{% url 'catalogo:producto_crear' %}" class="btn btn-primary">+ Nuevo Producto</a>
+  <div class="page-actions">
+    <a href="{% url 'catalogo:categorias_list' %}" class="btn btn-ghost"><svg class="ico"><use href="#i-tag"/></svg><span>Categorías</span></a>
+    <a href="{% url 'catalogo:producto_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo producto</span></a>
   </div>
 </div>
 
-<div class="card" style="padding:0; overflow:hidden;">
-  <table>
-    <thead>
-      <tr><th>Producto</th><th>Precio</th><th>Categoría</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr>
-    </thead>
-    <tbody>
-      {% for producto in productos %}
-      <tr>
-        <td><strong>{{ producto.nombre }}</strong><br><span style="color:#6b7280; font-size:12px;">ID #{{ producto.id }}</span></td>
-        <td style="color:#4ade80; font-weight:700;">{{ producto.precio|moneda }}</td>
-        <td><span class="badge badge-info">{{ producto.categoria.nombre }}</span></td>
-        <td>{{ producto.sucursal.nombre }}</td>
-        <td>
-          <span class="badge {% if producto.disponible %}badge-success{% else %}badge-danger{% endif %}">
-            {% if producto.disponible %}Disponible{% else %}No Disponible{% endif %}
-          </span>
-        </td>
-        <td>
-          <a href="{% url 'catalogo:producto_editar' producto.pk %}" class="btn btn-sm btn-ghost">Editar</a>
-          <form method="post" action="{% url 'catalogo:producto_toggle_disponibilidad' producto.pk %}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-secondary">
-              {% if producto.disponible %}Desactivar{% else %}Activar{% endif %}
-            </button>
-          </form>
-          <a href="{% url 'catalogo:producto_eliminar' producto.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6"><div class="empty-state">No hay productos registrados.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Producto</th><th class="num">Precio</th><th>Categoría</th><th>Sucursal</th><th>Estado</th><th class="num">Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for producto in productos %}
+        <tr>
+          <td>
+            <span class="cell-title">{{ producto.nombre }}</span>
+            <span class="cell-sub mono">ID #{{ producto.id }}</span>
+          </td>
+          <td class="num money">{{ producto.precio|moneda }}</td>
+          <td><span class="badge badge-muted badge-plain">{{ producto.categoria.nombre }}</span></td>
+          <td class="muted">{{ producto.sucursal.nombre }}</td>
+          <td>
+            <span class="badge {% if producto.disponible %}badge-success{% else %}badge-danger{% endif %}">
+              {% if producto.disponible %}Disponible{% else %}No disponible{% endif %}
+            </span>
+          </td>
+          <td class="actions">
+            <form method="post" action="{% url 'catalogo:producto_toggle_disponibilidad' producto.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-power"/></svg><span>{% if producto.disponible %}Desactivar{% else %}Activar{% endif %}</span></button>
+            </form>
+            <a href="{% url 'catalogo:producto_editar' producto.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+            <a href="{% url 'catalogo:producto_eliminar' producto.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar {{ producto.nombre }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-utensils"/></svg>
+            <strong>No hay productos registrados</strong>
+            <span>Crea el primero para que aparezca en el menú.</span>
+            <a href="{% url 'catalogo:producto_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo producto</span></a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

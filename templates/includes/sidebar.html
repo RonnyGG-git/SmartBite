@@ -1,47 +1,77 @@
 {% with rol=user.rol.nombre %}
-<aside class="sidebar">
-  <div class="sidebar-brand">🍽️ Smart Bite</div>
+<aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+  <div class="sidebar-brand">
+    <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+    <span>Smart Bite<span class="brand-sub">Gestión de restaurante</span></span>
+  </div>
 
-  {% if rol == "ADMINISTRADOR" %}
-    <a class="sidebar-item" href="{% url 'reportes:dashboard' %}">📊 Dashboard</a>
-    <a class="sidebar-item" href="{% url 'reportes:reportes' %}">📈 Reportes</a>
-    <a class="sidebar-item" href="{% url 'restaurantes:restaurantes_list' %}">🏢 Restaurantes</a>
-    <a class="sidebar-item" href="{% url 'restaurantes:sucursales_list' %}">🏬 Sucursales</a>
-    <a class="sidebar-item" href="{% url 'cuentas:usuarios_list' %}">👥 Usuarios</a>
-    <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}">🔐 Roles</a>
-  {% endif %}
+  <nav>
+    {% if rol == "ADMINISTRADOR" %}
+      <div class="nav-group">
+        <div class="nav-label">General</div>
+        <a class="sidebar-item" href="{% url 'reportes:dashboard' %}"><svg class="ico"><use href="#i-grid"/></svg>Dashboard</a>
+        <a class="sidebar-item" href="{% url 'reportes:reportes' %}"><svg class="ico"><use href="#i-chart"/></svg>Reportes</a>
+      </div>
+    {% endif %}
 
-  {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" or rol == "JEFE_COCINA" %}
-    <a class="sidebar-item" href="{% url 'catalogo:productos_list' %}">🍔 Productos</a>
-    <a class="sidebar-item" href="{% url 'inventario:inventario_list' %}">📦 Inventario</a>
-  {% endif %}
+    {% if rol == "ADMINISTRADOR" or rol == "MESERO" or rol == "JEFE_COCINA" %}
+      <div class="nav-group">
+        <div class="nav-label">Servicio</div>
+        {% if rol == "ADMINISTRADOR" or rol == "MESERO" %}
+          <a class="sidebar-item" href="{% url 'operativo:mesas_list' %}" data-match="/operativo/"><svg class="ico"><use href="#i-table"/></svg>Mesas</a>
+        {% endif %}
+        {% if rol == "ADMINISTRADOR" or rol == "JEFE_COCINA" %}
+          <a class="sidebar-item" href="{% url 'cocina:cocina' %}"><svg class="ico"><use href="#i-flame"/></svg>Cocina</a>
+          <a class="sidebar-item" href="{% url 'recetas:recetas_list' %}"><svg class="ico"><use href="#i-book"/></svg>Recetas</a>
+        {% endif %}
+      </div>
+    {% endif %}
 
-  {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" %}
-    <a class="sidebar-item" href="{% url 'inventario:compras_list' %}">🛒 Compras</a>
-    <a class="sidebar-item" href="{% url 'inventario:proveedores_list' %}">🚚 Proveedores</a>
-    <a class="sidebar-item" href="{% url 'catalogo:categorias_list' %}">🏷️ Categorías</a>
-    <a class="sidebar-item" href="{% url 'inventario:movimientos_list' %}">📊 Movimientos</a>
-  {% endif %}
+    {% if rol == "ADMINISTRADOR" or rol == "CAJERO" %}
+      <div class="nav-group">
+        <div class="nav-label">Caja</div>
+        <a class="sidebar-item" href="{% url 'caja:pagos_list' %}" data-match="/caja/"><svg class="ico"><use href="#i-card"/></svg>Pagos</a>
+        <a class="sidebar-item" href="{% url 'caja:ventas_list' %}"><svg class="ico"><use href="#i-receipt"/></svg>Ventas</a>
+      </div>
+    {% endif %}
 
-  {% if rol == "ADMINISTRADOR" or rol == "JEFE_COCINA" %}
-    <a class="sidebar-item" href="{% url 'recetas:recetas_list' %}">🍳 Recetas</a>
-    <a class="sidebar-item" href="{% url 'cocina:cocina' %}">🔥 Cocina</a>
-  {% endif %}
+    {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" or rol == "JEFE_COCINA" %}
+      <div class="nav-group">
+        <div class="nav-label">Catálogo e inventario</div>
+        <a class="sidebar-item" href="{% url 'catalogo:productos_list' %}"><svg class="ico"><use href="#i-utensils"/></svg>Productos</a>
+        <a class="sidebar-item" href="{% url 'inventario:inventario_list' %}"><svg class="ico"><use href="#i-box"/></svg>Inventario</a>
+        {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" %}
+          <a class="sidebar-item" href="{% url 'catalogo:categorias_list' %}"><svg class="ico"><use href="#i-tag"/></svg>Categorías</a>
+          <a class="sidebar-item" href="{% url 'inventario:compras_list' %}"><svg class="ico"><use href="#i-cart"/></svg>Compras</a>
+          <a class="sidebar-item" href="{% url 'inventario:proveedores_list' %}"><svg class="ico"><use href="#i-truck"/></svg>Proveedores</a>
+          <a class="sidebar-item" href="{% url 'inventario:movimientos_list' %}"><svg class="ico"><use href="#i-arrows"/></svg>Movimientos</a>
+        {% endif %}
+      </div>
+    {% endif %}
 
-  {% if rol == "ADMINISTRADOR" or rol == "MESERO" %}
-    <a class="sidebar-item" href="{% url 'operativo:mesas_list' %}">🪑 Mesas</a>
-  {% endif %}
+    {% if rol == "ADMINISTRADOR" %}
+      <div class="nav-group">
+        <div class="nav-label">Administración</div>
+        <a class="sidebar-item" href="{% url 'restaurantes:restaurantes_list' %}"><svg class="ico"><use href="#i-building"/></svg>Restaurantes</a>
+        <a class="sidebar-item" href="{% url 'restaurantes:sucursales_list' %}"><svg class="ico"><use href="#i-store"/></svg>Sucursales</a>
+        <a class="sidebar-item" href="{% url 'cuentas:usuarios_list' %}"><svg class="ico"><use href="#i-users"/></svg>Usuarios</a>
+        <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}"><svg class="ico"><use href="#i-key"/></svg>Roles</a>
+      </div>
+    {% endif %}
+  </nav>
 
-  {% if rol == "ADMINISTRADOR" or rol == "CAJERO" %}
-    <a class="sidebar-item" href="{% url 'caja:pagos_list' %}">💳 Pagos</a>
-    <a class="sidebar-item" href="{% url 'caja:ventas_list' %}">💰 Ventas</a>
-  {% endif %}
-
-  <form method="post" action="{% url 'cuentas:logout' %}" style="margin-top: 24px;">
-    {% csrf_token %}
-    <button type="submit" class="sidebar-item" style="width: 100%; border: none; background: none; cursor: pointer; text-align: left;">
-      🚪 Cerrar sesión
-    </button>
-  </form>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <span class="avatar" aria-hidden="true">{{ user.nombre|default:user.email|first|upper }}</span>
+      <span class="user-chip-text">
+        <span class="user-chip-name">{{ user.nombre|default:user.email }}</span>
+        <span class="user-chip-role">{{ user.rol|default:"Sin rol" }}</span>
+      </span>
+    </div>
+    <form method="post" action="{% url 'cuentas:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="sidebar-item"><svg class="ico"><use href="#i-logout"/></svg>Cerrar sesión</button>
+    </form>
+  </div>
 </aside>
 {% endwith %}

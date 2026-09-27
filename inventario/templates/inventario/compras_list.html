@@ -3,30 +3,42 @@
 {% block title %}Compras — Smart Bite{% endblock %}
 {% block content %}
 <div class="page-header">
-  <div><h1>Compras</h1><p>Órdenes de compra a proveedores</p></div>
-  <a href="{% url 'inventario:compra_crear' %}" class="btn btn-primary">+ Nueva Compra</a>
+  <div>
+    <span class="eyebrow">Inventario</span>
+    <h1>Compras</h1>
+    <p>Órdenes de compra a proveedores.</p>
+  </div>
+  <a href="{% url 'inventario:compra_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva compra</span></a>
 </div>
-<div class="card" style="padding:0; overflow:hidden;">
-  <table>
-    <thead><tr><th>#</th><th>Proveedor</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
-    <tbody>
-      {% for compra in compras %}
-      <tr>
-        <td>#{{ compra.id }}</td>
-        <td>{{ compra.proveedor.nombre }}</td>
-        <td>{{ compra.total|moneda }}</td>
-        <td>
-          <span class="badge {% if compra.estado == 'RECIBIDA' %}badge-success{% elif compra.estado == 'ANULADA' %}badge-danger{% else %}badge-warning{% endif %}">
-            {{ compra.get_estado_display }}
-          </span>
-        </td>
-        <td>{{ compra.creado_en|date:"d/m/Y" }}</td>
-        <td><a href="{% url 'inventario:compra_detalle' compra.pk %}" class="btn btn-sm btn-ghost">Ver</a></td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6"><div class="empty-state">No hay compras registradas.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Proveedor</th><th class="num">Total</th><th>Estado</th><th>Fecha</th><th class="num">Acciones</th></tr></thead>
+      <tbody>
+        {% for compra in compras %}
+        <tr>
+          <td class="mono muted">#{{ compra.id }}</td>
+          <td class="cell-title">{{ compra.proveedor.nombre }}</td>
+          <td class="num">{{ compra.total|moneda }}</td>
+          <td>
+            <span class="badge {% if compra.estado == 'RECIBIDA' %}badge-success{% elif compra.estado == 'ANULADA' %}badge-danger{% else %}badge-warning{% endif %}">
+              {{ compra.get_estado_display }}
+            </span>
+          </td>
+          <td class="mono muted">{{ compra.creado_en|date:"d/m/Y" }}</td>
+          <td class="actions"><a href="{% url 'inventario:compra_detalle' compra.pk %}" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-eye"/></svg><span>Ver</span></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-cart"/></svg>
+            <strong>No hay compras registradas</strong>
+            <a href="{% url 'inventario:compra_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva compra</span></a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

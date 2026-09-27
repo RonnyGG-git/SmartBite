@@ -2,78 +2,110 @@
 {% load core_extras %}
 {% block title %}Orden #{{ orden.id }} — Smart Bite{% endblock %}
 {% block content %}
+<a href="{% url 'operativo:mesas_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Mesas</a>
 <div class="page-header">
   <div>
-    <h1>Orden #{{ orden.id }} — Mesa {{ orden.mesa.numero }}</h1>
-    {% if orden.cliente %}<p>👤 {{ orden.cliente.nombre }}</p>{% endif %}
+    <span class="eyebrow">Mesa {{ orden.mesa.numero }}</span>
+    <h1>Orden <span class="mono">#{{ orden.id }}</span></h1>
+    {% if orden.cliente %}<p><svg class="ico ico-sm"><use href="#i-user"/></svg> {{ orden.cliente.nombre }}</p>{% endif %}
   </div>
-  <span class="badge {% if orden.estado == 'CANCELADA' %}badge-danger{% elif orden.estado == 'ENTREGADA' %}badge-info{% elif orden.estado == 'LISTA' %}badge-success{% else %}badge-warning{% endif %}">
+  <span class="badge badge-lg {% if orden.estado == 'CANCELADA' %}badge-danger{% elif orden.estado == 'ENTREGADA' %}badge-info{% elif orden.estado == 'LISTA' %}badge-success{% else %}badge-warning{% endif %}">
     {{ orden.get_estado_display }}
   </span>
 </div>
 
-<div class="grid" style="grid-template-columns: 2fr 1fr;">
-  <div class="card" style="padding:0; overflow:hidden;">
-    <div style="padding:20px; border-bottom:1px solid #1f2937; display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="margin:0;">Productos ({{ orden.detalles.count }})</h2>
+{% with e=orden.estado %}
+<ol class="stepper{% if e == 'CANCELADA' %} is-cancelled{% endif %}" aria-label="Progreso de la orden">
+  <li class="step {% if e == 'PENDIENTE' %}is-current{% elif e != 'CANCELADA' %}is-done{% endif %}"{% if e == 'PENDIENTE' %} aria-current="step"{% endif %}>Pendiente</li>
+  <li class="step {% if e == 'EN_PREPARACION' %}is-current{% elif e == 'LISTA' or e == 'ENTREGADA' %}is-done{% endif %}"{% if e == 'EN_PREPARACION' %} aria-current="step"{% endif %}>En preparación</li>
+  <li class="step {% if e == 'LISTA' %}is-current{% elif e == 'ENTREGADA' %}is-done{% endif %}"{% if e == 'LISTA' %} aria-current="step"{% endif %}>Lista</li>
+  <li class="step {% if e == 'ENTREGADA' %}is-done{% endif %}">Entregada</li>
+</ol>
+{% endwith %}
+
+<div class="split">
+  <section class="card card-flush">
+    <div class="card-head">
+      <h2>Productos</h2>
+      <span class="badge badge-muted badge-plain mono">{{ orden.detalles.count }}</span>
     </div>
-    <table>
-      <tbody>
-        {% for d in orden.detalles.all %}
-        <tr>
-          <td>
-            <strong>{{ d.producto.nombre }}</strong><br>
-            <span style="color:#6b7280; font-size:13px;">{{ d.cantidad }} × {{ d.precio_unitario|moneda }}</span>
-          </td>
-          <td style="text-align:right; font-weight:700;">{{ d.subtotal|moneda }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="2"><div class="empty-state">No hay productos en esta orden.</div></td></tr>
-        {% endfor %}
-        <tr><td style="font-weight:700;">Total</td><td style="text-align:right; font-weight:700; color:#4ade80; font-size:20px;">{{ orden.total|moneda }}</td></tr>
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          {% for d in orden.detalles.all %}
+          <tr>
+            <td>
+              <span class="cell-title">{{ d.producto.nombre }}</span>
+              <span class="cell-sub mono">{{ d.cantidad }} × {{ d.precio_unitario|moneda }}</span>
+            </td>
+            <td class="num">{{ d.subtotal|moneda }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2">
+            <div class="empty-state">
+              <svg class="ico"><use href="#i-utensils"/></svg>
+              <strong>Aún no hay productos</strong>
+              <span>Agrega el primero con el formulario de abajo.</span>
+            </div>
+          </td></tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td>Total</td>
+            <td class="num money">{{ orden.total|moneda }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     {% if not orden.es_final %}
-    <div style="padding:20px; border-top:1px solid #1f2937;">
-      <h3 style="margin-top:0;">Agregar producto</h3>
-      <form method="post" action="{% url 'operativo:agregar_producto' orden.pk %}" style="display:flex; gap:12px; align-items:flex-end;">
+    <div class="card-foot">
+      <form method="post" action="{% url 'operativo:agregar_producto' orden.pk %}" class="add-row">
         {% csrf_token %}
-        <div style="flex:2;">{{ agregar_form.producto }}</div>
-        <div style="flex:1;">{{ agregar_form.cantidad }}</div>
-        <button type="submit" class="btn btn-primary">+ Agregar</button>
+        <div class="field add-row-product">
+          <label for="{{ agregar_form.producto.id_for_label }}">Producto</label>
+          {{ agregar_form.producto }}
+        </div>
+        <div class="field add-row-qty">
+          <label for="{{ agregar_form.cantidad.id_for_label }}">Cantidad</label>
+          {{ agregar_form.cantidad }}
+        </div>
+        <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Agregar</span></button>
       </form>
     </div>
     {% endif %}
-  </div>
+  </section>
 
-  <div class="card">
-    <h3 style="margin-top:0;">Resumen</h3>
-    <p style="color:#9ca3af;">Fecha</p>
-    <p>{{ orden.creado_en|date:"d/m/Y H:i" }}</p>
+  <aside class="card">
+    <h3 class="card-title">Resumen</h3>
+    <dl class="dl">
+      <div><dt>Mesa</dt><dd>{{ orden.mesa.numero }}</dd></div>
+      <div><dt>Creada</dt><dd class="mono">{{ orden.creado_en|date:"d/m/Y H:i" }}</dd></div>
+      <div><dt>Total</dt><dd class="mono money">{{ orden.total|moneda }}</dd></div>
+    </dl>
 
     {% if not orden.es_final %}
-      <h3>Cambiar Estado</h3>
-      <form method="post" action="{% url 'operativo:cambiar_estado_orden' orden.pk %}" style="display:flex; flex-direction:column; gap:8px;">
+      <h3 class="section-title">Cambiar estado</h3>
+      <form method="post" action="{% url 'operativo:cambiar_estado_orden' orden.pk %}" class="stack stack-tight">
         {% csrf_token %}
         {% if orden.estado == "PENDIENTE" %}
-          <button type="submit" name="estado" value="EN_PREPARACION" class="btn btn-secondary">🔥 Enviar a Cocina</button>
+          <button type="submit" name="estado" value="EN_PREPARACION" class="btn btn-secondary"><svg class="ico"><use href="#i-flame"/></svg><span>Enviar a cocina</span></button>
         {% elif orden.estado == "EN_PREPARACION" %}
-          <button type="submit" name="estado" value="LISTA" class="btn btn-secondary">✓ Marcar como Lista</button>
+          <button type="submit" name="estado" value="LISTA" class="btn btn-secondary"><svg class="ico"><use href="#i-check"/></svg><span>Marcar como lista</span></button>
         {% elif orden.estado == "LISTA" %}
-          <button type="submit" name="estado" value="ENTREGADA" class="btn btn-secondary">🚀 Marcar Entregada</button>
+          <button type="submit" name="estado" value="ENTREGADA" class="btn btn-ok"><svg class="ico"><use href="#i-check"/></svg><span>Marcar entregada</span></button>
         {% endif %}
-        <button type="submit" name="estado" value="CANCELADA" class="btn btn-danger">✕ Cancelar Orden</button>
+        <button type="submit" name="estado" value="CANCELADA" class="btn btn-quiet is-danger"><svg class="ico"><use href="#i-x"/></svg><span>Cancelar orden</span></button>
       </form>
 
-      <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary" style="width:100%; margin-top:16px;">
-        💰 Cobrar — {{ orden.total|moneda }}
+      <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary btn-lg btn-block mt-16">
+        <svg class="ico"><use href="#i-card"/></svg><span>Cobrar {{ orden.total|moneda }}</span>
       </a>
     {% else %}
-      <div class="alert {% if orden.estado == 'ENTREGADA' %}alert-success{% else %}alert-error{% endif %}" style="text-align:center;">
-        {% if orden.estado == "ENTREGADA" %}✓ Orden completada y cobrada{% else %}✕ Orden cancelada{% endif %}
+      <div class="alert {% if orden.estado == 'ENTREGADA' %}alert-success{% else %}alert-error{% endif %} mt-16">
+        <svg class="ico"><use href="#{% if orden.estado == 'ENTREGADA' %}i-check{% else %}i-x{% endif %}"/></svg>
+        <span>{% if orden.estado == "ENTREGADA" %}Orden completada y cobrada{% else %}Orden cancelada{% endif %}</span>
       </div>
     {% endif %}
-  </div>
+  </aside>
 </div>
 {% endblock %}
