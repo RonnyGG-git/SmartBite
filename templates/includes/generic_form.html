@@ -1,19 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ titulo|default:"Formulario" }} — Smart Bite{% endblock %}
 {% block content %}
+<a href="#" class="back-link" data-action="back"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Volver</a>
 <div class="page-header">
-  <div><h1>{{ titulo }}</h1></div>
+  <div>
+    <h1>{{ titulo|default:"Formulario" }}</h1>
+    <p>Los campos marcados con <span class="field-req">*</span> son obligatorios.</p>
+  </div>
 </div>
-<div class="card" style="max-width:640px;">
-  {% if form.non_field_errors %}
-    <div class="alert alert-error">{{ form.non_field_errors }}</div>
-  {% endif %}
+<div class="card medium">
   <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <div class="form-actions">
-      <a href="javascript:history.back()" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Guardar</button>
+    {% include "includes/form_fields.html" with form=form grid=True %}
+    <div class="form-actions form-actions--end">
+      <a href="#" class="btn btn-ghost" data-action="back">Cancelar</a>
+      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Guardar</span></button>
     </div>
   </form>
 </div>

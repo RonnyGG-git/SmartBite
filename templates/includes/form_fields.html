@@ -1,0 +1,30 @@
+{% comment %}
+Renderiza los campos de un formulario Django con el estilo del tema.
+Uso: {% include "includes/form_fields.html" with form=form %}
+Opcional: grid=True para distribuir en dos columnas.
+{% endcomment %}
+{% if form.non_field_errors %}
+  <ul class="errorlist nonfield alert alert-error">
+    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+  </ul>
+{% endif %}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+<div class="{% if grid %}form-grid{% else %}form-fields{% endif %}">
+  {% for field in form.visible_fields %}
+    {% if field.widget_type == "checkbox" %}
+      <div class="field field--check field--full{% if field.errors %} field--error{% endif %}">
+        {{ field }}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      </div>
+    {% else %}
+      <div class="field{% if field.widget_type == 'textarea' or field.widget_type == 'checkboxselectmultiple' or field.widget_type == 'selectmultiple' %} field--full{% endif %}{% if field.errors %} field--error{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="field-req" aria-hidden="true">*</span>{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="field-help">{{ field.help_text|safe }}</span>{% endif %}
+        {% if field.errors %}
+          <ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

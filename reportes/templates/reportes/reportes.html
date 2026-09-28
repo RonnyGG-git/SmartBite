@@ -2,30 +2,46 @@
 {% load core_extras %}
 {% block title %}Reportes — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Reportes</h1><p>Órdenes por estado y ventas por método de pago</p></div></div>
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Análisis</span>
+    <h1>Reportes</h1>
+    <p>Órdenes por estado y ventas por método de pago.</p>
+  </div>
+</div>
 
 <div class="grid grid-2">
-  <div class="card">
-    <h2 style="margin-top:0;">Órdenes por estado</h2>
-    <table>
-      <tbody>
-        {% for estado, cantidad in ordenes_por_estado.items %}
-        <tr><td>{{ estado }}</td><td style="text-align:right; font-weight:700;">{{ cantidad }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <div class="card">
-    <h2 style="margin-top:0;">Ventas por método de pago</h2>
-    <table>
-      <tbody>
-        {% for fila in ventas_por_metodo %}
-        <tr><td>{{ fila.metodo_pago__nombre }}</td><td style="text-align:right; font-weight:700; color:#4ade80;">{{ fila.total|moneda }}</td></tr>
-        {% empty %}
-        <tr><td><div class="empty-state">Sin datos de ventas.</div></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <section class="card">
+    <h2 class="card-title">Órdenes por estado</h2>
+    <div class="bars" data-bars>
+      {% for estado, cantidad in ordenes_por_estado.items %}
+      <div class="bar-row" data-value="{{ cantidad }}"
+           style="--bar: {% if estado == 'CANCELADA' %}var(--danger){% elif estado == 'ENTREGADA' %}var(--ok){% elif estado == 'LISTA' %}var(--info){% elif estado == 'PENDIENTE' %}var(--warn){% else %}var(--accent){% endif %};">
+        <span class="bar-label">{% if estado == "EN_PREPARACION" %}En preparación{% else %}{{ estado|lower|capfirst }}{% endif %}</span>
+        <span class="bar-value">{{ cantidad }}</span>
+        <div class="meter is-idle"><span></span></div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">Ventas por método de pago</h2>
+    <div class="bars" data-bars>
+      {% for fila in ventas_por_metodo %}
+      <div class="bar-row" data-value="{{ fila.total|default:0|stringformat:'d' }}" style="--bar: var(--ok);">
+        <span class="bar-label">{{ fila.metodo_pago__nombre }}</span>
+        <span class="bar-value money">{{ fila.total|moneda }}</span>
+        <div class="meter is-idle"><span></span></div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <svg class="ico"><use href="#i-card"/></svg>
+        <strong>Sin datos de ventas</strong>
+        <span>Los cobros registrados en caja aparecerán aquí.</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
 </div>
 {% endblock %}

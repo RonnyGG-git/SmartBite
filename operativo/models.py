@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 
 from core.models import TimestampedModel
@@ -60,12 +62,22 @@ class Orden(TimestampedModel):
         ENTREGADA: [],
         CANCELADA: [],
     }
+    # Canal por el que entró el pedido (CU-PED-03 vs CU-PED-05)
+    ORIGEN_MESERO = "MESERO"
+    ORIGEN_AUTOPEDIDO = "AUTOPEDIDO"
+    ORIGEN_CHOICES = [(ORIGEN_MESERO, "Mesero"), (ORIGEN_AUTOPEDIDO, "Autopedido (QR)")]
 
     mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes")
     cliente = models.ForeignKey(
         Cliente, on_delete=models.SET_NULL, related_name="ordenes", null=True, blank=True
     )
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default=PENDIENTE)
+    origen = models.CharField(max_length=12, choices=ORIGEN_CHOICES, default=ORIGEN_MESERO)
+    # CU-PED-23: el Chef fija un aproximado al iniciar la preparación
+    tiempo_estimado_min = models.PositiveSmallIntegerField(null=True, blank=True)
+    preparacion_iniciada_en = models.DateTimeField(null=True, blank=True)
+    # CU-PED-14 Solicitar cuenta: el Mesero envía el total a caja (CU-PED-15)
+    cuenta_solicitada_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-creado_en"]
@@ -75,6 +87,13 @@ class Orden(TimestampedModel):
 
     def puede_cambiar_a(self, estado_destino):
         return estado_destino in self.TRANSICIONES_VALIDAS.get(self.estado, [])
+
+    @property
+    def listo_estimado_en(self):
+        """Hora aproximada en que estará listo (None si el Chef no la fijó)."""
+        if self.tiempo_estimado_min is None or self.preparacion_iniciada_en is None:
+            return None
+        return self.preparacion_iniciada_en + timedelta(minutes=self.tiempo_estimado_min)
 
     @property
     def total(self):

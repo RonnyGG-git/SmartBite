@@ -1,14 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Ajustar Stock — Smart Bite{% endblock %}
+{% block title %}Ajustar stock — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Ajustar Stock</h1><p>{{ item.nombre }} — Stock actual: {{ item.stock_actual }} {{ item.unidad_medida }}</p></div></div>
-<div class="card" style="max-width:480px;">
+<a href="{% url 'inventario:inventario_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Inventario</a>
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Ajuste manual</span>
+    <h1>{{ item.nombre }}</h1>
+    <p>Registra una entrada o salida de stock.</p>
+  </div>
+</div>
+<div class="card narrow">
+  <div class="receipt-total">
+    <span class="stat-label">Stock actual</span>
+    <span class="stat-value">{{ item.stock_actual }}<small> {{ item.unidad_medida }}</small></span>
+  </div>
   <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
+    {% include "includes/form_fields.html" with form=form %}
     <div class="form-actions">
-      <a href="{% url 'inventario:inventario_list' %}" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Confirmar Ajuste</button>
+      <a href="{% url 'inventario:inventario_list' %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Confirmar ajuste</span></button>
     </div>
   </form>
 </div>

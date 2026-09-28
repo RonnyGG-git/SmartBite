@@ -2,7 +2,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView
 
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, usuario_tiene_rol
 from operativo.models import Mesa, Orden
 
 from .forms import CobrarOrdenForm
@@ -20,12 +20,8 @@ class PagoListView(RoleRequiredMixin, ListView):
 
 
 def cobrar_orden(request, pk):
-    orden = get_object_or_404(
-        Orden.objects.select_for_update(),
-        pk=pk,
-    )
-    usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_CAJA)):
+    orden = get_object_or_404(Orden, pk=pk)
+    if not usuario_tiene_rol(request.user, ROLES_CAJA):
         return redirect("operativo:detalle_orden", pk=pk)
 
     if request.method == "POST":
@@ -56,11 +52,28 @@ def cobrar_orden(request, pk):
                 orden.save(update_fields=["estado"])
                 orden.mesa.estado = Mesa.DISPONIBLE
                 orden.mesa.save(update_fields=["estado"])
-            return redirect("operativo:mesas_list")
+            # El cajero no tiene acceso a Mesas; vuelve a su historial de ventas
+            return redirect("caja:ventas_list")
     else:
         form = CobrarOrdenForm(initial={"monto": orden.total})
 
     return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
+
+
+class CuentasPorCobrarView(RoleRequiredMixin, ListView):
+    """CU-PAG-16 Confirmar pedido: órdenes cuya cuenta pidió el mesero (CU-PED-14)."""
+
+    model = Orden
+    roles_permitidos = ROLES_CAJA
+    template_name = "caja/por_cobrar.html"
+    context_object_name = "ordenes"
+    queryset = (
+        Orden.objects.filter(cuenta_solicitada_en__isnull=False)
+        .exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA])
+        .select_related("mesa", "cliente")
+        .prefetch_related("detalles")
+        .order_by("cuenta_solicitada_en")
+    )
 
 
 class VentaListView(RoleRequiredMixin, ListView):

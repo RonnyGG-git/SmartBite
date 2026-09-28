@@ -2,42 +2,46 @@
 {% load core_extras %}
 {% block title %}Compra #{{ compra.id }} — Smart Bite{% endblock %}
 {% block content %}
+<a href="{% url 'inventario:compras_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Compras</a>
 <div class="page-header">
   <div>
-    <h1>Compra #{{ compra.id }}</h1>
-    <p>{{ compra.proveedor.nombre }} — {{ compra.creado_en|date:"d/m/Y H:i" }}</p>
+    <span class="eyebrow">{{ compra.proveedor.nombre }}</span>
+    <h1>Compra <span class="mono">#{{ compra.id }}</span></h1>
+    <p class="mono">{{ compra.creado_en|date:"d/m/Y H:i" }}</p>
   </div>
-  <span class="badge {% if compra.estado == 'RECIBIDA' %}badge-success{% elif compra.estado == 'ANULADA' %}badge-danger{% else %}badge-warning{% endif %}">
+  <span class="badge badge-lg {% if compra.estado == 'RECIBIDA' %}badge-success{% elif compra.estado == 'ANULADA' %}badge-danger{% else %}badge-warning{% endif %}">
     {{ compra.get_estado_display }}
   </span>
 </div>
 
-<div class="card" style="padding:0; overflow:hidden; margin-bottom:20px;">
-  <table>
-    <thead><tr><th>Ítem</th><th>Cantidad</th><th>Costo Unit.</th><th>Subtotal</th></tr></thead>
-    <tbody>
-      {% for d in compra.detalles.all %}
-      <tr>
-        <td>{{ d.item.nombre }}</td>
-        <td>{{ d.cantidad }}</td>
-        <td>{{ d.costo_unitario|moneda }}</td>
-        <td>{{ d.subtotal|moneda }}</td>
-      </tr>
-      {% endfor %}
-      <tr><td colspan="3" style="text-align:right; font-weight:700;">Total</td><td style="font-weight:700; color:#4ade80;">{{ compra.total|moneda }}</td></tr>
-    </tbody>
-  </table>
+<div class="card card-flush mb-16">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ítem</th><th class="num">Cantidad</th><th class="num">Costo unit.</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>
+        {% for d in compra.detalles.all %}
+        <tr>
+          <td class="cell-title">{{ d.item.nombre }}</td>
+          <td class="num">{{ d.cantidad }}</td>
+          <td class="num muted">{{ d.costo_unitario|moneda }}</td>
+          <td class="num">{{ d.subtotal|moneda }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row"><td colspan="3">Total</td><td class="num money">{{ compra.total|moneda }}</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% if compra.estado == "PENDIENTE" %}
-<div style="display:flex; gap:12px;">
-  <form method="post" action="{% url 'inventario:compra_recibir' compra.pk %}">
+<div class="page-actions">
+  <form method="post" action="{% url 'inventario:compra_recibir' compra.pk %}" class="inline-form">
     {% csrf_token %}
-    <button type="submit" class="btn btn-primary">✓ Marcar como Recibida</button>
+    <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Marcar como recibida</span></button>
   </form>
-  <form method="post" action="{% url 'inventario:compra_anular' compra.pk %}">
+  <form method="post" action="{% url 'inventario:compra_anular' compra.pk %}" class="inline-form">
     {% csrf_token %}
-    <button type="submit" class="btn btn-danger">✕ Anular Compra</button>
+    <button type="submit" class="btn btn-danger"><svg class="ico"><use href="#i-x"/></svg><span>Anular compra</span></button>
   </form>
 </div>
 {% endif %}

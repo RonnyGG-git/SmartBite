@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Por cobrar — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Caja</span>
+    <h1>Por cobrar</h1>
+    <p>Cuentas que los meseros enviaron a caja, en orden de llegada.</p>
+  </div>
+</div>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Mesa</th><th>Cliente</th><th>Solicitada</th><th class="num">Total</th><th class="num">Acciones</th></tr></thead>
+      <tbody>
+        {% for orden in ordenes %}
+        <tr>
+          <td class="mono">#{{ orden.id }}</td>
+          <td>Mesa {{ orden.mesa.numero }}</td>
+          <td class="muted">{{ orden.cliente.nombre|default:"—" }}</td>
+          <td class="mono muted nowrap">hace {{ orden.cuenta_solicitada_en|timesince }}</td>
+          <td class="num money">{{ orden.total|moneda }}</td>
+          <td class="actions"><a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-card"/></svg><span>Cobrar</span></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-receipt"/></svg>
+            <strong>No hay cuentas pendientes</strong>
+            <span>Cuando un mesero pida la cuenta de una mesa, aparecerá aquí.</span>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% if messages %}
+  <div class="toast-region" role="status" aria-live="polite">
+    {% for mensaje in messages %}
+      <div class="toast toast-{{ mensaje.level_tag }}">
+        <span class="toast-icon">
+          <svg class="ico"><use href="#{% if mensaje.level_tag == 'success' %}i-check{% elif mensaje.level_tag == 'error' or mensaje.level_tag == 'warning' %}i-alert{% else %}i-info{% endif %}"/></svg>
+        </span>
+        <span class="toast-msg">{{ mensaje }}</span>
+        <button type="button" class="toast-close" aria-label="Cerrar aviso">
+          <svg class="ico ico-sm"><use href="#i-x"/></svg>
+        </button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

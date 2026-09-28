@@ -4,7 +4,7 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, usuario_tiene_rol
 
 from .forms import AjusteStockForm, CompraForm, DetalleCompraFormSet, ItemInventarioForm, ProveedorForm
 from .models import Compra, ItemInventario, MovimientoInventario, Proveedor
@@ -19,6 +19,12 @@ class ItemInventarioListView(RoleRequiredMixin, ListView):
     template_name = "inventario/inventario_list.html"
     context_object_name = "items"
     queryset = ItemInventario.objects.select_related("sucursal")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # Los roles de solo lectura no ven acciones que les darían 403
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_INVENTARIO)
+        return contexto
 
 
 class ItemInventarioCreateView(RoleRequiredMixin, CreateView):
@@ -42,7 +48,7 @@ class ItemInventarioUpdateView(RoleRequiredMixin, UpdateView):
 def item_ajustar_stock(request, pk):
     item = get_object_or_404(ItemInventario, pk=pk)
     usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_INVENTARIO)):
+    if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:inventario_list")
 
     if request.method == "POST":
@@ -122,7 +128,7 @@ class CompraDetailView(RoleRequiredMixin, DetailView):
 
 def compra_crear(request):
     usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_INVENTARIO)):
+    if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
 
     if request.method == "POST":
@@ -144,7 +150,7 @@ def compra_crear(request):
 def compra_recibir(request, pk):
     compra = get_object_or_404(Compra, pk=pk)
     usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_INVENTARIO)):
+    if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
     if compra.estado == Compra.PENDIENTE:
         with transaction.atomic():
@@ -166,7 +172,7 @@ def compra_recibir(request, pk):
 def compra_anular(request, pk):
     compra = get_object_or_404(Compra, pk=pk)
     usuario = request.user
-    if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_INVENTARIO)):
+    if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
     if compra.estado == Compra.PENDIENTE:
         compra.estado = Compra.ANULADA

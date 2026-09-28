@@ -4,46 +4,55 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>Inventario</h1>
-    <p>Gestiona insumos, stock y control de inventario</p>
+    <span class="eyebrow">Inventario</span>
+    <h1>Insumos y stock</h1>
+    <p>Controla existencias, mínimos y costos de cada insumo.</p>
   </div>
-  <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <a href="{% url 'catalogo:productos_list' %}" class="btn btn-ghost">🍔 Productos</a>
-    <a href="{% url 'inventario:compras_list' %}" class="btn btn-ghost">🛒 Compras</a>
-    <a href="{% url 'inventario:proveedores_list' %}" class="btn btn-ghost">🚚 Proveedores</a>
-    <a href="{% url 'inventario:movimientos_list' %}" class="btn btn-ghost">📊 Movimientos</a>
-    <a href="{% url 'inventario:item_crear' %}" class="btn btn-primary">+ Nuevo Ítem</a>
+  {% if puede_gestionar %}
+  <div class="page-actions">
+    <a href="{% url 'inventario:movimientos_list' %}" class="btn btn-ghost"><svg class="ico"><use href="#i-arrows"/></svg><span>Movimientos</span></a>
+    <a href="{% url 'inventario:item_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo ítem</span></a>
   </div>
+  {% endif %}
 </div>
 
-<div class="card" style="padding:0; overflow:hidden;">
-  <table>
-    <thead>
-      <tr><th>Nombre</th><th>Stock</th><th>Mínimo</th><th>Unidad</th><th>Costo Unit.</th><th>Sucursal</th><th>Estado</th><th>Acciones</th></tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td>{{ item.nombre }}</td>
-        <td style="font-weight:700; color:{% if item.stock_bajo %}#ef4444{% else %}#22c55e{% endif %};">{{ item.stock_actual }}</td>
-        <td>{{ item.stock_minimo }}</td>
-        <td>{{ item.unidad_medida }}</td>
-        <td>{{ item.costo_unitario|moneda }}</td>
-        <td>{{ item.sucursal.nombre }}</td>
-        <td>
-          <span class="badge {% if item.stock_bajo %}badge-danger{% else %}badge-success{% endif %}">
-            {% if item.stock_bajo %}⚠ Stock Bajo{% else %}✓ Normal{% endif %}
-          </span>
-        </td>
-        <td>
-          <a href="{% url 'inventario:item_ajustar' item.pk %}" class="btn btn-sm btn-secondary">Ajustar</a>
-          <a href="{% url 'inventario:item_editar' item.pk %}" class="btn btn-sm btn-ghost">Editar</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8"><div class="empty-state">No hay ítems en inventario.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Nombre</th><th class="num">Stock</th><th class="num">Mínimo</th><th>Unidad</th><th class="num">Costo unit.</th><th>Sucursal</th><th>Estado</th>{% if puede_gestionar %}<th class="num">Acciones</th>{% endif %}</tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="cell-title">{{ item.nombre }}</td>
+          <td class="num {% if item.stock_bajo %}text-danger{% else %}text-ok{% endif %}">{{ item.stock_actual }}</td>
+          <td class="num muted">{{ item.stock_minimo }}</td>
+          <td class="muted">{{ item.unidad_medida }}</td>
+          <td class="num">{{ item.costo_unitario|moneda }}</td>
+          <td class="muted">{{ item.sucursal.nombre }}</td>
+          <td>
+            <span class="badge {% if item.stock_bajo %}badge-danger{% else %}badge-success{% endif %}">
+              {% if item.stock_bajo %}Stock bajo{% else %}Normal{% endif %}
+            </span>
+          </td>
+          {% if puede_gestionar %}<td class="actions">
+            <a href="{% url 'inventario:item_ajustar' item.pk %}" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-sliders"/></svg><span>Ajustar</span></a>
+            <a href="{% url 'inventario:item_editar' item.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+          </td>{% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-box"/></svg>
+            <strong>No hay ítems en inventario</strong>
+            <span>Registra los insumos que usa la cocina para controlar su stock.</span>
+            {% if puede_gestionar %}<a href="{% url 'inventario:item_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo ítem</span></a>{% endif %}
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
