@@ -2,13 +2,14 @@ import base64
 from io import BytesIO
 
 import qrcode
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from catalogo.models import Producto
-from core.mixins import RoleRequiredMixin
+from core.mixins import RoleRequiredMixin, rol_requerido
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
 from .models import Cliente, DetalleOrden, Mesa, Orden
@@ -62,10 +63,21 @@ def crear_orden(request):
     if request.method == "POST":
         form = CrearOrdenForm(request.POST)
         if form.is_valid():
-            orden = form.save()
-            orden.mesa.estado = Mesa.OCUPADA
-            orden.mesa.save(update_fields=["estado"])
-            return redirect("operativo:detalle_orden", pk=orden.pk)
+            # RF-010: transaccion atomica con bloqueo selectivo de la fila de
+            # la mesa y verificacion de orden activa antes de crear.
+            with transaction.atomic():
+                mesa_bloqueada = Mesa.objects.select_for_update().get(
+                    pk=form.cleaned_data["mesa"].pk
+                )
+                if mesa_bloqueada.orden_activa is not None:
+                    form.add_error(None, "Esta mesa ya tiene una orden activa.")
+                else:
+                    orden = form.save(commit=False)
+                    orden.mesa = mesa_bloqueada
+                    orden.save()
+                    mesa_bloqueada.estado = Mesa.OCUPADA
+                    mesa_bloqueada.save(update_fields=["estado"])
+                    return redirect("operativo:detalle_orden", pk=orden.pk)
     else:
         initial = {"mesa": mesa_id} if mesa_id else {}
         form = CrearOrdenForm(initial=initial)
@@ -77,12 +89,13 @@ def crear_orden(request):
     )
 
 
+@rol_requerido(*ROLES_MESERO)
 def crear_cliente_rapido(request):
     if request.method == "POST":
         form = ClienteRapidoForm(request.POST)
         if form.is_valid():
             form.save()
-    return redirect(request.META.get("HTTP_REFERER", reverse("operativo:crear_orden")))
+    return redirect("operativo:crear_orden")
 
 
 class DetalleOrdenView(RoleRequiredMixin, DetailView):
@@ -98,6 +111,7 @@ class DetalleOrdenView(RoleRequiredMixin, DetailView):
         return contexto
 
 
+@rol_requerido(*ROLES_MESERO)
 @require_POST
 def agregar_producto(request, pk):
     orden = get_object_or_404(Orden, pk=pk)
@@ -115,11 +129,12 @@ def agregar_producto(request, pk):
     return redirect("operativo:detalle_orden", pk=pk)
 
 
+@rol_requerido(*ROLES_MESERO)
 @require_POST
 def cambiar_estado_orden(request, pk):
     orden = get_object_or_404(Orden, pk=pk)
     if request.method == "POST":
-        form = CambiarEstadoOrdenForm(request.POST)
+        form = CambiarEstadoOrdenForm(request.POST, orden=orden)
         if form.is_valid():
             orden.estado = form.cleaned_data["estado"]
             orden.save(update_fields=["estado"])
@@ -129,6 +144,7 @@ def cambiar_estado_orden(request, pk):
     return redirect("operativo:detalle_orden", pk=pk)
 
 
+@rol_requerido(*ROLES_MESERO)
 def generar_qr(request, mesa_id):
     mesa = get_object_or_404(Mesa, pk=mesa_id)
     url_menu = request.build_absolute_uri(reverse("menu_cliente:menu") + f"?mesa={mesa.id}")

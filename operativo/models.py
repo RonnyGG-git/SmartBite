@@ -33,6 +33,7 @@ class Cliente(TimestampedModel):
 
     class Meta:
         ordering = ["nombre"]
+        unique_together = [("nombre", "telefono", "email")]
 
     def __str__(self):
         return self.nombre
@@ -52,6 +53,14 @@ class Orden(TimestampedModel):
         (CANCELADA, "Cancelada"),
     ]
 
+    TRANSICIONES_VALIDAS = {
+        PENDIENTE: [EN_PREPARACION, CANCELADA],
+        EN_PREPARACION: [LISTA, CANCELADA],
+        LISTA: [ENTREGADA, CANCELADA],
+        ENTREGADA: [],
+        CANCELADA: [],
+    }
+
     mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes")
     cliente = models.ForeignKey(
         Cliente, on_delete=models.SET_NULL, related_name="ordenes", null=True, blank=True
@@ -64,6 +73,9 @@ class Orden(TimestampedModel):
     def __str__(self):
         return f"Orden #{self.pk} — Mesa {self.mesa.numero}"
 
+    def puede_cambiar_a(self, estado_destino):
+        return estado_destino in self.TRANSICIONES_VALIDAS.get(self.estado, [])
+
     @property
     def total(self):
         return sum((d.subtotal for d in self.detalles.all()), 0)
@@ -73,7 +85,7 @@ class Orden(TimestampedModel):
         return self.estado in (self.ENTREGADA, self.CANCELADA)
 
 
-class DetalleOrden(models.Model):
+class DetalleOrden(TimestampedModel):
     orden = models.ForeignKey(Orden, on_delete=models.CASCADE, related_name="detalles")
     producto = models.ForeignKey("catalogo.Producto", on_delete=models.PROTECT, related_name="+")
     cantidad = models.PositiveIntegerField(default=1)

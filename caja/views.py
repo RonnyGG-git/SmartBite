@@ -20,7 +20,10 @@ class PagoListView(RoleRequiredMixin, ListView):
 
 
 def cobrar_orden(request, pk):
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = get_object_or_404(
+        Orden.objects.select_for_update(),
+        pk=pk,
+    )
     usuario = request.user
     if not (usuario.is_superuser or (usuario.rol_id and usuario.rol.nombre in ROLES_CAJA)):
         return redirect("operativo:detalle_orden", pk=pk)
@@ -28,11 +31,25 @@ def cobrar_orden(request, pk):
     if request.method == "POST":
         form = CobrarOrdenForm(request.POST)
         if form.is_valid():
+            # RF-006: Solo se puede cobrar ordenes en estado LISTA
+            if orden.estado != Orden.LISTA:
+                form.add_error(None, "Solo se pueden cobrar ordenes en estado LISTA.")
+                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
+            # RF-006: No debe existir pago previo para la misma orden
+            if orden.pagos.exists():
+                form.add_error(None, "Esta orden ya tiene un pago registrado.")
+                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
+            monto = form.cleaned_data["monto"]
+            # RF-006: El monto debe ser mayor o igual al total de la orden
+            if monto < orden.total:
+                form.add_error("monto", "El monto debe ser mayor o igual al total de la orden.")
+                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
+            # RF-006, RNF-002: Operacion dentro de transaccion atomica
             with transaction.atomic():
                 Pago.objects.create(
                     orden=orden,
                     metodo_pago=form.cleaned_data["metodo_pago"],
-                    monto=form.cleaned_data["monto"],
+                    monto=monto,
                     referencia_transaccion=form.cleaned_data["referencia_transaccion"],
                 )
                 orden.estado = Orden.ENTREGADA

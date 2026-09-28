@@ -38,3 +38,14 @@ class AgregarProductoForm(forms.Form):
 
 class CambiarEstadoOrdenForm(forms.Form):
     estado = forms.ChoiceField(choices=Orden.ESTADO_CHOICES)
+
+    def __init__(self, *args, **kwargs):
+        orden = kwargs.pop("orden", None)
+        super().__init__(*args, **kwargs)
+        if orden:
+            destinos = Orden.TRANSICIONES_VALIDAS.get(orden.estado, [])
+            self.fields["estado"].choices = [
+                (valor, etiqueta)
+                for valor, etiqueta in Orden.ESTADO_CHOICES
+                if valor in destinos
+            ]
