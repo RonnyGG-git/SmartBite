@@ -1,0 +1,94 @@
+{% extends "cliente/base_cliente.html" %}
+{% load core_extras l10n %}
+{% block title %}Menú{% if mesa %} · Mesa {{ mesa.numero }}{% endif %} — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Nuestro menú</h1>
+  {% if puede_pedir %}
+    <p>Elige tus platillos y envía el pedido directo a cocina.</p>
+  {% else %}
+    <p>Platillos disponibles hoy.</p>
+  {% endif %}
+</section>
+
+{% if pedido_en_curso %}
+  <a class="notice notice-accent" href="{% url 'cliente:pedido' pedido_en_curso.pk %}">
+    <span class="pulse-dot" aria-hidden="true"></span>
+    <span><strong>Tu pedido #{{ pedido_en_curso.pk }} está en curso.</strong> {{ pedido_en_curso.get_estado_display }} · ver estado</span>
+    <svg class="ico"><use href="#i-arrow-right"/></svg>
+  </a>
+{% elif not mesa %}
+  <div class="notice">
+    <svg class="ico"><use href="#i-qr"/></svg>
+    <span>Escanea el código QR de tu mesa para pedir desde tu teléfono.</span>
+  </div>
+{% elif not puede_pedir %}
+  <div class="notice">
+    <svg class="ico"><use href="#i-user"/></svg>
+    <span>Tu mesa está siendo atendida por un mesero. Puedes ver el menú; para pedir, llámalo.</span>
+  </div>
+{% endif %}
+
+{% if categorias %}
+  <nav class="menu-nav" aria-label="Categorías">
+    {% for categoria, productos in categorias %}
+      <a class="chip{% if forloop.first %} is-active{% endif %}" href="#cat-{{ categoria.pk }}">{{ categoria.nombre }}</a>
+    {% endfor %}
+  </nav>
+
+  <form method="post" action="{% url 'cliente:autopedido' %}" id="form-pedido" {% if puede_pedir %}data-pedido{% endif %}>
+    {% csrf_token %}
+    {% for categoria, productos in categorias %}
+      <section class="menu-section" id="cat-{{ categoria.pk }}">
+        <h2>{{ categoria.nombre }}</h2>
+        <div class="menu-list">
+          {% for producto in productos %}
+            <article class="dish" data-precio="{{ producto.precio|unlocalize }}">
+              <div>
+                <h3 class="dish-name">{{ producto.nombre }}</h3>
+                {% if producto.descripcion %}<p class="dish-desc">{{ producto.descripcion }}</p>{% endif %}
+                <p class="dish-price">{{ producto.precio|moneda }}</p>
+                {% if puede_pedir %}
+                  <div class="stepper-qty">
+                    <button type="button" class="qty-btn" data-qty="-1" aria-label="Quitar un {{ producto.nombre }}">−</button>
+                    <input type="number" name="cant_{{ producto.pk }}" value="0" min="0" max="{{ max_cantidad }}" inputmode="numeric" aria-label="Cantidad de {{ producto.nombre }}">
+                    <button type="button" class="qty-btn" data-qty="1" aria-label="Agregar un {{ producto.nombre }}">+</button>
+                  </div>
+                {% endif %}
+              </div>
+              {% if producto.url_imagen %}
+                <img class="dish-img" src="{{ producto.url_imagen }}" alt="{{ producto.nombre }}" loading="lazy" width="96" height="96">
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+
+    {% if puede_pedir %}
+      <section class="menu-section">
+        <div class="field">
+          <label for="id_nombre_pedido">¿A nombre de quién? <span class="subtle">(opcional)</span></label>
+          <input type="text" id="id_nombre_pedido" name="nombre" maxlength="150" autocomplete="name">
+        </div>
+      </section>
+
+      <div class="order-bar" data-order-bar>
+        <div class="order-bar-info">
+          <span class="order-bar-count"><span data-order-count>0</span> platillos</span>
+          <span class="order-bar-total mono" data-order-total>$0</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-flame"/></svg><span>Enviar a cocina</span></button>
+      </div>
+    {% endif %}
+  </form>
+{% else %}
+  <div class="empty-state">
+    <svg class="ico"><use href="#i-utensils"/></svg>
+    <strong>No hay platillos disponibles en este momento</strong>
+    <span>Pregunta a tu mesero por las opciones del día.</span>
+  </div>
+{% endif %}
+
+<p class="menu-foot">Precios en pesos colombianos (COP).</p>
+{% endblock %}

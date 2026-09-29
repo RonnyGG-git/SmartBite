@@ -1,0 +1,52 @@
+{% extends "cliente/base_cliente.html" %}
+{% load core_extras %}
+{% block title %}Pedido #{{ orden.pk }} — Smart Bite{% endblock %}
+{% block extra_head %}{% if not orden.es_final %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <span class="eyebrow">Pedido #{{ orden.pk }}</span>
+  <h1>
+    {% if orden.estado == "PENDIENTE" %}Recibido en cocina
+    {% elif orden.estado == "EN_PREPARACION" %}En preparación
+    {% elif orden.estado == "LISTA" %}Listo para servir
+    {% elif orden.estado == "ENTREGADA" %}Entregado
+    {% else %}Pedido cancelado{% endif %}
+  </h1>
+  <p>
+    {% if orden.estado == "PENDIENTE" %}El chef lo tomará en breve.
+    {% elif orden.estado == "EN_PREPARACION" %}{% if orden.listo_estimado_en %}Estará listo aproximadamente a las <strong class="mono">{{ orden.listo_estimado_en|time:"H:i" }}</strong> ({{ orden.tiempo_estimado_min }} min).{% else %}Tu pedido se está cocinando.{% endif %}
+    {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% else %}Tu mesero lo llevará a la mesa en un momento.{% endif %}
+    {% elif orden.estado == "ENTREGADA" %}Buen provecho.
+    {% else %}Si fue un error, habla con tu mesero.{% endif %}
+  </p>
+</section>
+
+{% with e=orden.estado %}
+<ol class="stepper{% if e == 'CANCELADA' %} is-cancelled{% endif %}" aria-label="Progreso del pedido">
+  <li class="step {% if e == 'PENDIENTE' %}is-current{% elif e != 'CANCELADA' %}is-done{% endif %}">Recibido</li>
+  <li class="step {% if e == 'EN_PREPARACION' %}is-current{% elif e == 'LISTA' or e == 'ENTREGADA' %}is-done{% endif %}">Cocinando</li>
+  <li class="step {% if e == 'LISTA' %}is-current{% elif e == 'ENTREGADA' %}is-done{% endif %}">Listo</li>
+  <li class="step {% if e == 'ENTREGADA' %}is-done{% endif %}">Servido</li>
+</ol>
+{% endwith %}
+
+<section class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        {% for d in orden.detalles.all %}
+        <tr>
+          <td><span class="cell-title">{{ d.producto.nombre }}</span><span class="cell-sub mono">{{ d.cantidad }} × {{ d.precio_unitario|moneda }}</span></td>
+          <td class="num">{{ d.subtotal|moneda }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row"><td>Total</td><td class="num money">{{ orden.total|moneda }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if not orden.es_final %}
+  <p class="subtle mt-16">Esta página se actualiza sola cada 30 segundos. Para cambiar o cancelar el pedido, o pedir la cuenta, habla con tu mesero.</p>
+{% endif %}
+{% endblock %}

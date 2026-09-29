@@ -1,29 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Nueva Orden — Smart Bite{% endblock %}
+{% block title %}Nueva orden — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Nueva Orden</h1><p>Selecciona la mesa y el cliente (opcional)</p></div></div>
+<a href="{% url 'operativo:mesas_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Mesas</a>
+<div class="page-header">
+  <div>
+    <h1>Nueva orden</h1>
+    <p>Selecciona la mesa y, si quieres, el cliente.</p>
+  </div>
+</div>
 
-<div class="grid" style="grid-template-columns: 2fr 1fr;">
-  <div class="card">
-    <h2 style="margin-top:0;">Información de la Orden</h2>
+<div class="split">
+  <section class="card">
+    <h2 class="card-title">Información de la orden</h2>
     <form method="post">
       {% csrf_token %}
-      {{ form.as_p }}
-      <div class="form-actions">
-        <a href="{% url 'operativo:mesas_list' %}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-primary">Crear Orden →</button>
+      {% include "includes/form_fields.html" with form=form %}
+      <div class="form-actions form-actions--end">
+        <a href="{% url 'operativo:mesas_list' %}" class="btn btn-ghost">Cancelar</a>
+        <button type="submit" class="btn btn-primary"><span>Crear orden</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
       </div>
     </form>
-  </div>
+  </section>
 
-  <div class="card">
-    <h3 style="margin-top:0;">Cliente rápido</h3>
-    <p style="color:#9ca3af; font-size:13px;">¿El cliente no existe todavía? Créalo aquí y luego selecciónalo en el formulario.</p>
+  <aside class="card">
+    <h3>Cliente rápido</h3>
+    <p class="muted mt-12 mb-16">¿El cliente todavía no existe? Regístralo aquí y luego selecciónalo en la orden.</p>
     <form method="post" action="{% url 'operativo:crear_cliente_rapido' %}">
       {% csrf_token %}
-      {{ cliente_form.as_p }}
-      <button type="submit" class="btn btn-secondary" style="width:100%;">Guardar Cliente</button>
+      {% include "includes/form_fields.html" with form=cliente_form %}
+      <button type="submit" class="btn btn-secondary btn-block mt-16"><svg class="ico"><use href="#i-user"/></svg><span>Guardar cliente</span></button>
     </form>
-  </div>
+  </aside>
 </div>
 {% endblock %}

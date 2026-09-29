@@ -3,33 +3,40 @@
 {% block content %}
 <div class="page-header">
   <div>
+    <span class="eyebrow">Administración</span>
     <h1>Roles</h1>
-    <p>Gestión de roles y permisos del sistema</p>
+    <p>Roles del sistema y los permisos que otorgan.</p>
   </div>
-  <a href="{% url 'cuentas:rol_crear' %}" class="btn btn-primary">+ Nuevo Rol</a>
+  <a href="{% url 'cuentas:rol_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo rol</span></a>
 </div>
 
-<div class="grid grid-2">
+<div class="grid grid-2 stagger">
   {% for rol in roles %}
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+  <article class="card spotlight role-card">
+    <div class="tile-head">
       <div>
-        <h3 style="margin:0;">{{ rol.get_nombre_display }}</h3>
-        <p style="color:#9ca3af; margin:4px 0 0;">{{ rol.descripcion|default:"Sin descripción" }}</p>
+        <h3>{{ rol.get_nombre_display }}</h3>
+        <p class="muted mt-12">{{ rol.descripcion|default:"Sin descripción" }}</p>
       </div>
       <span class="badge {% if rol.activo %}badge-success{% else %}badge-danger{% endif %}">
         {% if rol.activo %}Activo{% else %}Inactivo{% endif %}
       </span>
     </div>
-    <p style="color:#9ca3af; font-size:13px;">{{ rol.permisos.count }} permisos asignados</p>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a href="{% url 'cuentas:rol_permisos' rol.pk %}" class="btn btn-sm btn-ghost">🔐 Permisos</a>
-      <a href="{% url 'cuentas:rol_editar' rol.pk %}" class="btn btn-sm btn-ghost">Editar</a>
-      <a href="{% url 'cuentas:rol_eliminar' rol.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+    <div class="role-card-foot">
+      <span class="subtle"><span class="mono">{{ rol.permisos.count }}</span> permisos asignados</span>
+      <div class="page-actions">
+        <a href="{% url 'cuentas:rol_permisos' rol.pk %}" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-key"/></svg><span>Permisos</span></a>
+        <a href="{% url 'cuentas:rol_editar' rol.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+        <a href="{% url 'cuentas:rol_eliminar' rol.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar rol {{ rol.get_nombre_display }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
+      </div>
     </div>
-  </div>
+  </article>
   {% empty %}
-  <div class="empty-state">No hay roles registrados.</div>
+  <div class="empty-state">
+    <svg class="ico"><use href="#i-key"/></svg>
+    <strong>No hay roles registrados</strong>
+    <span>Ejecuta <code class="mono">python manage.py seed_datos</code> para crear los roles del sistema.</span>
+  </div>
   {% endfor %}
 </div>
 {% endblock %}
