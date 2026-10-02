@@ -12,12 +12,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Tablas de auditoría (historial y kardex): solo se agregan filas.
+-- Tablas de auditoría (historial y kardex, y las de Compras): solo se
+-- agregan filas. El argumento opcional del trigger es un texto de ayuda
+-- para quien choque con la regla — el de cada tabla es distinto (el kardex
+-- sugiere un AJUSTE; eso no aplica, por ejemplo, a una factura).
 CREATE OR REPLACE FUNCTION fn_rechazar_cambio_auditoria()
 RETURNS TRIGGER AS $$
 BEGIN
-    RAISE EXCEPTION '% es de solo agregar (auditoría): no se permite %. Para corregir el stock, registrar un AJUSTE',
-        TG_TABLE_NAME, TG_OP;
+    RAISE EXCEPTION '% es de solo agregar (auditoría): no se permite %.%',
+        TG_TABLE_NAME, TG_OP, COALESCE(' ' || TG_ARGV[0], '');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -178,7 +181,7 @@ CREATE TABLE item_inventario_historial (
 CREATE TRIGGER trg_item_inventario_historial_solo_agregar
     BEFORE UPDATE OR DELETE ON item_inventario_historial
     FOR EACH ROW
-    EXECUTE FUNCTION fn_rechazar_cambio_auditoria();
+    EXECUTE FUNCTION fn_rechazar_cambio_auditoria('El historial lo registra la base al editar el insumo');
 
 -- El cliente debe hacer `SET LOCAL app.usuario_actual = <id>` antes del
 -- UPDATE; si no lo hace, usuario_id queda NULL y el INSERT falla por la
@@ -413,7 +416,7 @@ CREATE TRIGGER trg_movimiento_inventario_aprobar
 CREATE TRIGGER trg_movimiento_inventario_no_borrar
     BEFORE DELETE ON movimiento_inventario
     FOR EACH ROW
-    EXECUTE FUNCTION fn_rechazar_cambio_auditoria();
+    EXECUTE FUNCTION fn_rechazar_cambio_auditoria('Para corregir el stock, registrar un AJUSTE');
 
 -- RF-38: una pérdida por vencimiento (manual o automática) no puede
 -- duplicarse el mismo día para el mismo insumo. Solo mira causa_perdida =

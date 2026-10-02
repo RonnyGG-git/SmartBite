@@ -38,11 +38,15 @@ def test_entrada_sin_compra_cubre_el_stock_inicial(cursor):
 
 
 def test_entrada_con_compra_id_se_guarda(cursor):
-    insumo_id = _crear_insumo_y_categoria(cursor)
+    # Desde la spec 002, compra_id es una FK real hacia orden_compra: hace
+    # falta una orden de verdad (antes bastaba cualquier número).
+    from test_orden_compra import _crear_orden, _proveedor_con_insumo
+    proveedor_id, insumo_id = _proveedor_con_insumo(cursor)
+    orden_id = _crear_orden(cursor, proveedor_id)
     mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=8,
-                                compra_id=123)
+                                compra_id=orden_id)
     cursor.execute("SELECT compra_id FROM movimiento_inventario WHERE id = %s", (mov_id,))
-    assert cursor.fetchone() == (123,)
+    assert cursor.fetchone() == (orden_id,)
 
 
 def test_salida_descuenta_stock_real(cursor):

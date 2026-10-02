@@ -31,18 +31,25 @@ def database_url():
     return url
 
 
-TABLAS_SQL = Path(__file__).resolve().parents[1] / "TABLAS" / "SMARTBITE_INVENTARIO_SP.sql"
+TABLAS_DIR = Path(__file__).resolve().parents[1] / "TABLAS"
+
+# En este orden: Compras usa tablas y funciones de Inventario.
+SCRIPTS_TABLAS = [
+    TABLAS_DIR / "SMARTBITE_INVENTARIO_SP.sql",
+    TABLAS_DIR / "SMARTBITE_COMPRAS_SP.sql",
+]
 
 
 @pytest.fixture(scope="session")
 def esquema(database_url):
     """Recrea el esquema desde cero una vez por sesión de tests, aplicando
-    sql/TABLAS/SMARTBITE_INVENTARIO_SP.sql tal como se aplicaría en Neon."""
+    los scripts de sql/TABLAS/ en orden, tal como se aplicarían en Neon."""
     connection = psycopg2.connect(database_url)
     connection.autocommit = True
     with connection.cursor() as cur:
         cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-        cur.execute(TABLAS_SQL.read_text(encoding="utf-8"))
+        for script in SCRIPTS_TABLAS:
+            cur.execute(script.read_text(encoding="utf-8"))
     connection.close()
 
 

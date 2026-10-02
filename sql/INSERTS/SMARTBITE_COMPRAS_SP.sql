@@ -1,0 +1,3 @@
+-- Smart Bite — Datos semilla de Compras
+-- Se ejecuta después de sql/TABLAS/SMARTBITE_COMPRAS_SP.sql. El catálogo de
+-- métodos de pago a proveedor se agrega junto con su tabla.

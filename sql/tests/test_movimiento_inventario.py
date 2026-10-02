@@ -143,3 +143,12 @@ def test_kardex_no_permite_borrar_un_movimiento(cursor):
     mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
     with pytest.raises(psycopg2.errors.RaiseException):
         cursor.execute("DELETE FROM movimiento_inventario WHERE id = %s", (mov_id,))
+
+
+def test_borrar_un_movimiento_sugiere_registrar_un_ajuste(cursor):
+    # fn_rechazar_cambio_auditoria() recibe un texto de ayuda por tabla
+    # (desde la spec 002); el kardex tiene que seguir sugiriendo el AJUSTE.
+    insumo_id = _crear_insumo_y_categoria(cursor)
+    mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
+    with pytest.raises(psycopg2.errors.RaiseException, match="registrar un AJUSTE"):
+        cursor.execute("DELETE FROM movimiento_inventario WHERE id = %s", (mov_id,))
