@@ -10,10 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Variables de entorno locales: un archivo .env en la raíz (no se sube al
+# repo, ver .env.example) con CLAVE=valor por línea. Lo que ya esté definido
+# en el entorno tiene prioridad.
+def _cargar_env(ruta):
+    if not ruta.exists():
+        return
+    for linea in ruta.read_text(encoding='utf-8').splitlines():
+        linea = linea.strip()
+        if linea and not linea.startswith('#') and '=' in linea:
+            clave, valor = linea.split('=', 1)
+            os.environ.setdefault(clave.strip(), valor.strip())
+
+
+_cargar_env(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -87,13 +105,33 @@ WSGI_APPLICATION = 'smartbite.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+#
+# Con DATABASE_URL definida (PostgreSQL en Neon, del estilo
+# postgresql://usuario:clave@host/base?sslmode=require) se usa esa base; sin
+# ella, SQLite local, para que la app funcione sin credenciales.
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    _url = urlsplit(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _url.path.lstrip('/'),
+            'USER': unquote(_url.username or ''),
+            'PASSWORD': unquote(_url.password or ''),
+            'HOST': _url.hostname,
+            'PORT': _url.port or 5432,
+            'OPTIONS': dict(parse_qsl(_url.query)),  # sslmode=require en Neon
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
