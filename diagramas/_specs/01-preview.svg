@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -60 1840 1542.5" width="1400">
+<rect x="-10" y="-60" width="1840" height="1542.5" fill="#1e1e2e"/>
+<rect x="340" y="100" width="840" height="1230" rx="8" fill="transparent" stroke="#8b5cf6" stroke-width="2" opacity="1.0"/>
+<text x="354" y="130.5" fill="#a0a0a0" font-size="20" text-anchor="start" font-family="Segoe UI, sans-serif">INVENTARIO</text>
+<rect x="20" y="60" width="230" height="1330" rx="8" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="134.995" y="720.725" fill="#e5e5e5" font-size="19" text-anchor="middle" font-family="Segoe UI, sans-serif">Jefe de</text>
+<text x="134.995" y="744.475" fill="#e5e5e5" font-size="19" text-anchor="middle" font-family="Segoe UI, sans-serif">Almacén</text>
+<rect x="1240" y="560" width="220" height="300" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0"/>
+<text x="1350.0" y="705.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Módulo de</text>
+<text x="1350.0" y="728.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Compras</text>
+<rect x="1240" y="1130" width="220" height="70" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0"/>
+<text x="1350.0" y="1172.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Módulo de Menú</text>
+<rect x="1240" y="1220" width="220" height="80" rx="8" fill="#2a2a3a" stroke="#8a8a9a" stroke-width="2" opacity="1.0"/>
+<text x="1350.0" y="1255.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Módulo de</text>
+<text x="1350.0" y="1278.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Administración</text>
+<ellipse cx="530.0" cy="175.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="182.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Registrar producto</text>
+<ellipse cx="530.0" cy="265.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="272.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Consultar inventario</text>
+<ellipse cx="530.0" cy="355.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="362.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Actualizar producto</text>
+<ellipse cx="530.0" cy="445.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="452.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Desactivar producto</text>
+<ellipse cx="530.0" cy="535.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="542.2" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Controlar existencias</text>
+<ellipse cx="530.0" cy="625.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="620.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Enviar solicitud de</text>
+<text x="530.0" y="643.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">reabastecimiento</text>
+<ellipse cx="530.0" cy="715.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="710.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Registrar entrada</text>
+<text x="530.0" y="733.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="530.0" cy="805.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="800.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Registrar salida</text>
+<text x="530.0" y="823.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="530.0" cy="895.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="890.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Realizar ajuste</text>
+<text x="530.0" y="913.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="530.0" cy="985.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="980.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Consultar movimientos</text>
+<text x="530.0" y="1003.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="530.0" cy="1075.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="1070.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Controlar productos</text>
+<text x="530.0" y="1093.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">próximos a vencer</text>
+<ellipse cx="530.0" cy="1165.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="1160.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Registrar pérdida</text>
+<text x="530.0" y="1183.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de producto</text>
+<ellipse cx="530.0" cy="1255.0" rx="150.0" ry="35.0" fill="#1a4d4d" stroke="#06b6d4" stroke-width="2" opacity="1.0"/>
+<text x="530.0" y="1250.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Generar reporte</text>
+<text x="530.0" y="1273.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="1010.0" cy="175.0" rx="130.0" ry="35.0" fill="#2d1b69" stroke="#8b5cf6" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1010.0" y="170.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Clasificar producto</text>
+<text x="1010.0" y="193.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">por categoría</text>
+<ellipse cx="1010.0" cy="535.0" rx="130.0" ry="35.0" fill="#2d1b69" stroke="#8b5cf6" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1010.0" y="530.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Consultar stock</text>
+<text x="1010.0" y="553.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">mínimo</text>
+<ellipse cx="1010.0" cy="805.0" rx="130.0" ry="35.0" fill="#2d1b69" stroke="#8b5cf6" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1010.0" y="800.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Registrar movimiento</text>
+<text x="1010.0" y="823.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">de inventario</text>
+<ellipse cx="1010.0" cy="1165.0" rx="130.0" ry="35.0" fill="#2d1b69" stroke="#8b5cf6" stroke-width="2" opacity="1.0" stroke-dasharray="9 6"/>
+<text x="1010.0" y="1160.95" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">Consultar stock</text>
+<text x="1010.0" y="1183.45" fill="#e5e5e5" font-size="18" text-anchor="middle" font-family="Segoe UI, sans-serif">disponible</text>
+<polyline points="250,175.0 380,175.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,265.0 380,265.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,355.0 380,355.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,445.0 380,445.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,535.0 380,535.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,625.0 380,625.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,715.0 380,715.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,805.0 380,805.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,895.0 380,895.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,985.0 380,985.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,1075.0 380,1075.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,1165.0 380,1165.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="250,1255.0 380,1255.0" fill="none" stroke="#06b6d4" stroke-width="2"/>
+<polyline points="1240,687.0 680,687.0" fill="none" stroke="#8a8a9a" stroke-width="2"/>
+<polyline points="1240,647.0 680,647.0" fill="none" stroke="#8a8a9a" stroke-width="2"/>
+<polyline points="1240,1165.0 1140,1165.0" fill="none" stroke="#8a8a9a" stroke-width="2"/>
+<polyline points="1240,1273.0 680,1273.0" fill="none" stroke="#8a8a9a" stroke-width="2"/>
+<polyline points="680,175.0 880,175.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="880.0,175.0 867.1,169.5 867.1,180.5" fill="#8b5cf6"/>
+<text x="727.53" y="148.95" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<polyline points="680,535.0 880,535.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="880.0,535.0 867.1,529.5 867.1,540.5" fill="#8b5cf6"/>
+<text x="727.53" y="508.95" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<polyline points="680,625.0 1010.0,570.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1010.0,570.0 996.4,566.7 998.2,577.5" fill="#8b5cf6"/>
+<text x="797.3" y="571.45" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;extend&gt;&gt;</text>
+<polyline points="680,715.0 1010.0,770.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1010.0,770.0 998.2,762.5 996.4,773.3" fill="#8b5cf6"/>
+<text x="792.53" y="716.45" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<polyline points="680,805.0 880,805.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="880.0,805.0 867.1,799.5 867.1,810.5" fill="#8b5cf6"/>
+<text x="727.53" y="778.95" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<polyline points="680,895.0 1010.0,840.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1010.0,840.0 996.4,836.7 998.2,847.5" fill="#8b5cf6"/>
+<text x="792.53" y="907.95" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<polyline points="530.0,1130 530.0,1110" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="530.0,1110.0 524.5,1122.9 535.5,1122.9" fill="#8b5cf6"/>
+<text x="426.6" y="1127.65" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;extend&gt;&gt;</text>
+<polyline points="680,1255.0 1010.0,1200.0" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="9 6"/>
+<polygon points="1010.0,1200.0 996.4,1196.7 998.2,1207.5" fill="#8b5cf6"/>
+<text x="792.53" y="1201.45" fill="#c9c9d4" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">&lt;&lt;include&gt;&gt;</text>
+<text x="340" y="1398.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Línea sólida = asociación actor - caso de uso</text>
+<text x="340" y="1423.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Línea punteada = &lt;&lt;include&gt;&gt; obligatorio  /  &lt;&lt;extend&gt;&gt; condicional</text>
+<text x="340" y="1448.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Casos 13, 11 y 17: sin actor, se invocan desde otro caso de uso  /  14: además lo consulta el Módulo de Menú</text>
+<text x="539.0" y="-1.3000000000000043" fill="#e5e5e5" font-size="28" text-anchor="start" font-family="Segoe UI, sans-serif">Diagrama de Casos de Uso - Inventario (Smart Bite)</text>
+<text x="633.34" y="30.45" fill="#a0a0a0" font-size="18" text-anchor="start" font-family="Segoe UI, sans-serif">Qué puede hacer cada actor dentro del módulo de Inventario</text>
+</svg>

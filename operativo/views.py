@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import qrcode
+from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -64,10 +65,21 @@ def crear_orden(request):
     if request.method == "POST":
         form = CrearOrdenForm(request.POST)
         if form.is_valid():
-            orden = form.save()
-            orden.mesa.estado = Mesa.OCUPADA
-            orden.mesa.save(update_fields=["estado"])
-            return redirect("operativo:detalle_orden", pk=orden.pk)
+            # RF-010: transaccion atomica con bloqueo selectivo de la fila de
+            # la mesa y verificacion de orden activa antes de crear.
+            with transaction.atomic():
+                mesa_bloqueada = Mesa.objects.select_for_update().get(
+                    pk=form.cleaned_data["mesa"].pk
+                )
+                if mesa_bloqueada.orden_activa is not None:
+                    form.add_error(None, "Esta mesa ya tiene una orden activa.")
+                else:
+                    orden = form.save(commit=False)
+                    orden.mesa = mesa_bloqueada
+                    orden.save()
+                    mesa_bloqueada.estado = Mesa.OCUPADA
+                    mesa_bloqueada.save(update_fields=["estado"])
+                    return redirect("operativo:detalle_orden", pk=orden.pk)
     else:
         initial = {"mesa": mesa_id} if mesa_id else {}
         form = CrearOrdenForm(initial=initial)
@@ -104,6 +116,7 @@ class DetalleOrdenView(RoleRequiredMixin, DetailView):
         return contexto
 
 
+@rol_requerido(*ROLES_MESERO)
 @require_POST
 @rol_requerido(*ROLES_MESERO)
 def agregar_producto(request, pk):
@@ -148,6 +161,7 @@ def solicitar_cuenta(request, pk):
     return redirect("operativo:detalle_orden", pk=pk)
 
 
+@rol_requerido(*ROLES_MESERO)
 @require_POST
 @rol_requerido(*ROLES_MESERO)
 def cambiar_estado_orden(request, pk):
@@ -167,6 +181,7 @@ def cambiar_estado_orden(request, pk):
     return redirect("operativo:detalle_orden", pk=pk)
 
 
+@rol_requerido(*ROLES_MESERO)
 def generar_qr(request, mesa_id):
     mesa = get_object_or_404(Mesa, pk=mesa_id)
     url_menu = request.build_absolute_uri(reverse("cliente:mesa", args=[mesa.id]))
