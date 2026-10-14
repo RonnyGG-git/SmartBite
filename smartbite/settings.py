@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
 
     # API REST
     'rest_framework',
@@ -170,7 +169,6 @@ LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'reportes:dashboard'
 LOGOUT_REDIRECT_URL = 'cuentas:login'
 
-<<<<<<< Updated upstream
 # API REST (/api/v1/, app api). Token para Postman y clientes externos; la
 # sesión web también sirve (Swagger desde el navegador con la sesión iniciada).
 REST_FRAMEWORK = {
@@ -191,22 +189,4 @@ SPECTACULAR_SETTINGS = {
                    'el encabezado "Authorization: Token <token>". Errores: {"detail", "code"}.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-=======
-
-# API REST
-# https://www.django-rest-framework.org/api-guide/settings/
-REST_FRAMEWORK = {
-    # Convierte los django.core.exceptions.ValidationError que lanza el dominio
-    # en HTTP 400. El dominio queda agnóstico de DRF: no importa rest_framework.
-    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
-
-    # Quién queda autenticado por defecto; se relaja con AllowAny por vista
-    # cuando haga falta (catálogo público del cliente, etc.).
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
->>>>>>> Stashed changes
 }

@@ -16,11 +16,7 @@ urlpatterns = [
     path('cocina/', include('cocina.urls')),
     path('menu/', include('menu_cliente.urls')),
     path('cliente/', include('cliente.urls')),
-<<<<<<< Updated upstream
     path('api/v1/', include('api.urls')),
-=======
-    path('api/', include('api.urls')),
->>>>>>> Stashed changes
     path('', include('reportes.urls')),
 ]
 
