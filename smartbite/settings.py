@@ -52,6 +52,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # API REST
+    'rest_framework',
+    'rest_framework.authtoken',
+    'drf_spectacular',
+
     # Apps propias de Smart Bite (una por dominio, ver README de migración)
     'core',
     'cuentas',
@@ -65,6 +70,7 @@ INSTALLED_APPS = [
     'menu_cliente',
     'cliente',
     'reportes',
+    'api',
 ]
 
 AUTH_USER_MODEL = 'cuentas.Usuario'
@@ -162,3 +168,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'reportes:dashboard'
 LOGOUT_REDIRECT_URL = 'cuentas:login'
+
+# API REST (/api/v1/, app api). Token para Postman y clientes externos; la
+# sesión web también sirve (Swagger desde el navegador con la sesión iniciada).
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': ['api.permisos.TieneRol'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'api.excepciones.manejador_de_errores',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Smart Bite API',
+    'DESCRIPTION': 'API REST de Smart Bite. Autenticación: POST /api/v1/auth/token/ y luego '
+                   'el encabezado "Authorization: Token <token>". Errores: {"detail", "code"}.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

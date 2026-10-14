@@ -54,17 +54,9 @@ def item_ajustar_stock(request, pk):
     if request.method == "POST":
         form = AjusteStockForm(request.POST)
         if form.is_valid():
-            cantidad = form.cleaned_data["cantidad"]
-            tipo = form.cleaned_data["tipo"]
-            with transaction.atomic():
-                if tipo == "ENTRADA":
-                    item.stock_actual += cantidad
-                else:
-                    item.stock_actual = max(0, item.stock_actual - cantidad)
-                item.save(update_fields=["stock_actual"])
-                MovimientoInventario.objects.create(
-                    item=item, tipo=tipo, cantidad=cantidad, motivo=form.cleaned_data["motivo"]
-                )
+            item.ajustar_stock(
+                form.cleaned_data["tipo"], form.cleaned_data["cantidad"], form.cleaned_data["motivo"]
+            )
             return redirect("inventario:inventario_list")
     else:
         form = AjusteStockForm()
