@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 from catalogo.models import Categoria, Producto
-from inventario.models import ItemInventario
+from inventario.models import ItemInventario, MovimientoInventario
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -28,6 +28,25 @@ class ItemInventarioSerializer(serializers.ModelSerializer):
             "id", "nombre", "descripcion", "unidad_medida", "stock_actual", "stock_minimo",
             "stock_bajo", "costo_unitario", "ubicacion", "sucursal",
         ]
+
+
+class MovimientoInventarioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MovimientoInventario
+        fields = ["id", "item", "tipo", "cantidad", "motivo", "creado_en"]
+
+
+class AjusteStockSerializer(serializers.Serializer):
+    """Mismos campos y límites que inventario.forms.AjusteStockForm."""
+
+    tipo = serializers.ChoiceField(choices=MovimientoInventario.TIPO_CHOICES)
+    cantidad = serializers.IntegerField(min_value=1)
+    motivo = serializers.CharField(max_length=255)
+
+
+class AjusteStockRespuestaSerializer(serializers.Serializer):
+    item = ItemInventarioSerializer()
+    movimiento = MovimientoInventarioSerializer()
 
 
 class TokenSerializer(serializers.Serializer):

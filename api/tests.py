@@ -152,6 +152,64 @@ class InventarioPermisosTests(TestCase):
         self.assertEqual(self.cliente.get(self.url).status_code, 200)
 
 
+class AjusteStockApiTests(TestCase):
+    """POST /api/v1/inventario/items/<id>/ajustar/: roles ROLES_INVENTARIO."""
+
+    def setUp(self):
+        d = crear_escenario()
+        self.item = ItemInventario.objects.create(nombre="Leche", stock_actual=10, stock_minimo=5, sucursal=d["centro"])
+        self.cliente = APIClient()
+        self.url = reverse("api:items-inventario-ajustar", args=[self.item.pk])
+        self.datos = {"tipo": "SALIDA", "cantidad": 7, "motivo": "Consumo de cocina"}
+
+    def con_token(self, rol):
+        token, _ = Token.objects.get_or_create(user=crear_usuario(rol))
+        self.cliente.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+
+    def test_jefe_de_inventario_ajusta(self):
+        self.con_token("JEFE_INVENTARIO")
+        respuesta = self.cliente.post(self.url, self.datos)
+        self.assertEqual(respuesta.status_code, 201)
+        cuerpo = respuesta.json()
+        self.assertEqual(cuerpo["item"]["stock_actual"], 3)
+        self.assertTrue(cuerpo["item"]["stock_bajo"])
+        self.assertEqual((cuerpo["movimiento"]["tipo"], cuerpo["movimiento"]["cantidad"]), ("SALIDA", 7))
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock_actual, 3)
+
+    def test_acepta_json(self):
+        self.con_token("ADMINISTRADOR")
+        respuesta = self.cliente.post(self.url, {"tipo": "ENTRADA", "cantidad": 5, "motivo": "x"}, format="json")
+        self.assertEqual(respuesta.json()["item"]["stock_actual"], 15)
+
+    def test_jefe_de_cocina_puede_ver_pero_no_ajustar(self):
+        self.con_token("JEFE_COCINA")
+        respuesta = self.cliente.post(self.url, self.datos)
+        self.assertEqual(respuesta.status_code, 403)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock_actual, 10)
+
+    def test_sin_token_da_401(self):
+        self.assertEqual(self.cliente.post(self.url, self.datos).status_code, 401)
+
+    def test_cantidad_invalida_da_400_por_campo(self):
+        self.con_token("JEFE_INVENTARIO")
+        respuesta = self.cliente.post(self.url, {**self.datos, "cantidad": 0})
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("cantidad", respuesta.json()["errores"])
+
+    def test_tipo_invalido_da_400(self):
+        self.con_token("JEFE_INVENTARIO")
+        respuesta = self.cliente.post(self.url, {**self.datos, "tipo": "AJUSTE"})
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("tipo", respuesta.json()["errores"])
+
+    def test_item_inexistente_da_404(self):
+        self.con_token("JEFE_INVENTARIO")
+        url = reverse("api:items-inventario-ajustar", args=[9999])
+        self.assertEqual(self.cliente.post(url, self.datos).status_code, 404)
+
+
 class DocumentacionTests(TestCase):
     def test_esquema_openapi(self):
         respuesta = self.client.get(reverse("api:esquema"))

@@ -1,17 +1,21 @@
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import generics, viewsets
+from rest_framework import generics, status, viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from cliente.views import _productos_disponibles
 from inventario.models import ItemInventario
-from inventario.views import ROLES_LECTURA
+from inventario.views import ROLES_INVENTARIO, ROLES_LECTURA
 from operativo.models import Mesa
 
 from .serializers import (
+    AjusteStockRespuestaSerializer,
+    AjusteStockSerializer,
     ItemInventarioSerializer,
+    MovimientoInventarioSerializer,
     ProductoMenuSerializer,
     TokenRespuestaSerializer,
     TokenSerializer,
@@ -71,8 +75,29 @@ class MenuView(generics.ListAPIView):
 
 @extend_schema(tags=["inventario"])
 class ItemInventarioViewSet(viewsets.ReadOnlyModelViewSet):
-    """Ítems de inventario, solo lectura. Mismos roles que el listado web."""
+    """Ítems de inventario. Consultar: ROLES_LECTURA, como el listado web.
+    Ajustar el stock: ROLES_INVENTARIO, como item_ajustar_stock."""
 
-    serializer_class = ItemInventarioSerializer
-    roles_permitidos = ROLES_LECTURA
     queryset = ItemInventario.objects.select_related("sucursal").order_by("nombre")
+
+    @property
+    def roles_permitidos(self):
+        return ROLES_INVENTARIO if self.action == "ajustar" else ROLES_LECTURA
+
+    def get_serializer_class(self):
+        return AjusteStockSerializer if self.action == "ajustar" else ItemInventarioSerializer
+
+    @extend_schema(request=AjusteStockSerializer, responses={201: AjusteStockRespuestaSerializer})
+    @action(detail=True, methods=["post"])
+    def ajustar(self, request, pk=None):
+        """Entrada o salida manual de stock; crea el MovimientoInventario.
+        Misma regla que la vista web (ItemInventario.ajustar_stock)."""
+        item = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        datos = serializer.validated_data
+        movimiento = item.ajustar_stock(datos["tipo"], datos["cantidad"], datos["motivo"])
+        return Response(
+            {"item": ItemInventarioSerializer(item).data, "movimiento": MovimientoInventarioSerializer(movimiento).data},
+            status=status.HTTP_201_CREATED,
+        )
