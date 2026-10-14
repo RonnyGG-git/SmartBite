@@ -1,4 +1,5 @@
-from django.test import TestCase
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -208,6 +209,36 @@ class AjusteStockApiTests(TestCase):
         self.con_token("JEFE_INVENTARIO")
         url = reverse("api:items-inventario-ajustar", args=[9999])
         self.assertEqual(self.cliente.post(url, self.datos).status_code, 404)
+
+
+class ErroresDelDominioTests(SimpleTestCase):
+    """La ValidationError de Django (la que lanza el dominio, por ejemplo una
+    transición de orden inválida) sale como 400 con el formato de la API, no
+    como 500."""
+
+    def manejar(self, exc):
+        from api.excepciones import manejador_de_errores
+        return manejador_de_errores(exc, {})
+
+    def test_mensaje_con_codigo(self):
+        respuesta = self.manejar(DjangoValidationError("No se puede pasar de LISTA a PENDIENTE.",
+                                                       code="transicion_invalida"))
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(respuesta.data, {"detail": "No se puede pasar de LISTA a PENDIENTE.",
+                                          "code": "transicion_invalida"})
+
+    def test_mensaje_sin_codigo_usa_invalid(self):
+        respuesta = self.manejar(DjangoValidationError("Algo no vale."))
+        self.assertEqual(respuesta.data, {"detail": "Algo no vale.", "code": "invalid"})
+
+    def test_errores_por_campo(self):
+        respuesta = self.manejar(DjangoValidationError({"cantidad": ["Debe ser positiva."]}))
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(respuesta.data["code"], "invalid")
+        self.assertEqual(respuesta.data["errores"], {"cantidad": ["Debe ser positiva."]})
+
+    def test_otros_errores_siguen_siendo_500(self):
+        self.assertIsNone(self.manejar(ValueError("bug")))
 
 
 class DocumentacionTests(TestCase):

@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError
+from rest_framework.fields import get_error_detail
 from rest_framework.views import exception_handler
 
 
@@ -17,7 +19,14 @@ def manejador_de_errores(exc, context):
 
     Los errores de validación de campos agregan "errores" con el detalle por
     campo. El código HTTP lo decide DRF (400, 401, 403, 404, 405...).
+
+    La ValidationError de Django (la que lanza el dominio sin depender de DRF,
+    por ejemplo una transición de orden inválida) se convierte en la de DRF,
+    conservando mensajes y códigos: sale como 400 en vez de 500. Cualquier
+    otra excepción no reconocida sigue siendo 500 (no se maquillan bugs).
     """
+    if isinstance(exc, DjangoValidationError):
+        exc = ValidationError(detail=get_error_detail(exc))
     respuesta = exception_handler(exc, context)
     if respuesta is None:
         return None
