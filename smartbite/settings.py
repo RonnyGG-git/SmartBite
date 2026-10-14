@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlsplit
 
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,12 +40,23 @@ _cargar_env(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-qtiu_xuy=3%h2!b*@u*ko$k6)*o%hporsjjlpebx&j@mhwwxy2'
+# En producción (Docker) se define SECRET_KEY en el entorno; el valor por defecto
+# solo existe para que el desarrollo local siga funcionando sin configurar nada.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 'django-insecure-qtiu_xuy=3%h2!b*@u*ko$k6)*o%hporsjjlpebx&j@mhwwxy2'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+
+if not DEBUG:
+    # Detrás de Caddy (HTTPS): Django confía en el header que pone el proxy.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -75,6 +88,7 @@ AUTH_USER_MODEL = 'cuentas.Usuario'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,28 +124,13 @@ WSGI_APPLICATION = 'smartbite.wsgi.application'
 # postgresql://usuario:clave@host/base?sslmode=require) se usa esa base; sin
 # ella, SQLite local, para que la app funcione sin credenciales.
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-if DATABASE_URL:
-    _url = urlsplit(DATABASE_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _url.path.lstrip('/'),
-            'USER': unquote(_url.username or ''),
-            'PASSWORD': unquote(_url.password or ''),
-            'HOST': _url.hostname,
-            'PORT': _url.port or 5432,
-            'OPTIONS': dict(parse_qsl(_url.query)),  # sslmode=require en Neon
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# Con DATABASE_URL (Postgres/Neon) se usa esa base; sin ella, SQLite local.
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+    )
+}
 
 
 # Password validation
@@ -170,6 +169,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
