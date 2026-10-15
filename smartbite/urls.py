@@ -16,6 +16,7 @@ urlpatterns = [
     path('cocina/', include('cocina.urls')),
     path('menu/', include('menu_cliente.urls')),
     path('cliente/', include('cliente.urls')),
+    path('asistente/', include('asistente_cocina.urls')),
     path('', include('reportes.urls')),
 ]
 

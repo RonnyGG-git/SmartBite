@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'menu_cliente',
     'cliente',
     'reportes',
+    'asistente_cocina',
 ]
 
 AUTH_USER_MODEL = 'cuentas.Usuario'
@@ -183,3 +184,42 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'reportes:dashboard'
 LOGOUT_REDIRECT_URL = 'cuentas:login'
+
+
+# G7: sin esto no hay forma de investigar un incidente en produccion.
+# Los errores van a consola con el formato completo; en produccion el
+# contenedor ya recoge stdout/stderr, asi que no hace falta un archivo.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'estandar': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'consola': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'estandar',
+        },
+    },
+    'root': {
+        'handlers': ['consola'],
+        'level': 'ERROR',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['consola'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Silencia el WARNING de "Unauthorized" que dispara Django en cada 403
+        # de permisos y que, con las vistas de rol, es ruido esperado.
+        'django.security': {
+            'handlers': ['consola'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
