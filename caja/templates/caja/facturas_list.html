@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Comprobantes — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Comprobantes</h1><p>Documentos emitidos al pagar las órdenes (simulados)</p></div></div>
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead><tr><th>Número</th><th>Orden</th><th>Cliente</th><th>Total consumo</th><th>Propina</th><th>Fecha</th><th></th></tr></thead>
+    <tbody>
+      {% for f in facturas %}
+      <tr>
+        <td><b>{{ f.codigo }}</b></td>
+        <td><a href="{% url 'operativo:detalle_orden' f.orden_id %}">#{{ f.orden_id }}</a></td>
+        <td>{{ f.cliente_nombre }}</td>
+        <td style="color:#4ade80; font-weight:700;">{{ f.total_consumo|moneda }}</td>
+        <td>{{ f.propina|moneda }}</td>
+        <td>{{ f.creado_en|date:"d/m/Y H:i" }}</td>
+        <td><a class="btn btn-secondary" href="{% url 'caja:factura_detalle' f.pk %}">Ver / imprimir</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7"><div class="empty-state">Aún no hay comprobantes.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

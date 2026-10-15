@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Resultado del pago — Smart Bite{% endblock %}
+{% block content %}
+{% if pago.estado == "PENDIENTE" %}<meta http-equiv="refresh" content="4">{% endif %}
+<div class="page-header"><div><h1>Pago de la Orden #{{ pago.orden_id }}</h1></div></div>
+<div class="card" style="max-width:480px; text-align:center;">
+  {% if pago.estado == "APROBADO" %}
+    <div class="alert alert-success">✓ Pago aprobado — {{ pago.total_cobrado|moneda }}</div>
+  {% elif pago.estado == "PENDIENTE" %}
+    <div class="alert alert-warning">⏳ Esperando confirmación de la pasarela… esta página se actualiza sola.</div>
+  {% else %}
+    <div class="alert alert-error">✕ El pago fue {{ pago.get_estado_display|lower }}. Puedes intentar de nuevo.</div>
+  {% endif %}
+  <a href="{% url 'caja:cobrar_orden' pago.orden_id %}" class="btn btn-primary">Volver al cobro</a>
+</div>
+{% endblock %}

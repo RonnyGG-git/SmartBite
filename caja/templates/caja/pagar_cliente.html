@@ -1,0 +1,97 @@
+{% load core_extras %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagar cuenta — {{ restaurante.nombre }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#0a0e1a; color:#e5e7eb; }
+    .wrap { max-width:460px; margin:0 auto; padding:20px 16px 40px; }
+    h1 { font-size:20px; margin:0; } .sub { color:#9ca3af; margin:2px 0 16px; font-size:14px; }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:16px; padding:16px; margin-bottom:14px; }
+    .fila { display:flex; justify-content:space-between; padding:4px 0; color:#9ca3af; }
+    .fila b { color:#e5e7eb; }
+    .saldo { text-align:center; border-color:#22c55e; }
+    .saldo .monto { font-size:34px; font-weight:800; color:#4ade80; }
+    label { display:block; font-size:13px; color:#9ca3af; margin:12px 0 6px; }
+    input[type=text] { width:100%; padding:14px; font-size:20px; border-radius:12px; border:1px solid #374151; background:#0b1220; color:#fff; }
+    .chips { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .chip { background:#1f2937; color:#e5e7eb; border:1px solid #374151; border-radius:999px; padding:8px 14px; font-size:14px; cursor:pointer; }
+    .btn { display:block; width:100%; text-align:center; padding:15px; border:0; border-radius:12px; font-size:17px; font-weight:700; color:#fff; cursor:pointer; text-decoration:none; background:linear-gradient(90deg,#a855f7,#3b82f6); margin-top:16px; }
+    .btn.sec { background:#1f2937; border:1px solid #374151; color:#e5e7eb; font-weight:600; }
+    .error { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; border-radius:12px; padding:12px; margin-bottom:14px; }
+    .aviso { background:#422006; border:1px solid #d97706; color:#fde68a; border-radius:12px; padding:14px; margin-bottom:14px; }
+    .ok { background:#052e1b; border:1px solid #15803d; color:#bbf7d0; border-radius:12px; padding:14px; text-align:center; }
+    .lineas { font-size:14px; } .lineas .fila { padding:2px 0; }
+    .nota { color:#6b7280; font-size:12px; text-align:center; margin-top:18px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>{{ restaurante.nombre }}</h1>
+  <p class="sub">Cuenta de la Orden #{{ orden.id }} · Mesa {{ orden.mesa.numero }}</p>
+
+  {% if vencido %}
+    <div class="error">Este código QR venció. Pide uno nuevo en caja.</div>
+  {% elif orden.estado == "CANCELADA" %}
+    <div class="error">Esta cuenta fue cancelada.</div>
+  {% elif pagada %}
+    <div class="ok">✓ Esta cuenta ya está pagada.</div>
+    {% if factura_url %}<a class="btn" href="{{ factura_url }}">Ver mi comprobante</a>{% endif %}
+  {% else %}
+
+    <div class="card lineas">
+      {% for l in lineas %}
+        <div class="fila"><span>{{ l.cantidad }} × {{ l.producto.nombre }}</span><b>{{ l.subtotal|moneda }}</b></div>
+      {% endfor %}
+      <div class="fila" style="border-top:1px solid #1f2937; margin-top:8px; padding-top:8px;"><span>Total de la cuenta</span><b>{{ total|moneda }}</b></div>
+      {% if pagado %}<div class="fila"><span>Ya pagado</span><b>{{ pagado|moneda }}</b></div>{% endif %}
+    </div>
+
+    <div class="card saldo">
+      <div style="color:#9ca3af;">Saldo por pagar</div>
+      <div class="monto">{{ saldo|moneda }}</div>
+    </div>
+
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    {% if aviso %}
+      <div class="aviso">
+        <b>⚠️ El monto es menor al saldo.</b><br>
+        Estás pagando {{ aviso.monto|moneda }} y la cuenta quedaría con <b>{{ aviso.faltante|moneda }}</b> pendientes.
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="monto" value="{{ monto_valor }}">
+          <input type="hidden" name="propina" value="{{ propina_valor }}">
+          <input type="hidden" name="confirmar_parcial" value="1">
+          <button class="btn" type="submit">Pagar solo {{ aviso.monto|moneda }} (dividir cuenta)</button>
+        </form>
+        <a class="btn sec" href="{% url 'caja:pagar_cliente' enlace.token %}">Corregir el monto</a>
+      </div>
+    {% else %}
+      <form method="post" class="card">
+        {% csrf_token %}
+        <label for="monto">¿Cuánto vas a pagar?</label>
+        <input id="monto" name="monto" type="text" inputmode="decimal" autocomplete="off" value="{{ monto_valor }}">
+        <div class="chips"><button type="button" class="chip" data-monto="{{ saldo|floatformat:0 }}">Pagar todo</button></div>
+
+        <label for="propina">Propina voluntaria (opcional)</label>
+        <input id="propina" name="propina" type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="{{ propina_valor }}">
+        <div class="chips">
+          <button type="button" class="chip" data-propina="0">Sin propina</button>
+          <button type="button" class="chip" data-propina="{{ propina_sugerida }}">10% sugerida</button>
+        </div>
+        <button class="btn" type="submit">Pagar</button>
+      </form>
+    {% endif %}
+  {% endif %}
+
+  {% if modo_prueba %}<p class="nota">Pago de prueba: no se cobra dinero real.</p>{% endif %}
+</div>
+<script>
+  document.querySelectorAll("[data-monto]").forEach(b => b.onclick = () => { document.getElementById("monto").value = b.dataset.monto.replace(/\./g, ""); });
+  document.querySelectorAll("[data-propina]").forEach(b => b.onclick = () => { document.getElementById("propina").value = b.dataset.propina; });
+</script>
+</body>
+</html>

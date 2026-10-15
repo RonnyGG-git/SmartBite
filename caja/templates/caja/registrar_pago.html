@@ -11,19 +11,41 @@
   </div>
 </div>
 
-<div class="card narrow">
-  <div class="receipt-total">
-    <span class="stat-label">Total a cobrar</span>
-    <span class="stat-value">{{ orden.total|moneda }}</span>
+<div class="grid" style="grid-template-columns: 1fr 1fr; max-width:960px;">
+  <div class="card">
+    <div class="card" style="text-align:center; border-color:#22c55e; margin-bottom:12px;">
+      <p style="color:#9ca3af; margin:0;">Total de la orden: {{ orden.total|moneda }}</p>
+      <p style="color:#9ca3af; margin:8px 0 0;">Saldo pendiente</p>
+      <h2 style="color:#4ade80; margin:4px 0 0;">{{ saldo|moneda }}</h2>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">✓ Cobrar</button>
+      </div>
+    </form>
+        <a href="{% url 'caja:qr_cobro' orden.pk %}" class="btn btn-secondary" style="width:100%; margin-top:12px; text-align:center;">📱 Cobrar con código QR (celular del cliente)</a>
+    <p style="color:#6b7280; font-size:13px;">Para pago mixto, cobra una parte con un método y el resto con otro. Con tarjeta se abre la pasarela.</p>
   </div>
 
-  <form method="post">
-    {% csrf_token %}
-    {% include "includes/form_fields.html" with form=form %}
-    <div class="form-actions">
-      <a href="{% url 'operativo:detalle_orden' orden.pk %}" class="btn btn-ghost">Cancelar</a>
-      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Cobrar</span></button>
-    </div>
-  </form>
+  <div class="card" style="padding:0; overflow:hidden;">
+    <h3 style="margin:0; padding:16px 20px;">Pagos de esta orden</h3>
+    <table>
+      <tbody>
+        {% for p in pagos_orden %}
+        <tr>
+          <td>{{ p.metodo_pago.nombre }}<br><span style="color:#6b7280; font-size:12px;">{{ p.creado_en|date:"H:i" }}</span></td>
+          <td>{{ p.monto|moneda }}{% if p.propina %}<br><span style="color:#6b7280; font-size:12px;">+ propina {{ p.propina|moneda }}</span>{% endif %}</td>
+          <td><span class="badge {% if p.estado == 'APROBADO' %}badge-success{% elif p.estado == 'PENDIENTE' %}badge-warning{% else %}badge-danger{% endif %}">{{ p.get_estado_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td><div class="empty-state">Aún no hay pagos.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

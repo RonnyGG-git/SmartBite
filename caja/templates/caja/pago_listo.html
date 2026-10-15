@@ -1,0 +1,65 @@
+{% load core_extras %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pago exitoso — {{ restaurante.nombre }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#0a0e1a; color:#e5e7eb; }
+    .wrap { max-width:460px; margin:0 auto; padding:40px 16px; text-align:center; }
+    .check { width:96px; height:96px; border-radius:50%; background:#052e1b; border:3px solid #22c55e; margin:0 auto 18px; display:flex; align-items:center; justify-content:center; font-size:52px; color:#4ade80; animation: pop .4s ease-out; }
+    @keyframes pop { from { transform:scale(.4); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:16px; padding:16px; margin:18px 0; text-align:left; }
+    .fila { display:flex; justify-content:space-between; padding:5px 0; color:#9ca3af; } .fila b { color:#e5e7eb; }
+    .btn { display:block; padding:15px; border-radius:12px; font-size:17px; font-weight:700; color:#fff; text-decoration:none; background:linear-gradient(90deg,#a855f7,#3b82f6); margin-top:12px; }
+    .btn.sec { background:#1f2937; border:1px solid #374151; font-weight:600; }
+    .aviso { background:#422006; border:1px solid #d97706; color:#fde68a; border-radius:12px; padding:12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+{% if pago.estado == "PENDIENTE" %}
+  <div class="check" style="background:#1e1b4b;border-color:#6366f1;color:#a5b4fc;animation:none;">⏳</div>
+  <h1 style="margin:0;">Confirmando tu pago…</h1>
+  <p style="color:#9ca3af;">{{ restaurante.nombre }} · Orden #{{ orden.id }}</p>
+  <div class="aviso" style="background:#1e1b4b;border-color:#6366f1;color:#c7d2fe;">
+    Estamos esperando la confirmación del banco. Si estás aprobando el pago en tu app (Nequi, Bancolombia, tu banco), termínalo allí. No cierres esta pantalla.
+  </div>
+  <a class="btn sec" href="{% url 'caja:pagar_cliente' enlace.token %}">Volver a la cuenta</a>
+  <script>
+    (function poll() {
+      fetch("{{ estado_url|escapejs }}", {cache: "no-store"})
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (d.estado !== "PENDIENTE") { location.reload(); } else { setTimeout(poll, 3000); } })
+        .catch(function () { setTimeout(poll, 5000); });
+    })();
+  </script>
+{% elif pago.estado == "APROBADO" %}
+  <div class="check">✓</div>
+  <h1 style="margin:0;">¡Pago recibido!</h1>
+  <p style="color:#9ca3af;">{{ restaurante.nombre }} · Orden #{{ orden.id }}</p>
+
+  <div class="card">
+    <div class="fila"><span>Valor abonado</span><b>{{ pago.monto|moneda }}</b></div>
+    {% if pago.propina %}<div class="fila"><span>Propina</span><b>{{ pago.propina|moneda }}</b></div>{% endif %}
+    <div class="fila"><span>Referencia</span><b style="font-size:12px;">{{ pago.referencia_transaccion|default:pago.referencia_pasarela }}</b></div>
+  </div>
+
+  {% if faltante > 0 %}
+    <div class="aviso">Todavía quedan <b>{{ faltante|moneda }}</b> por pagar en esta cuenta. Otra persona puede escanear el mismo QR.</div>
+    <a class="btn sec" href="{% url 'caja:pagar_cliente' enlace.token %}">Volver a la cuenta</a>
+  {% elif factura_url %}
+    <a class="btn" href="{{ factura_url }}">Ver mi comprobante</a>
+  {% endif %}
+{% else %}
+  <div class="check" style="background:#450a0a;border-color:#ef4444;color:#f87171;animation:none;">✕</div>
+  <h1 style="margin:0;">El pago no se completó</h1>
+  <p style="color:#9ca3af;">{{ restaurante.nombre }} · Orden #{{ orden.id }}</p>
+  <div class="aviso">No se cobró nada. Puedes intentarlo de nuevo con otro método de pago.</div>
+  <a class="btn" href="{% url 'caja:pagar_cliente' enlace.token %}">Intentar de nuevo</a>
+{% endif %}
+  {% if modo_prueba %}<p style="color:#6b7280; font-size:12px; margin-top:24px;">Pago de prueba: no se cobró dinero real.</p>{% endif %}
+</div>
+</body>
+</html>

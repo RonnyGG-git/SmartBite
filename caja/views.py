@@ -1,79 +1,134 @@
+from decimal import Decimal
+
 from django.contrib import messages
-from django.db import transaction
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
-from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
-from core.tenancy import RestauranteMixin, filtrar
-from operativo.models import Orden, TransicionOrdenInvalida
+from core.mixins import RoleRequiredMixin, rol_requerido
+from operativo.models import Orden
 
+from . import servicios
 from .forms import CobrarOrdenForm
-from .models import Pago
+from .models import AuditoriaCobro, Factura, Pago
+from .pasarelas import FirmaInvalida, SimuladaPasarela, obtener_pasarela
+from .servicios import CobroInvalido
 
 ROLES_CAJA = ["ADMINISTRADOR", "CAJERO"]
 ROLES_ENTREGA = ["ADMINISTRADOR", "CAJERO", "MESERO"]
 
 
-def _orden_del_restaurante(request, pk):
-    return get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
+def _ip(request):
+    return request.META.get("REMOTE_ADDR")
 
 
-class PagoListView(RestauranteMixin, RoleRequiredMixin, ListView):
-    ruta_restaurante = "orden__sucursal__restaurante"
+class PagoListView(RoleRequiredMixin, ListView):
     model = Pago
     roles_permitidos = ROLES_CAJA
     template_name = "caja/pagos_list.html"
     context_object_name = "pagos"
-    queryset = Pago.objects.select_related("orden", "metodo_pago")
+    queryset = Pago.objects.select_related("orden", "metodo_pago", "cobrado_por")
 
 
+@rol_requerido(*ROLES_CAJA)
 def cobrar_orden(request, pk):
-    if not usuario_tiene_rol(request.user, ROLES_CAJA):
+    orden = get_object_or_404(Orden, pk=pk)
+    if orden.es_final:
         return redirect("operativo:detalle_orden", pk=pk)
     orden = _orden_del_restaurante(request, pk)
 
     if request.method == "POST":
         form = CobrarOrdenForm(request.POST)
         if form.is_valid():
-            if orden.pagos.exists():
-                form.add_error(None, "Esta orden ya tiene un pago registrado.")
-                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
-            if not orden.cobrable:
-                form.add_error(
-                    None,
-                    "Esta orden no se puede cobrar ahora: las de mesa se cobran cuando están LISTA y las "
-                    "canceladas o entregadas no se cobran.",
-                )
-                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
-            monto = form.cleaned_data["monto"]
-            if monto < orden.total:
-                form.add_error("monto", "El monto debe ser mayor o igual al total de la orden.")
-                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
-            estado_previo = orden.estado
+            datos = form.cleaned_data
+            metodo, monto, propina = datos["metodo_pago"], datos["monto"], datos["propina"]
             try:
-                with transaction.atomic():
-                    Pago.objects.create(
-                        orden=orden,
-                        metodo_pago=form.cleaned_data["metodo_pago"],
-                        monto=monto,
-                        referencia_transaccion=form.cleaned_data["referencia_transaccion"],
+                if metodo.requiere_pasarela:
+                    pago, pasarela = servicios.iniciar_cobro_tarjeta(
+                        orden.pk, metodo=metodo, monto=monto, propina=propina,
+                        usuario=request.user, ip=_ip(request),
                     )
-                    if estado_previo == Orden.LISTA:
-                        orden.cambiar_estado(Orden.ENTREGADA)
-                    elif estado_previo == Orden.POR_CONFIRMAR:
-                        orden.cambiar_estado(Orden.PENDIENTE)
-            except TransicionOrdenInvalida as error:
-                form.add_error(None, error.messages[0])
-                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
-            if estado_previo == Orden.LISTA:
-                return redirect("caja:ventas_list")
-            messages.success(request, f"Orden #{orden.pk} pagada. Se entregará cuando cocina la tenga lista.")
-            return redirect("caja:para_llevar")
-    else:
-        form = CobrarOrdenForm(initial={"monto": orden.total})
+                    return redirect(pasarela.url_checkout(request, pago))
 
-    return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
+                servicios.registrar_pago_manual(
+                    orden.pk, metodo=metodo, monto=monto, propina=propina,
+                    referencia=datos["referencia_transaccion"], usuario=request.user, ip=_ip(request),
+                )
+            except CobroInvalido as error:
+                form.add_error(None, str(error))
+            else:
+                recibido = datos["efectivo_recibido"]
+                if recibido and recibido > monto + propina:
+                    messages.info(request, f"Cambio a devolver: ${recibido - monto - propina:,.0f}")
+                orden.refresh_from_db()
+                if orden.estado == Orden.ENTREGADA:
+                    messages.success(request, f"Orden #{orden.pk} pagada por completo.")
+                    factura = Factura.objects.filter(orden=orden).first()
+                    if factura:
+                        return redirect("caja:factura_detalle", pk=factura.pk)
+                    return redirect("operativo:mesas_list")
+                messages.success(request, f"Pago registrado. Saldo pendiente: ${servicios.saldo_pendiente(orden):,.0f}")
+                return redirect("caja:cobrar_orden", pk=orden.pk)
+    else:
+        form = CobrarOrdenForm(initial={"monto": max(servicios.saldo_disponible(orden), Decimal("0"))})
+
+    return render(request, "caja/registrar_pago.html", {
+        "orden": orden, "form": form, "saldo": servicios.saldo_pendiente(orden),
+        "pagos_orden": orden.pagos.select_related("metodo_pago").all(),
+    })
+
+
+@login_required
+def retorno_pago(request):
+    """A donde vuelve el cliente tras la pasarela. El estado real lo fija el webhook."""
+    pago = get_object_or_404(Pago, referencia_pasarela=request.GET.get("ref", ""))
+    return render(request, "caja/retorno_pago.html", {"pago": pago})
+
+
+@csrf_exempt
+@require_POST
+def webhook(request, proveedor):
+    """Recibe eventos de la pasarela. Sin CSRF ni login: se autentica con el checksum."""
+    try:
+        pasarela = obtener_pasarela(proveedor)
+    except KeyError:
+        return HttpResponseBadRequest("proveedor desconocido")
+    try:
+        servicios.procesar_evento(pasarela, request.body, request.headers)
+    except FirmaInvalida:
+        return HttpResponse(status=400)
+    return HttpResponse(status=200)  # también en duplicados: así la pasarela deja de reintentar
+
+
+@login_required
+def pasarela_simulada(request, referencia):
+    """Pantalla de 'banco' falsa para demos sin internet."""
+    pago = get_object_or_404(Pago, referencia_pasarela=referencia, proveedor="SIMULADA")
+    if request.method == "POST" and pago.estado == Pago.PENDIENTE:
+        pasarela = SimuladaPasarela()
+        estado = "APPROVED" if request.POST.get("resultado") == "aprobar" else "DECLINED"
+        servicios.procesar_evento(pasarela, pasarela.construir_evento(pago, estado), {})
+        return redirect(f"/caja/pagos/retorno/?ref={referencia}")
+    return render(request, "caja/pasarela_simulada.html", {"pago": pago})
+
+
+@rol_requerido("ADMINISTRADOR")
+def auditoria_list(request):
+    registros = AuditoriaCobro.objects.select_related("orden", "pago", "usuario")
+    accion, usuario, desde = request.GET.get("accion"), request.GET.get("usuario"), request.GET.get("desde")
+    if accion:
+        registros = registros.filter(accion=accion)
+    if usuario:
+        registros = registros.filter(usuario__nombre__icontains=usuario)
+    if desde:
+        registros = registros.filter(creado_en__date__gte=desde)
+    return render(request, "caja/auditoria_list.html", {
+        "registros": registros[:300], "acciones": AuditoriaCobro.ACCION_CHOICES,
+        "filtros": {"accion": accion or "", "usuario": usuario or "", "desde": desde or ""},
+    })
 
 
 class CuentasPorCobrarView(RestauranteMixin, RoleRequiredMixin, ListView):
@@ -169,9 +224,4 @@ class VentaListView(RestauranteMixin, RoleRequiredMixin, ListView):
     roles_permitidos = ROLES_CAJA
     template_name = "caja/ventas_list.html"
     context_object_name = "ventas"
-    queryset = (
-        Orden.objects.filter(pagos__isnull=False)
-        .distinct()
-        .select_related("mesa", "cliente")
-        .prefetch_related("pagos")
-    )
+    queryset = Orden.objects.filter(estado=Orden.ENTREGADA).select_related("mesa", "cliente").prefetch_related("pagos")

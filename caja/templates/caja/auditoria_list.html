@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Auditoría de cobros — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Auditoría de cobros</h1><p>Quién cobró, cuándo y cuánto (solo lectura)</p></div></div>
+<form method="get" class="card" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:16px;">
+  <select name="accion"><option value="">Todas las acciones</option>
+    {% for valor, etiqueta in acciones %}<option value="{{ valor }}" {% if filtros.accion == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+  </select>
+  <input name="usuario" placeholder="Usuario" value="{{ filtros.usuario }}">
+  <input type="date" name="desde" value="{{ filtros.desde }}">
+  <button class="btn btn-secondary">Filtrar</button>
+</form>
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead><tr><th>Fecha</th><th>Acción</th><th>Orden</th><th>Usuario</th><th>Monto</th><th>Propina</th><th>Detalle</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for r in registros %}
+      <tr>
+        <td>{{ r.creado_en|date:"d/m/Y H:i:s" }}</td>
+        <td>{{ r.get_accion_display }}</td>
+        <td><a href="{% url 'operativo:detalle_orden' r.orden_id %}">#{{ r.orden_id }}</a></td>
+        <td>{{ r.usuario.nombre|default:"Pasarela" }}</td>
+        <td>{{ r.monto|moneda }}</td>
+        <td>{{ r.propina|moneda }}</td>
+        <td>{{ r.detalle|default:"—" }}</td>
+        <td>{{ r.ip|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8"><div class="empty-state">Sin registros.</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

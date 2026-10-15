@@ -1,244 +1,206 @@
+import json
 from decimal import Decimal
 
-from django.test import TestCase, Client
+from django.test import TestCase, override_settings
+
 from django.urls import reverse
 
 from catalogo.models import Categoria, Producto
 from cuentas.models import Rol, Usuario
-from operativo.models import Mesa, Orden
+from operativo.models import DetalleOrden, Mesa, Orden
 from restaurantes.models import Restaurante, Sucursal
 
-from .models import MetodoPago, Pago
+from . import servicios
+from .models import AuditoriaCobro, EventoPasarela, MetodoPago, Pago
+from .pasarelas import FirmaInvalida, WompiPasarela, _checksum_wompi
+from .servicios import CobroInvalido
 
 
-class CobrarOrdenTest(TestCase):
+WOMPI_CFG = {"PUBLIC_KEY": "pub_test_x", "INTEGRITY_SECRET": "integ", "EVENTS_SECRET": "ev_secret",
+             "CHECKOUT_URL": "https://checkout.wompi.co/p/"}
+
+
+@override_settings(PASARELA_PROVEEDOR="SIMULADA")
+class BaseCajaTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        rest = Restaurante.objects.create(nombre="R", nif="1", email="r@r.co", direccion="x")
+        suc = Sucursal.objects.create(restaurante=rest, nombre="Centro")
+        cls.mesa = Mesa.objects.create(numero=1, sucursal=suc, estado=Mesa.OCUPADA)
+        cat = Categoria.objects.create(nombre="Platos")
+        cls.prod = Producto.objects.create(nombre="Bandeja", precio=Decimal("50000"), categoria=cat, sucursal=suc)
+        cls.efectivo = MetodoPago.objects.create(nombre="Efectivo")
+        cls.tarjeta = MetodoPago.objects.create(nombre="Tarjeta", usa_pasarela=True)
+        cls.cajero = Usuario.objects.create_user("caja@x.co", "Cajero Uno", "pass12345", rol=Rol.objects.create(nombre="CAJERO"))
+        cls.mesero = Usuario.objects.create_user("mesero@x.co", "Mesero", "pass12345", rol=Rol.objects.create(nombre="MESERO"))
+
     def setUp(self):
-        self.client = Client()
-        self.restaurante = Restaurante.objects.create(
-            nombre="Test Restaurante",
-            nif="12345678A",
-            email="test@test.com",
-            direccion="Calle Test 1",
-        )
-        self.sucursal = Sucursal.objects.create(
-            restaurante=self.restaurante,
-            nombre="Sucursal Test",
-        )
-        self.mesa = Mesa.objects.create(
-            numero=1,
-            capacidad=4,
-            sucursal=self.sucursal,
-        )
-        self.metodo_pago = MetodoPago.objects.create(nombre="Efectivo")
-        self.categoria = Categoria.objects.create(nombre="Bebidas")
-        self.producto = Producto.objects.create(
-            nombre="Agua",
-            precio=Decimal("2500.00"),
-            categoria=self.categoria,
-            sucursal=self.sucursal,
-        )
-        self.rol_cajero = Rol.objects.create(nombre="CAJERO")
-        self.usuario_cajero = Usuario.objects.create_user(
-            email="cajero@test.com",
-            nombre="Cajero Test",
-            password="testpass123",
-            rol=self.rol_cajero,
-            restaurante=self.restaurante,
-        )
-        self.orden_lista = self._crear_orden_con_detalle(Orden.LISTA, Decimal("5000.00"))
-        self.url_cobrar = reverse("caja:cobrar_orden", kwargs={"pk": self.orden_lista.pk})
+        self.orden = Orden.objects.create(mesa=self.mesa, estado=Orden.LISTA)
+        DetalleOrden.objects.create(orden=self.orden, producto=self.prod, cantidad=2, precio_unitario=Decimal("50000"))
+        # total = 100.000
 
-    def _crear_orden_con_detalle(self, estado, precio_unitario):
-        mesa = Mesa.objects.create(
-            numero=Mesa.objects.count() + 10,
-            capacidad=4,
-            sucursal=self.sucursal,
-        )
-        orden = Orden.objects.create(mesa=mesa, estado=estado)
-        orden.detalles.create(
-            producto=self.producto,
-            cantidad=1,
-            precio_unitario=precio_unitario,
-        )
-        return orden
 
-    def test_cobrar_orden_ok(self):
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(self.url_cobrar, {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertRedirects(
-            respuesta,
-            reverse("caja:ventas_list"),
-            fetch_redirect_response=False,
-        )
-        self.orden_lista.refresh_from_db()
-        self.assertEqual(self.orden_lista.estado, Orden.ENTREGADA)
-        self.assertEqual(self.orden_lista.mesa.estado, Mesa.DISPONIBLE)
-        self.assertEqual(self.orden_lista.pagos.count(), 1)
-        pago = self.orden_lista.pagos.first()
-        self.assertEqual(pago.monto, Decimal("5000.00"))
+class PagoMixtoTests(BaseCajaTest):
+    def test_pago_parcial_no_cierra_la_orden(self):
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("40000"), usuario=self.cajero)
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.LISTA)
+        self.assertEqual(servicios.saldo_pendiente(self.orden), Decimal("60000"))
 
-    def test_cobrar_orden_estado_pendiente(self):
-        orden = self._crear_orden_con_detalle(Orden.PENDIENTE, Decimal("5000.00"))
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        orden.refresh_from_db()
-        self.assertEqual(orden.estado, Orden.PENDIENTE)
-        self.assertEqual(orden.pagos.count(), 0)
+    def test_dos_pagos_completan_y_liberan_la_mesa(self):
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("40000"), usuario=self.cajero)
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("60000"), usuario=self.cajero)
+        self.orden.refresh_from_db(); self.mesa.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.ENTREGADA)
+        self.assertEqual(self.mesa.estado, Mesa.DISPONIBLE)
 
-    def test_cobrar_orden_estado_en_preparacion(self):
-        orden = self._crear_orden_con_detalle(Orden.EN_PREPARACION, Decimal("5000.00"))
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        orden.refresh_from_db()
-        self.assertEqual(orden.estado, Orden.EN_PREPARACION)
-        self.assertEqual(orden.pagos.count(), 0)
+    def test_propina_no_abona_a_la_cuenta(self):
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("90000"), propina=Decimal("20000"), usuario=self.cajero)
+        self.assertEqual(servicios.saldo_pendiente(self.orden), Decimal("10000"))
 
-    def test_cobrar_orden_estado_entregada(self):
-        orden = self._crear_orden_con_detalle(Orden.ENTREGADA, Decimal("5000.00"))
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        orden.refresh_from_db()
-        self.assertEqual(orden.estado, Orden.ENTREGADA)
-        self.assertEqual(orden.pagos.count(), 0)
+    def test_no_se_puede_cobrar_mas_que_el_saldo(self):
+        with self.assertRaises(CobroInvalido):
+            servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("100001"), usuario=self.cajero)
+        self.assertEqual(Pago.objects.count(), 0)
 
-    def test_cobrar_orden_estado_cancelada(self):
-        orden = self._crear_orden_con_detalle(Orden.CANCELADA, Decimal("5000.00"))
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        orden.refresh_from_db()
-        self.assertEqual(orden.estado, Orden.CANCELADA)
-        self.assertEqual(orden.pagos.count(), 0)
+    def test_el_cobro_queda_auditado(self):
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("30000"), usuario=self.cajero, ip="10.0.0.5")
+        a = AuditoriaCobro.objects.get()
+        self.assertEqual((a.accion, a.usuario, a.monto, a.ip), (AuditoriaCobro.COBRO, self.cajero, Decimal("30000"), "10.0.0.5"))
 
-    def test_cobrar_orden_pago_duplicado(self):
-        Pago.objects.create(
-            orden=self.orden_lista,
-            metodo_pago=self.metodo_pago,
-            monto=Decimal("5000.00"),
-        )
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(self.url_cobrar, {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertEqual(self.orden_lista.pagos.count(), 1)
 
-    def test_cobrar_orden_monto_insuficiente(self):
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(self.url_cobrar, {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "4999.99",
-        })
-        self.assertEqual(respuesta.status_code, 200)
-        self.orden_lista.refresh_from_db()
-        self.assertEqual(self.orden_lista.estado, Orden.LISTA)
-        self.assertEqual(self.orden_lista.pagos.count(), 0)
+class PasarelaSimuladaTests(BaseCajaTest):
+    def _iniciar(self, monto="100000"):
+        return servicios.iniciar_cobro_tarjeta(self.orden.pk, metodo=self.tarjeta, monto=Decimal(monto), usuario=self.cajero)
 
-    def test_cobrar_orden_monto_exacto(self):
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(self.url_cobrar, {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "5000.00",
-        })
-        self.assertRedirects(
-            respuesta,
-            reverse("caja:ventas_list"),
-            fetch_redirect_response=False,
-        )
-        self.orden_lista.refresh_from_db()
-        self.assertEqual(self.orden_lista.estado, Orden.ENTREGADA)
-        self.assertEqual(self.orden_lista.pagos.count(), 1)
+    def test_pendiente_no_cierra_hasta_el_webhook(self):
+        pago, _ = self._iniciar()
+        self.orden.refresh_from_db()
+        self.assertEqual((pago.estado, self.orden.estado), (Pago.PENDIENTE, Orden.LISTA))
 
-    def test_cobrar_orden_monto_excedente(self):
-        self.client.login(email="cajero@test.com", password="testpass123")
-        respuesta = self.client.post(self.url_cobrar, {
-            "metodo_pago": self.metodo_pago.pk,
-            "monto": "6000.00",
-        })
-        self.assertRedirects(
-            respuesta,
-            reverse("caja:ventas_list"),
-            fetch_redirect_response=False,
-        )
-        self.orden_lista.refresh_from_db()
-        self.assertEqual(self.orden_lista.estado, Orden.ENTREGADA)
-        pago = self.orden_lista.pagos.first()
-        self.assertEqual(pago.monto, Decimal("6000.00"))
+    def test_webhook_aprobado_cierra_la_orden(self):
+        pago, pas = self._iniciar()
+        r = servicios.procesar_evento(pas, pas.construir_evento(pago, "APPROVED"), {})
+        pago.refresh_from_db(); self.orden.refresh_from_db()
+        self.assertEqual((r, pago.estado, self.orden.estado), ("aprobado", Pago.APROBADO, Orden.ENTREGADA))
 
-    def test_cobrar_orden_concurrencia(self):
-        import threading
+    def test_mismo_evento_dos_veces_no_duplica(self):
+        pago, pas = self._iniciar("40000")
+        cuerpo = pas.construir_evento(pago, "APPROVED")
+        self.assertEqual(servicios.procesar_evento(pas, cuerpo, {}), "aprobado")
+        self.assertEqual(servicios.procesar_evento(pas, cuerpo, {}), "duplicado")
+        self.assertEqual(EventoPasarela.objects.count(), 1)
+        self.assertEqual(AuditoriaCobro.objects.filter(accion=AuditoriaCobro.PASARELA_APROBADA).count(), 1)
+        self.assertEqual(servicios.saldo_pendiente(self.orden), Decimal("60000"))
 
-        from django.db import transaction as db_transaction
+    def test_rechazado_deja_la_orden_abierta(self):
+        pago, pas = self._iniciar()
+        servicios.procesar_evento(pas, pas.construir_evento(pago, "DECLINED"), {})
+        pago.refresh_from_db(); self.orden.refresh_from_db()
+        self.assertEqual((pago.estado, self.orden.estado), (Pago.RECHAZADO, Orden.LISTA))
 
-        orden = self._crear_orden_con_detalle(Orden.LISTA, Decimal("5000.00"))
-        barrier = threading.Barrier(2, timeout=10)
-        resultados = []
+    def test_evento_con_monto_distinto_genera_alerta(self):
+        pago, pas = self._iniciar()
+        evento = json.loads(pas.construir_evento(pago, "APPROVED"))
+        evento["data"]["transaction"]["amount_in_cents"] = 100
+        evento["signature"]["checksum"] = _checksum_wompi(evento, evento["signature"]["properties"], "secreto-local-solo-para-demo")
+        r = servicios.procesar_evento(pas, json.dumps(evento).encode(), {})
+        pago.refresh_from_db()
+        self.assertEqual((r, pago.estado), ("alerta: monto no coincide", Pago.PENDIENTE))
+        self.assertTrue(AuditoriaCobro.objects.filter(accion=AuditoriaCobro.ALERTA).exists())
 
-        def intentar_cobro(idx):
-            barrier.wait()
-            try:
-                with db_transaction.atomic():
-                    o = Orden.objects.select_for_update().get(pk=orden.pk)
-                    if o.estado != Orden.LISTA or o.pagos.exists():
-                        resultados.append(("rechazado", idx))
-                        return
-                    Pago.objects.create(
-                        orden=o,
-                        metodo_pago=self.metodo_pago,
-                        monto=Decimal("5000.00"),
-                    )
-                    o.estado = Orden.ENTREGADA
-                    o.save(update_fields=["estado"])
-                    resultados.append(("exitoso", idx))
-            except Exception as exc:
-                resultados.append(("error", str(exc)))
+    def test_firma_invalida_se_rechaza(self):
+        pago, pas = self._iniciar()
+        evento = json.loads(pas.construir_evento(pago, "APPROVED"))
+        evento["signature"]["checksum"] = "0" * 64
+        with self.assertRaises(FirmaInvalida):
+            servicios.procesar_evento(pas, json.dumps(evento).encode(), {})
+        self.assertEqual(EventoPasarela.objects.count(), 0)
 
-        hilos = [
-            threading.Thread(target=intentar_cobro, args=(0,)),
-            threading.Thread(target=intentar_cobro, args=(1,)),
-        ]
-        for h in hilos:
-            h.start()
-        for h in hilos:
-            h.join(timeout=15)
+    def test_no_se_reserva_mas_saldo_del_que_hay(self):
+        self._iniciar("70000")
+        with self.assertRaises(CobroInvalido):
+            self._iniciar("40000")
 
-        orden.refresh_from_db()
 
-        exitosos = [r for r in resultados if r[0] == "exitoso"]
-        rechazados = [r for r in resultados if r[0] == "rechazado"]
+@override_settings(WOMPI=WOMPI_CFG, PASARELA_PROVEEDOR="WOMPI")
+class WompiTests(BaseCajaTest):
+    def _evento(self, pago, estado="APPROVED", secreto="ev_secret"):
+        evento = {"event": "transaction.updated", "environment": "test", "timestamp": 1530291411,
+                  "data": {"transaction": {"id": "1234-1610641025-49201", "status": estado,
+                                           "reference": pago.referencia_pasarela,
+                                           "amount_in_cents": int(pago.total_cobrado * 100)}},
+                  "signature": {"properties": ["transaction.id", "transaction.status", "transaction.amount_in_cents"]}}
+        evento["signature"]["checksum"] = _checksum_wompi(evento, evento["signature"]["properties"], secreto).upper()
+        return evento
 
-        self.assertLessEqual(
-            len(exitosos), 1,
-            "Solo un cobro debe ser exitoso bajo concurrencia",
-        )
-        self.assertLessEqual(
-            orden.pagos.count(), 1,
-            "No debe existir mas de un pago para la orden",
-        )
-        self.assertIn(
-            orden.estado,
-            [Orden.LISTA, Orden.ENTREGADA],
-            "La orden debe quedar en LISTA o ENTREGADA",
-        )
-        if len(exitosos) == 1:
-            self.assertEqual(orden.estado, Orden.ENTREGADA)
-            self.assertEqual(orden.pagos.count(), 1)
+    def test_url_checkout_trae_firma_y_monto_en_centavos(self):
+        pago, pas = servicios.iniciar_cobro_tarjeta(self.orden.pk, metodo=self.tarjeta, monto=Decimal("100000"), propina=Decimal("5000"))
+        self.assertIsInstance(pas, WompiPasarela)
+        self.client.force_login(self.cajero)
+        url = pas.url_checkout(self.client.get("/").wsgi_request, pago)
+        self.assertIn("amount-in-cents=10500000", url)
+        self.assertIn(f"reference={pago.referencia_pasarela}", url)
+        self.assertIn("signature%3Aintegrity=", url)
+
+    def test_webhook_http_aprueba_y_es_idempotente(self):
+        pago, _ = servicios.iniciar_cobro_tarjeta(self.orden.pk, metodo=self.tarjeta, monto=Decimal("100000"))
+        cuerpo = json.dumps(self._evento(pago))
+        url = reverse("caja:webhook", args=["wompi"])
+        for _ in range(2):
+            self.assertEqual(self.client.post(url, cuerpo, content_type="application/json").status_code, 200)
+        pago.refresh_from_db()
+        self.assertEqual((pago.estado, pago.id_transaccion_pasarela), (Pago.APROBADO, "1234-1610641025-49201"))
+        self.assertEqual(AuditoriaCobro.objects.filter(accion=AuditoriaCobro.PASARELA_APROBADA).count(), 1)
+
+    def test_webhook_con_firma_falsa_da_400(self):
+        pago, _ = servicios.iniciar_cobro_tarjeta(self.orden.pk, metodo=self.tarjeta, monto=Decimal("100000"))
+        cuerpo = json.dumps(self._evento(pago, secreto="otro_secreto"))
+        r = self.client.post(reverse("caja:webhook", args=["wompi"]), cuerpo, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+
+    def test_webhook_solo_acepta_post(self):
+        self.assertEqual(self.client.get(reverse("caja:webhook", args=["wompi"])).status_code, 405)
+
+
+class VistasCajaTests(BaseCajaTest):
+    def test_anonimo_es_redirigido_al_login(self):
+        r = self.client.get(reverse("caja:cobrar_orden", args=[self.orden.pk]))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("login", r.url)
+
+    def test_mesero_no_puede_cobrar(self):
+        self.client.force_login(self.mesero)
+        self.assertEqual(self.client.get(reverse("caja:cobrar_orden", args=[self.orden.pk])).status_code, 403)
+
+    def test_cajero_cobra_en_efectivo_con_propina(self):
+        self.client.force_login(self.cajero)
+        r = self.client.post(reverse("caja:cobrar_orden", args=[self.orden.pk]), {
+            "metodo_pago": self.efectivo.pk, "monto": "100000", "propina": "8000", "efectivo_recibido": "120000"})
+        self.assertRedirects(r, reverse("caja:factura_detalle", args=[Orden.objects.get(pk=self.orden.pk).factura.pk]), fetch_redirect_response=False)
+        pago = Pago.objects.get()
+        self.assertEqual((pago.propina, pago.cobrado_por), (Decimal("8000"), self.cajero))
+
+    def test_cobro_con_tarjeta_redirige_a_la_pasarela(self):
+        self.client.force_login(self.cajero)
+        r = self.client.post(reverse("caja:cobrar_orden", args=[self.orden.pk]), {"metodo_pago": self.tarjeta.pk, "monto": "100000"})
+        pago = Pago.objects.get()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+        self.assertRedirects(r, reverse("caja:pasarela_simulada", args=[pago.referencia_pasarela]), fetch_redirect_response=False)
+
+    def test_flujo_simulado_completo_por_http(self):
+        self.client.force_login(self.cajero)
+        self.client.post(reverse("caja:cobrar_orden", args=[self.orden.pk]), {"metodo_pago": self.tarjeta.pk, "monto": "100000"})
+        pago = Pago.objects.get()
+        self.client.post(reverse("caja:pasarela_simulada", args=[pago.referencia_pasarela]), {"resultado": "aprobar"})
+        pago.refresh_from_db(); self.orden.refresh_from_db()
+        self.assertEqual((pago.estado, self.orden.estado), (Pago.APROBADO, Orden.ENTREGADA))
+
+    def test_auditoria_solo_para_administrador(self):
+        self.client.force_login(self.cajero)
+        self.assertEqual(self.client.get(reverse("caja:auditoria_list")).status_code, 403)
+        admin = Usuario.objects.create_superuser("a@x.co", "Admin", "pass12345")
+        self.client.force_login(admin)
+        self.assertEqual(self.client.get(reverse("caja:auditoria_list")).status_code, 200)

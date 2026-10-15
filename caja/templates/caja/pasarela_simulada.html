@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Pasarela simulada — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Pasarela simulada</h1><p>Solo para demo: no se cobra dinero real.</p></div></div>
+<div class="card" style="max-width:480px;">
+  <p>Orden #{{ pago.orden_id }} — referencia <code>{{ pago.referencia_pasarela }}</code></p>
+  <h2 style="color:#4ade80;">{{ pago.total_cobrado|moneda }}</h2>
+  <form method="post" style="display:flex; gap:12px;">
+    {% csrf_token %}
+    <button name="resultado" value="aprobar" class="btn btn-primary">Simular pago aprobado</button>
+    <button name="resultado" value="rechazar" class="btn btn-danger">Simular pago rechazado</button>
+  </form>
+</div>
+{% endblock %}
