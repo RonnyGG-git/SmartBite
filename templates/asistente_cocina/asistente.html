@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Asistente de recetas — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Asistente de recetas</h1>
+    <p>Describe lo que te apetece o lo que tienes en la despensa y te propongo recetas.</p>
+  </div>
+</div>
+
+<div class="card medium">
+  <form method="post">
+    {% csrf_token %}
+    {% include "includes/form_fields.html" with form=form grid=True %}
+    <div class="form-actions form-actions--end">
+      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Buscar recetas</span></button>
+    </div>
+  </form>
+</div>
+
+{% if resultado %}
+  {% if resultado.aviso %}
+    <div class="card medium">
+      <p>{{ resultado.aviso }}</p>
+    </div>
+  {% endif %}
+
+  {% if resultado.filtros.categoria or resultado.filtros.dificultad or resultado.filtros.tiempo_max or resultado.filtros.ingredientes %}
+    <div class="card medium">
+      <h2>Entendí tu consulta</h2>
+      <ul>
+        {% if resultado.filtros.categoria %}<li>Categoría: <strong>{{ resultado.filtros.categoria }}</strong></li>{% endif %}
+        {% if resultado.filtros.dificultad %}<li>Dificultad: <strong>{{ resultado.filtros.dificultad }}</strong></li>{% endif %}
+        {% if resultado.filtros.tiempo_max %}<li>Máximo <strong>{{ resultado.filtros.tiempo_max }}</strong> minutos</li>{% endif %}
+        {% for ingrediente in resultado.filtros.ingredientes %}<li>Ingrediente: <strong>{{ ingrediente }}</strong></li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if resultado.sugerencias %}
+    <h2>{{ resultado.sugerencias|length }} receta{{ resultado.sugerencias|length|pluralize:"s" }} sugerida{{ resultado.sugerencias|length|pluralize:"s" }}</h2>
+    {% for sugerencia in resultado.sugerencias %}
+      <div class="card medium">
+        <h3>{{ sugerencia.receta.nombre }}</h3>
+        <p>
+          Coincidencia: <strong>{{ sugerencia.puntaje|floatformat:1 }}</strong> ·
+          {{ sugerencia.receta.categoria }} ·
+          {{ sugerencia.receta.dificultad }} ·
+          {{ sugerencia.receta.tiempo_min }} min
+        </p>
+
+        {% if sugerencia.coincidencias %}
+          <ul>
+            {% for motivo in sugerencia.coincidencias %}<li>{{ motivo }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if sugerencia.inventario %}
+          <h4>En tu despensa</h4>
+          <ul>
+            {% for item in sugerencia.inventario %}
+              <li>
+                {{ item.nombre }}:
+                {% if item.con_stock %}
+                  <strong>disponible</strong> ({{ item.stock_actual }})
+                {% elif item.existe %}
+                  <em>sin stock</em>
+                {% else %}
+                  <em>no está en el inventario</em>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p><em>Indica una sucursal para contrastar con el inventario.</em></p>
+        {% endif %}
+
+        <div class="form-actions form-actions--end">
+          <a class="btn btn-primary"
+             href="{% url 'catalogo:producto_crear' %}?nombre={{ sugerencia.receta.nombre|urlencode }}&amp;descripcion={{ sugerencia.receta.descripcion|urlencode }}">Usar esta sugerencia</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% elif resultado.cercanas %}
+    <div class="card medium">
+      <h2>No encontré nada que encaje del todo, pero mira esto</h2>
+    </div>
+    {% for sugerencia in resultado.cercanas %}
+      <div class="card medium">
+        <h3>{{ sugerencia.receta.nombre }}</h3>
+        <p>
+          Coincidencia: <strong>{{ sugerencia.puntaje|floatformat:1 }}</strong> ·
+          {{ sugerencia.receta.categoria }} ·
+          {{ sugerencia.receta.dificultad }} ·
+          {{ sugerencia.receta.tiempo_min }} min
+        </p>
+        <div class="form-actions form-actions--end">
+          <a class="btn btn-primary"
+             href="{% url 'catalogo:producto_crear' %}?nombre={{ sugerencia.receta.nombre|urlencode }}&amp;descripcion={{ sugerencia.receta.descripcion|urlencode }}">Usar esta sugerencia</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% elif resultado.consultable %}
+    <div class="card medium">
+      <p>No encontré recetas que encajen con «{{ resultado.texto_procesado }}». Prueba con otros ingredientes o describe el sabor.</p>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -36,6 +36,23 @@ class ProductoCreateView(RoleRequiredMixin, CreateView):
     extra_context = {"titulo": "Nuevo Producto"}
     success_url = reverse_lazy("catalogo:productos_list")
 
+    def get_initial(self):
+        """Precarga nombre y descripcion si llegan por query string.
+
+        Es el puente con el Asistente de recetas: "Usar esta sugerencia"
+        manda ?nombre=...&descripcion=... y el formulario aparece ya escrito,
+        para que convertir una receta en producto sea un clic y no un
+        retipeo. Solo en GET: un POST manda los datos del formulario y no
+        debe mezclarse con lo que venga en la URL.
+        """
+        inicial = super().get_initial()
+        if self.request.method == "GET":
+            for campo in ("nombre", "descripcion"):
+                valor = self.request.GET.get(campo)
+                if valor:
+                    inicial[campo] = valor
+        return inicial
+
 
 class ProductoUpdateView(RoleRequiredMixin, UpdateView):
     model = Producto
