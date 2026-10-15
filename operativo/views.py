@@ -97,7 +97,7 @@ def crear_cliente_rapido(request):
     form = ClienteRapidoForm(request.POST)
     if form.is_valid():
         form.save()
-    return redirect(request.META.get("HTTP_REFERER", reverse("operativo:crear_orden")))
+    return redirect("operativo:crear_orden")
 
 
 class DetalleOrdenView(RoleRequiredMixin, DetailView):

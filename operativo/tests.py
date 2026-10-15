@@ -512,30 +512,30 @@ class CambiarEstadoOrdenAuthTest(TestBase):
         self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
     def test_cambiar_estado_mesero_cambia_estado(self):
-        """Un MESERO autenticado cambia PENDIENTE a EN_PREPARACION y es redirigido al detalle."""
+        """Un MESERO autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
         self._crear_usuario("mesero.estado@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.estado@test.com", password="testpass123")
-        respuesta = self.client.post(self.url, self.datos_estado)
+        respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
         self.assertRedirects(
             respuesta,
             reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
             fetch_redirect_response=False,
         )
         self.orden.refresh_from_db()
-        self.assertEqual(self.orden.estado, Orden.EN_PREPARACION)
+        self.assertEqual(self.orden.estado, Orden.CANCELADA)
 
     def test_cambiar_estado_administrador_cambia_estado(self):
-        """Un ADMINISTRADOR autenticado cambia PENDIENTE a EN_PREPARACION y es redirigido al detalle."""
+        """Un ADMINISTRADOR autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
         self._crear_usuario("admin.estado@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.estado@test.com", password="testpass123")
-        respuesta = self.client.post(self.url, self.datos_estado)
+        respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
         self.assertRedirects(
             respuesta,
             reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
             fetch_redirect_response=False,
         )
         self.orden.refresh_from_db()
-        self.assertEqual(self.orden.estado, Orden.EN_PREPARACION)
+        self.assertEqual(self.orden.estado, Orden.CANCELADA)
 
 
 class CrearOrdenTest(TestBase):
