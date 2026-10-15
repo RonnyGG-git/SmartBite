@@ -1,4 +1,8 @@
+# Entornos virtuales. OJO: "venv/" NO cubre ".venv/" (el punto inicial cambia
+# el nombre), por eso se listan las tres variantes.
+.venv/
 venv/
+env/
 __pycache__/
 *.pyc
 db.sqlite3
@@ -17,3 +21,6 @@ CLAUDE.md
 # Anclados a la raíz: diagramas/_specs/ sí se sube.
 /docs/
 /specs/
+
+# Herramientas del agente: configuracion local, no es entregable.
+.opencode/
