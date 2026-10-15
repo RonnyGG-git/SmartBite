@@ -80,7 +80,7 @@ class CobrarOrdenTest(TestCase):
         })
         self.assertRedirects(
             respuesta,
-            reverse("operativo:mesas_list"),
+            reverse("caja:ventas_list"),
             fetch_redirect_response=False,
         )
         self.orden_lista.refresh_from_db()
@@ -178,7 +178,7 @@ class CobrarOrdenTest(TestCase):
         })
         self.assertRedirects(
             respuesta,
-            reverse("operativo:mesas_list"),
+            reverse("caja:ventas_list"),
             fetch_redirect_response=False,
         )
         self.orden_lista.refresh_from_db()
@@ -194,7 +194,7 @@ class CobrarOrdenTest(TestCase):
         })
         self.assertRedirects(
             respuesta,
-            reverse("operativo:mesas_list"),
+            reverse("caja:ventas_list"),
             fetch_redirect_response=False,
         )
         self.orden_lista.refresh_from_db()
