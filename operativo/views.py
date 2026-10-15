@@ -14,7 +14,7 @@ from catalogo.models import Producto
 from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
-from .models import Cliente, DetalleOrden, Mesa, Orden
+from .models import Cliente, DetalleOrden, Mesa, Orden, TransicionOrdenInvalida
 
 ROLES_ADMIN = ["ADMINISTRADOR"]
 ROLES_MESERO = ["ADMINISTRADOR", "MESERO"]
@@ -170,15 +170,17 @@ def cambiar_estado_orden(request, pk):
     form = CambiarEstadoOrdenForm(request.POST)
     if form.is_valid():
         nuevo = form.cleaned_data["estado"]
+        # Autorización por rol: qué transiciones puede pedir este rol.
         if orden.estado not in TRANSICIONES_MESERO.get(nuevo, set()):
             messages.error(request, "Ese cambio de estado no está permitido para esta orden.")
             return redirect("operativo:detalle_orden", pk=pk)
-        orden.estado = nuevo
-        orden.save(update_fields=["estado"])
-        if nuevo in (Orden.ENTREGADA, Orden.CANCELADA):
-            # CU-PED-21: al cancelar (o cerrar) el pedido la mesa queda libre
-            orden.mesa.estado = Mesa.DISPONIBLE
-            orden.mesa.save(update_fields=["estado"])
+        try:
+            # Validez de la transición y efecto sobre mesa e inventario: los
+            # decide el dominio (Orden.cambiar_estado), no la vista.
+            orden.cambiar_estado(nuevo)
+        except TransicionOrdenInvalida as error:
+            messages.error(request, error.messages[0])
+            return redirect("operativo:detalle_orden", pk=pk)
     return redirect("operativo:detalle_orden", pk=pk)
 
 
