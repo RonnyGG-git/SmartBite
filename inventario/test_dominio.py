@@ -1,22 +1,6 @@
-﻿"""PENDIENTE — no lo descubre el runner de tests (extensión .pendiente).
-
-Este archivo importaba `TransicionOrdenInvalida` y `Orden.cambiar_estado()`,
-que NUNCA se fusionaron en `operativo/models.py`. Sin ellos el modulo no
-importaba y arrastraba a error a todo el inventario de tests.
-
-Lo que falta para rehabilitarlo (trabajo de dominio, no de saneamiento):
-  1. `operativo.models.TransicionOrdenInvalida` (ValidationError, code="transicion_invalida")
-  2. `Orden.cambiar_estado(estado_destino)` aplicando TRANSICIONES_VALIDAS
-  3. `Orden.transiciones_disponibles` como property
-Ahi si estas clases vuelven a correr. No borrar: son el trabajo de la
-fase "Dominio centralizado", que quedo a medias en esta rama.
-
-Las clases de AjustarStock si se rehabilitaron: viven ahora en
-`inventario/test_ajustar_stock.py`.
-"""Tests de la lÃ³gica de dominio centralizada: transiciones de Orden, ajustes de
+"""Tests de la lógica de dominio centralizada: transiciones de Orden, ajustes de
 inventario (incluido PERDIDA) y descuento de insumos por receta al iniciar la
-preparaciÃ³n."""
-from datetime import date
+preparación."""
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -30,83 +14,6 @@ from inventario.models import ItemInventario, MovimientoInventario
 from inventario.services import calcular_insumos_requeridos, descontar_insumos_por_receta
 from operativo.models import DetalleOrden, Mesa, Orden, TransicionOrdenInvalida
 from recetas.models import ProductoIngrediente
-
-
-class AjustarStockTests(TestCase):
-    def setUp(self):
-        self.d = crear_escenario()
-        self.item = ItemInventario.objects.create(
-            nombre="Arroz", stock_actual=10, stock_minimo=2, sucursal=self.d["centro"]
-        )
-
-    def test_entrada_suma_y_registra_movimiento(self):
-        self.item.ajustar_stock(MovimientoInventario.ENTRADA, 5, "Compra")
-
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.stock_actual, 15)
-        movimiento = MovimientoInventario.objects.get()
-        self.assertEqual(movimiento.tipo, MovimientoInventario.ENTRADA)
-        self.assertEqual(movimiento.cantidad, 5)
-        self.assertEqual(movimiento.motivo, "Compra")
-
-    def test_salida_resta(self):
-        self.item.ajustar_stock(MovimientoInventario.SALIDA, 4, "Cocina")
-
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.stock_actual, 6)
-        self.assertEqual(MovimientoInventario.objects.get().tipo, MovimientoInventario.SALIDA)
-
-    def test_perdida_se_comporta_exactamente_igual_que_salida(self):
-        self.item.ajustar_stock(MovimientoInventario.PERDIDA, 4, "Merma")
-
-        self.item.refresh_from_db()
-        movimiento = MovimientoInventario.objects.get()
-        self.assertEqual(self.item.stock_actual, 6)
-        self.assertEqual(movimiento.tipo, MovimientoInventario.PERDIDA)
-        # El movimiento se registra igual que una salida, pero queda tipado como
-        # pÃ©rdida para poder reportarlo por separado en el inventario.
-        self.assertEqual(movimiento.cantidad, 4)
-
-    def test_perdida_no_baja_de_cero(self):
-        self.item.ajustar_stock(MovimientoInventario.PERDIDA, 999, "Merma total")
-
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.stock_actual, 0)
-
-    def test_salida_no_baja_de_cero(self):
-        self.item.ajustar_stock(MovimientoInventario.SALIDA, 999, "Consumo")
-
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.stock_actual, 0)
-
-    def test_tipo_desconocido_es_rechazado(self):
-        with self.assertRaises(ValidationError):
-            self.item.ajustar_stock("BAJA", 1, "x")
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.stock_actual, 10)
-        self.assertEqual(MovimientoInventario.objects.count(), 0)
-
-    def test_cantidad_no_positiva_es_rechazada(self):
-        with self.assertRaises(ValidationError):
-            self.item.ajustar_stock(MovimientoInventario.SALIDA, 0, "x")
-        self.assertEqual(MovimientoInventario.objects.count(), 0)
-
-    def test_nuevos_campos_del_item(self):
-        self.item.fecha_vencimiento = date(2026, 12, 31)
-        self.item.categoria = "Granos"
-        self.item.activo = False
-        self.item.save()
-
-        self.item.refresh_from_db()
-        self.assertEqual(self.item.fecha_vencimiento, date(2026, 12, 31))
-        self.assertEqual(self.item.categoria, "Granos")
-        self.assertFalse(self.item.activo)
-
-    def test_activo_por_defecto(self):
-        nuevo = ItemInventario.objects.create(nombre="Sal", sucursal=self.d["centro"])
-        self.assertTrue(nuevo.activo)
-        self.assertIsNone(nuevo.fecha_vencimiento)
-        self.assertEqual(nuevo.categoria, "")
 
 
 class TransicionesOrdenTests(TestCase):
@@ -295,7 +202,7 @@ class DescuentoPorRecetaTests(TestCase):
 
         self.frijol.refresh_from_db()
         self.assertEqual(self.frijol.stock_actual, 0)
-        # Se pidiÃ³ 1 y no habÃ­a nada.
+        # Se pidió 1 y no había nada.
         self.assertEqual(resultado["faltantes"][self.frijol], 1)
 
     def test_el_faltante_queda_expuesto_en_la_orden(self):
