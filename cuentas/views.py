@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.shortcuts import get_object_or_404, redirect, render
@@ -59,6 +60,11 @@ def usuario_toggle_activo(request, pk):
     if not (request.user.is_superuser or (request.user.rol_id and request.user.rol.nombre in ROLES_ADMIN)):
         return redirect("cuentas:usuarios_list")
     usuario = get_object_or_404(Usuario, pk=pk)
+    # H8: nadie puede desactivarse a sí mismo; evita dejar la cuenta
+    # administrativa sin ningún administrador activo en la sucursal.
+    if usuario.pk == request.user.pk:
+        messages.error(request, "No puedes desactivar tu propia cuenta")
+        return redirect("cuentas:usuarios_list")
     usuario.is_active = not usuario.is_active
     usuario.save(update_fields=["is_active"])
     return redirect("cuentas:usuarios_list")
