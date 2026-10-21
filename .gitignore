@@ -1,3 +1,5 @@
+# Entornos virtuales. OJO: "venv/" NO cubre ".venv/" (el punto inicial cambia
+# el nombre), por eso se listan las tres variantes.
 .venv/
 venv/
 env/

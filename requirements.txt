@@ -8,3 +8,8 @@ psycopg[binary]>=3.2
 dj-database-url>=2.2
 djangorestframework>=3.16
 drf-spectacular>=0.28
+
+# Asistente de Cocina (Fase 1: PLN clasico y recuperacion de informacion).
+# Todo corre offline: no hay LLM ni llamadas a APIs externas.
+scikit-learn>=1.5
+rapidfuzz>=3.9

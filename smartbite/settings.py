@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import secrets
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlsplit
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,15 +41,26 @@ _cargar_env(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# En producción (Docker) se define SECRET_KEY en el entorno; el valor por defecto
-# solo existe para que el desarrollo local siga funcionando sin configurar nada.
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY', 'django-insecure-qtiu_xuy=3%h2!b*@u*ko$k6)*o%hporsjjlpebx&j@mhwwxy2'
-)
+# Modo debug: fail-closed. Sin la variable se asume produccion (False), no
+# desarrollo (G2). Antes el default era True, es decir, arrancar vulnerable.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
+# G1 fail-closed: la clave NUNCA esta escrita en el repo. En produccion tiene
+# que venir del entorno; si falta, la app no arranca en vez de arrancar con una
+# clave que cualquiera puede leer en GitHub y usar para falsificar sesiones.
+# Se aceptan los dos nombres porque Docker/.env.example usan SECRET_KEY.
+_secret_key = os.environ.get('DJANGO_SECRET_KEY') or os.environ.get('SECRET_KEY')
+if not _secret_key:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "Falta la variable de entorno SECRET_KEY (o DJANGO_SECRET_KEY). "
+            'Genera una con: python -c "import secrets; print(secrets.token_urlsafe(50))"'
+        )
+    # En desarrollo se genera una clave efimera en memoria: no hay ningun
+    # secreto en el codigo que se pueda filtrar, y a la vez el proyecto
+    # arranca sin configurar nada.
+    _secret_key = secrets.token_urlsafe(50)
+SECRET_KEY = _secret_key
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
@@ -55,8 +68,13 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS'
 if not DEBUG:
     # Detrás de Caddy (HTTPS): Django confía en el header que pone el proxy.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # G4: todo el transporte se blinda cuando no estamos en desarrollo.
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 # Application definition
@@ -88,6 +106,7 @@ INSTALLED_APPS = [
     'cliente',
     'reportes',
     'api',
+    'asistente_cocina',
 ]
 
 AUTH_USER_MODEL = 'cuentas.Usuario'
@@ -210,4 +229,42 @@ SPECTACULAR_SETTINGS = {
                    'el encabezado "Authorization: Token <token>". Errores: {"detail", "code"}.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+}
+
+# G7: sin esto no hay forma de investigar un incidente en produccion.
+# Los errores van a consola con el formato completo; en produccion el
+# contenedor ya recoge stdout/stderr, asi que no hace falta un archivo.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'estandar': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'consola': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'estandar',
+        },
+    },
+    'root': {
+        'handlers': ['consola'],
+        'level': 'ERROR',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['consola'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        # Silencia el WARNING de "Unauthorized" que dispara Django en cada 403
+        # de permisos y que, con las vistas de rol, es ruido esperado.
+        'django.security': {
+            'handlers': ['consola'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
 }
