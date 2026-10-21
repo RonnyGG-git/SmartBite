@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
 from core.models import TimestampedModel
@@ -35,6 +36,10 @@ class ItemInventario(TimestampedModel):
     sucursal = models.ForeignKey(
         "restaurantes.Sucursal", on_delete=models.PROTECT, related_name="items_inventario"
     )
+    # Campos que ya exige la migración 0002 (antes existían solo en la BD).
+    activo = models.BooleanField(default=True)
+    categoria = models.CharField(max_length=50, blank=True)
+    fecha_vencimiento = models.DateField(null=True, blank=True)
 
     class Meta:
         ordering = ["nombre"]
@@ -42,41 +47,53 @@ class ItemInventario(TimestampedModel):
     def __str__(self):
         return self.nombre
 
-    @property
-    def stock_bajo(self):
-        return self.stock_actual <= self.stock_minimo
-
     def ajustar_stock(self, tipo, cantidad, motivo):
-        """CU-INV-05/06/08: ajuste manual de stock (entrada o salida).
+        """Ajusta el stock y deja el movimiento registrado, todo en una transacción.
 
-        La regla única que usan la vista web (item_ajustar_stock) y la API:
-        la ENTRADA suma; la SALIDA resta sin bajar de 0 (una salida mayor que
-        el stock lo deja en 0 y el movimiento guarda la cantidad pedida). El
-        stock y su MovimientoInventario se guardan juntos o no se guarda
-        nada, y la fila del ítem queda bloqueada mientras tanto para que dos
-        ajustes simultáneos no se pisen. Devuelve el movimiento creado.
+        ENTRADA suma; SALIDA y PERDIDA restan con piso en 0 (nunca deja stock
+        negativo, porque la merma o el consumo no pueden inventar unidades).
+        Devuelve el MovimientoInventario creado.
+
+        Es la única puerta de entrada al stock: la usan tanto el formulario de
+        ajuste como `inventario.services.descontar_insumos_por_receta`, para
+        que una orden en marcha no pueda descuadrar el inventario a medias.
         """
-        if tipo not in (MovimientoInventario.ENTRADA, MovimientoInventario.SALIDA):
-            raise ValueError(f"Tipo de movimiento inválido: {tipo!r}")
-        if cantidad < 1:
-            raise ValueError("La cantidad debe ser al menos 1.")
+        validos = dict(MovimientoInventario.TIPO_CHOICES)
+        if tipo not in validos:
+            raise ValidationError(
+                {"tipo": f"Tipo de movimiento inválido: {tipo!r}."},
+                code="tipo_movimiento_invalido",
+            )
+        if cantidad is None or cantidad <= 0:
+            raise ValidationError(
+                {"cantidad": "La cantidad debe ser un entero positivo."},
+                code="cantidad_invalida",
+            )
+
         with transaction.atomic():
-            item = type(self).objects.select_for_update().get(pk=self.pk)
+            # select_for_update serializa ajustes concurrentes sobre el mismo
+            # ítem: dos cajeros ajustando a la vez no pueden pisarse.
+            item = ItemInventario.objects.select_for_update().get(pk=self.pk)
             if tipo == MovimientoInventario.ENTRADA:
                 item.stock_actual += cantidad
-            else:
+            else:  # SALIDA y PERDIDA restan igual, con piso en cero.
                 item.stock_actual = max(0, item.stock_actual - cantidad)
             item.save(update_fields=["stock_actual"])
             movimiento = MovimientoInventario.objects.create(
                 item=item, tipo=tipo, cantidad=cantidad, motivo=motivo
             )
+
         self.stock_actual = item.stock_actual
         return movimiento
 
+    @property
+    def stock_bajo(self):
+        return self.stock_actual <= self.stock_minimo
+
 
 class MovimientoInventario(TimestampedModel):
-    ENTRADA, SALIDA = "ENTRADA", "SALIDA"
-    TIPO_CHOICES = [(ENTRADA, "Entrada"), (SALIDA, "Salida")]
+    ENTRADA, SALIDA, PERDIDA = "ENTRADA", "SALIDA", "PERDIDA"
+    TIPO_CHOICES = [(ENTRADA, "Entrada"), (SALIDA, "Salida"), (PERDIDA, "Pérdida")]
 
     item = models.ForeignKey(ItemInventario, on_delete=models.CASCADE, related_name="movimientos")
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)

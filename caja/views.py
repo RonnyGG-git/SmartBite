@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView
 
 from core.mixins import RoleRequiredMixin, usuario_tiene_rol
-from operativo.models import Mesa, Orden
+from operativo.models import Orden, TransicionOrdenInvalida
 
 from .forms import CobrarOrdenForm
 from .models import Pago
@@ -40,18 +40,23 @@ def cobrar_orden(request, pk):
             if monto < orden.total:
                 form.add_error("monto", "El monto debe ser mayor o igual al total de la orden.")
                 return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
-            # RF-006, RNF-002: Operacion dentro de transaccion atomica
-            with transaction.atomic():
-                Pago.objects.create(
-                    orden=orden,
-                    metodo_pago=form.cleaned_data["metodo_pago"],
-                    monto=monto,
-                    referencia_transaccion=form.cleaned_data["referencia_transaccion"],
-                )
-                orden.estado = Orden.ENTREGADA
-                orden.save(update_fields=["estado"])
-                orden.mesa.estado = Mesa.DISPONIBLE
-                orden.mesa.save(update_fields=["estado"])
+            # RF-006, RNF-002: Operacion dentro de transaccion atomica.
+            # El pago y el cambio de estado se confirman juntos: si el
+            # dominio rechaza la transicion, el pago tampoco queda.
+            try:
+                with transaction.atomic():
+                    Pago.objects.create(
+                        orden=orden,
+                        metodo_pago=form.cleaned_data["metodo_pago"],
+                        monto=monto,
+                        referencia_transaccion=form.cleaned_data["referencia_transaccion"],
+                    )
+                    # La orden la cierra el dominio, no la vista: asi ENTREGADA
+                    # y la mesa libre quedan en la misma transaccion que el pago.
+                    orden.cambiar_estado(Orden.ENTREGADA)
+            except TransicionOrdenInvalida as error:
+                form.add_error(None, error.messages[0])
+                return render(request, "caja/registrar_pago.html", {"orden": orden, "form": form})
             # El cajero no tiene acceso a Mesas; vuelve a su historial de ventas
             return redirect("caja:ventas_list")
     else:

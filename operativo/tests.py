@@ -511,23 +511,41 @@ class CambiarEstadoOrdenAuthTest(TestBase):
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
-    def test_cambiar_estado_mesero_cambia_estado(self):
-        """Un MESERO autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
+    def test_cambiar_estado_mesero_no_puede_iniciar_preparacion(self):
+        """La preparación es del Chef (vistas de cocina), no del Mesero.
+
+        Desde el detalle el Mesero solo puede CANCELAR antes de que la orden
+        entre a preparación; por eso el POST a EN_PREPARACION se rechaza y la
+        orden se queda en PENDIENTE.
+        """
         self._crear_usuario("mesero.estado@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.estado@test.com", password="testpass123")
-        respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
+        respuesta = self.client.post(self.url, self.datos_estado)
         self.assertRedirects(
             respuesta,
             reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
             fetch_redirect_response=False,
         )
         self.orden.refresh_from_db()
-        self.assertEqual(self.orden.estado, Orden.CANCELADA)
+        self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
-    def test_cambiar_estado_administrador_cambia_estado(self):
-        """Un ADMINISTRADOR autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
+    def test_cambiar_estado_administrador_tampoco_inicia_preparacion(self):
+        """El rol ADMINISTRADOR tampoco puede iniciar la preparación."""
         self._crear_usuario("admin.estado@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.estado@test.com", password="testpass123")
+        respuesta = self.client.post(self.url, self.datos_estado)
+        self.assertRedirects(
+            respuesta,
+            reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
+            fetch_redirect_response=False,
+        )
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.PENDIENTE)
+
+    def test_cambiar_estado_mesero_si_puede_cancelar(self):
+        """El Mesero sí puede cancelar una orden PENDIENTE y liberar la mesa."""
+        self._crear_usuario("mesero.cancelar@test.com", "Mesero Test", "MESERO")
+        self.client.login(email="mesero.cancelar@test.com", password="testpass123")
         respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
         self.assertRedirects(
             respuesta,

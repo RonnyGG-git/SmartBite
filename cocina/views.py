@@ -65,14 +65,16 @@ def actualizar_estado(request, pk):
         if not 1 <= minutos <= 240:
             messages.error(request, "Indica un tiempo estimado de preparación válido.")
             return redirect("cocina:cocina")
-        orden.estado = Orden.EN_PREPARACION
-        orden.tiempo_estimado_min = minutos
-        orden.preparacion_iniciada_en = timezone.now()
-        orden.save(update_fields=["estado", "tiempo_estimado_min", "preparacion_iniciada_en", "actualizado_en"])
+        # El descuento de insumos y la ocupación de mesa los decide el modelo,
+        # no esta vista (ver Orden.cambiar_estado).
+        orden.cambiar_estado(
+            Orden.EN_PREPARACION,
+            tiempo_estimado_min=minutos,
+            preparacion_iniciada_en=timezone.now(),
+        )
         messages.success(request, f"Orden #{orden.pk} en preparación ({minutos} min).")
     elif accion == "listo" and orden.estado == Orden.EN_PREPARACION:
-        orden.estado = Orden.LISTA
-        orden.save(update_fields=["estado", "actualizado_en"])
+        orden.cambiar_estado(Orden.LISTA)
         messages.success(request, f"Orden #{orden.pk} lista para servir en la mesa {orden.mesa.numero}.")
     else:
         messages.error(request, "Esa acción ya no aplica al estado actual de la orden.")

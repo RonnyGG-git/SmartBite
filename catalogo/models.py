@@ -26,6 +26,14 @@ class Producto(TimestampedModel):
 
     class Meta:
         ordering = ["nombre"]
+        # H11: el nombre del producto es único dentro de una sucursal, pero
+        # puede repetirse entre sucursales distintas del mismo restaurante.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nombre", "sucursal"],
+                name="unique_producto_nombre_por_sucursal",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre

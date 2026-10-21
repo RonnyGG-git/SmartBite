@@ -54,6 +54,7 @@ def item_ajustar_stock(request, pk):
     if request.method == "POST":
         form = AjusteStockForm(request.POST)
         if form.is_valid():
+            # Toda la regla de stock vive en ItemInventario.ajustar_stock.
             item.ajustar_stock(
                 form.cleaned_data["tipo"], form.cleaned_data["cantidad"], form.cleaned_data["motivo"]
             )

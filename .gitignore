@@ -1,4 +1,6 @@
+.venv/
 venv/
+env/
 __pycache__/
 *.pyc
 db.sqlite3
@@ -17,3 +19,6 @@ CLAUDE.md
 # Anclados a la raíz: diagramas/_specs/ sí se sube.
 /docs/
 /specs/
+
+# Herramientas del agente: skills y configuracion local de OpenCode.
+.opencode/

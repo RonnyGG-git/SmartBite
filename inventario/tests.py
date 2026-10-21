@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
@@ -57,14 +58,14 @@ class AjustarStockTests(TestCase):
         self.assertEqual(self.item.stock_actual, 11)
 
     def test_tipo_invalido_no_cambia_nada(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             self.item.ajustar_stock("AJUSTE", 1, "x")
         self.item.refresh_from_db()
         self.assertEqual(self.item.stock_actual, 10)
         self.assertFalse(MovimientoInventario.objects.exists())
 
     def test_cantidad_menor_que_uno_no_cambia_nada(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             self.item.ajustar_stock(MovimientoInventario.ENTRADA, 0, "x")
         self.assertFalse(MovimientoInventario.objects.exists())
 
