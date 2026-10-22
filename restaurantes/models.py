@@ -1,6 +1,18 @@
+import secrets
+
 from django.db import models
 
 from core.models import TimestampedModel
+
+ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+LARGO_CODIGO = 8
+
+
+def generar_codigo_acceso():
+    while True:
+        codigo = "".join(secrets.choice(ALFABETO_CODIGO) for _ in range(LARGO_CODIGO))
+        if not Restaurante.objects.filter(codigo_acceso=codigo).exists():
+            return codigo
 
 
 class Restaurante(TimestampedModel):
@@ -10,11 +22,25 @@ class Restaurante(TimestampedModel):
     direccion = models.CharField(max_length=255)
     telefono = models.CharField(max_length=30, blank=True)
     telefono_secundario = models.CharField(max_length=30, blank=True)
+    administrador = models.ForeignKey(
+        "cuentas.Usuario", on_delete=models.PROTECT, related_name="restaurantes_administrados",
+        null=True, blank=True,
+    )
+    codigo_acceso = models.CharField(max_length=LARGO_CODIGO, unique=True, editable=False)
     logo_url = models.URLField(blank=True)
     activo = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["nombre"]
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_acceso:
+            self.codigo_acceso = generar_codigo_acceso()
+        super().save(*args, **kwargs)
+
+    def regenerar_codigo_acceso(self):
+        self.codigo_acceso = generar_codigo_acceso()
+        self.save(update_fields=["codigo_acceso", "actualizado_en"])
 
     def __str__(self):
         return self.nombre

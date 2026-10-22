@@ -1,14 +1,3 @@
-"""07 — Objetos: los datos de Inventario después de los escenarios de los
-diagramas de comunicación (recibir la compra de 10 L de leche) y de secuencia
-(salida de 7), con los modelos de la app Django de Ronny (rama smartbite):
-inventario/models.py. UML 2.5.1, 9.8.4.
-
-- Cada slot es un atributo del diagrama de clases (creado_en viene de
-  core::TimestampedModel; '/' = propiedad calculada).
-- Las FK (proveedor, compra, item, sucursal) son asociaciones en el diagrama
-  de clases: acá van como enlaces (línea sólida), no como slots *_id.
-- Los valores encadenan: stock 0 + ENTRADA 10 − SALIDA 7 = 3; total = subtotal.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -52,8 +41,6 @@ def fy(y_abs, y0, h):
     return round((y_abs - y0) / h, 4)
 
 
-# Enlaces (instancias de las asociaciones del diagrama de clases); el nombre de
-# cada extremo es el rol del objeto que está en ese extremo.
 Y_CP = 120 + 60
 d.arista(compra, prov, LINK + f"exitX=0;exitY={fy(Y_CP, 120, alto_compra)};entryX=1;"
          f"entryY={fy(Y_CP, 120, alto_prov)};",
@@ -66,7 +53,7 @@ d.arista(det, leche, LINK + f"exitX=1;exitY={fy(Y_DL, 420, alto_det)};entryX=0;"
          etiquetas=[(-1, "detalles_compra", "left", "bottom"), (1, "item", "right", "top")])
 d.arista(leche, suc, LINK + "exitX=0.5;exitY=0;entryX=0.5;entryY=1;",
          etiquetas=[(-1, "items_inventario", "left", "bottom"), (1, "sucursal", "left", "top")])
-Y_E = LY + 14                     # enlaces horizontales: arriba y abajo de leche
+Y_E = LY + 14
 d.arista(ent, leche, LINK + f"exitX=0;exitY={fy(Y_E, Y_E1, alto_ent)};entryX=1;entryY={fy(Y_E, LY, alto_leche)};",
          etiquetas=[(-1, "movimientos", "right", "bottom"), (1, "item", "left", "top")])
 Y_S = LY + alto_leche - 14

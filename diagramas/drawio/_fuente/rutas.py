@@ -1,7 +1,3 @@
-"""Rutas compartidas por los scripts que generan los diagramas de Inventario.
-
-La librería de formas vive en la skill diagramas-uml de MiCerebro (una sola
-copia para todos los proyectos)."""
 import sys
 from pathlib import Path
 

@@ -1,16 +1,3 @@
-"""09 — Componentes: las piezas de Inventario en ejecución dentro de la app
-Django de Ronny (rama smartbite) y las interfaces por las que se comunican.
-Fuente: smartbite/urls.py y settings.py, inventario/ (urls, views, forms,
-models, templates), core/mixins.py, reportes/views.py, recetas/models.py,
-cocina/views.py. UML 2.5.1, 11.6 y 10.4.
-
-- Componente UML 2: «component» y el icono arriba a la derecha (11.6.4).
-- Bola = interfaz provista; socket = requerida (10.4.4). El socket abraza la
-  bola = conector de ensamble (11.2.4).
-- Puertos en el borde de la aplicación y conectores de delegación hacia la
-  pieza interna que atiende (11.3.3).
-- La máquina donde corre la base no va acá (es despliegue): solo el esquema.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -21,7 +8,6 @@ d.titulo("Diagrama de componentes — Inventario (Smart Bite)",
 USO = DEPENDENCIA
 LINEA = "html=1;endArrow=open;endSize=8;strokeColor=#333333;"
 
-# --- Aplicación Django (con sus componentes internos)
 APP_X, APP_Y, APP_W, APP_H = 300, 100, 900, 760
 d.componente("Smart Bite — aplicación Django 5.2", APP_X, APP_Y, APP_W, APP_H, BLANCO, tam=13)
 
@@ -43,7 +29,6 @@ reportes = d.componente("Reportes", 990, 445, 190, 70, GRIS, detalle="dashboard:
 recetas = d.componente("Recetas", 990, 535, 190, 70, GRIS, detalle="FK item_inventario")
 cocina = d.componente("Cocina", 990, 625, 190, 70, GRIS, detalle="insumos_faltantes")
 
-# Dependencias internas (punteada: el de la cola usa al de la punta)
 d.arista(urls, vistas, USO + "exitX=1;exitY=0.5;entryX=0;entryY=0.5;")
 d.arista(vistas, roles, USO + "exitX=1;exitY=0.5;entryX=0;entryY=0.5;")
 d.arista(vistas, forms, USO + "edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.15;exitY=1;entryX=0.5;entryY=0;")
@@ -52,14 +37,12 @@ d.arista(vistas, modelos, USO + "exitX=0.5;exitY=1;entryX=0.5;entryY=0;")
 d.arista(forms, modelos, USO + "edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;entryX=0;entryY=0.5;")
 d.arista(modelos, orm, USO + "exitX=0.5;exitY=1;entryX=0.5;entryY=0;")
 
-# Interfaz provista por los modelos y usada por las otras apps (dependencia hasta la bola)
 Y_IF = MOD_Y + MOD_H / 2
 bx, by = d.interfaz_provista(830, Y_IF, "ItemInventario", lado="der", largo=30)
 blanco = d.vertice("", bx + 7, by - 1, 2, 2, "rounded=0;fillColor=none;strokeColor=none;")
 for comp in (reportes, recetas, cocina):
     d.arista(comp, blanco, USO + "exitX=0;exitY=0.5;")
 
-# --- HTTP: puerto en el borde, bola afuera, el navegador la requiere (socket)
 Y_HTTP = 202
 d.puerto(APP_X, Y_HTTP)
 bola_http, _ = d.interfaz_provista(APP_X - 7, Y_HTTP, "HTTP", lado="izq", largo=24)
@@ -67,13 +50,12 @@ NAV_X, NAV_W = 40, 170
 nav = d.componente("Navegador web", NAV_X, Y_HTTP - 50, NAV_W, 100, GRIS,
                    detalle="Jefe de Inventario,\nAdministrador,\nJefe de Cocina")
 d.interfaz_requerida(NAV_X + NAV_W, Y_HTTP, lado="der", largo=bola_http - 17 - (NAV_X + NAV_W))
-d.flecha(APP_X + 7, Y_HTTP, 360, Y_HTTP, LINEA)          # delegación del puerto a las URLs
+d.flecha(APP_X + 7, Y_HTTP, 360, Y_HTTP, LINEA)
 
-# --- Base de datos: puerto en el borde, el ORM requiere DB-API (socket) y el driver la provee (bola)
 Y_DB = ORM_Y + ORM_H / 2
 PX = APP_X + APP_W
 d.puerto(PX, Y_DB)
-d.flecha(830, Y_DB, PX - 7, Y_DB, LINEA)                 # delegación del ORM al puerto
+d.flecha(830, Y_DB, PX - 7, Y_DB, LINEA)
 DRV_X, DRV_W = 1310, 210
 drv = d.componente("Driver de base de datos", DRV_X, Y_DB - 55, DRV_W, 110, GRIS,
                    detalle="psycopg2 si el .env define\nDATABASE_URL; si no, sqlite3")

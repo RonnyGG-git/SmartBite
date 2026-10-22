@@ -2,7 +2,6 @@ from django import forms
 
 from .models import Retroalimentacion
 
-# Tope por línea del autopedido: evita pedidos absurdos por error de dedo
 MAX_CANTIDAD_POR_PRODUCTO = 20
 
 
@@ -20,9 +19,6 @@ class RetroalimentacionForm(forms.ModelForm):
 
 
 def leer_cantidades(post, productos):
-    """Devuelve [(producto, cantidad)] con las cantidades > 0 enviadas en el
-    POST como `cant_<id>`. Solo considera los productos permitidos (los de la
-    sucursal de la mesa y disponibles) — cualquier otro id se ignora."""
     seleccion = []
     for producto in productos:
         crudo = post.get(f"cant_{producto.pk}", "").strip()

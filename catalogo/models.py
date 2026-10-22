@@ -4,10 +4,16 @@ from core.models import TimestampedModel
 
 
 class Categoria(TimestampedModel):
-    nombre = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100)
+    restaurante = models.ForeignKey(
+        "restaurantes.Restaurante", on_delete=models.CASCADE, related_name="categorias", null=True, blank=True
+    )
 
     class Meta:
         ordering = ["nombre"]
+        constraints = [
+            models.UniqueConstraint(fields=["restaurante", "nombre"], name="unique_categoria_por_restaurante"),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -26,8 +32,6 @@ class Producto(TimestampedModel):
 
     class Meta:
         ordering = ["nombre"]
-        # H11: el nombre del producto es único dentro de una sucursal, pero
-        # puede repetirse entre sucursales distintas del mismo restaurante.
         constraints = [
             models.UniqueConstraint(
                 fields=["nombre", "sucursal"],

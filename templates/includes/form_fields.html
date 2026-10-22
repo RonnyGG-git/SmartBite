@@ -1,8 +1,3 @@
-{% comment %}
-Renderiza los campos de un formulario Django con el estilo del tema.
-Uso: {% include "includes/form_fields.html" with form=form %}
-Opcional: grid=True para distribuir en dos columnas.
-{% endcomment %}
 {% if form.non_field_errors %}
   <ul class="errorlist nonfield alert alert-error">
     {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}

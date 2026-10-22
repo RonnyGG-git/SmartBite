@@ -6,7 +6,10 @@ app_name = "cliente"
 
 urlpatterns = [
     path("mesa/<int:mesa_id>/", views.mesa, name="mesa"),
+    path("tipo/", views.tipo_consumo, name="tipo_consumo"),
     path("menu/", views.menu, name="menu"),
+    path("carrito/", views.carrito, name="carrito"),
+    path("compra/", views.compra, name="compra"),
     path("pedido/", views.autopedido, name="autopedido"),
     path("pedido/<int:pk>/", views.pedido, name="pedido"),
     path("mis-pedidos/", views.mis_pedidos, name="mis_pedidos"),

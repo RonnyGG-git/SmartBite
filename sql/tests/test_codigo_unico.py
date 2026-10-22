@@ -27,7 +27,6 @@ def test_codigos_consecutivos_misma_categoria_y_sucursal(cursor):
 
 
 def test_dos_sucursales_no_chocan_con_el_mismo_prefijo(cursor):
-    # Antes de la corrección del plan, el UNIQUE era global y esto fallaba.
     categoria_id = _crear_categoria(cursor, nombre="Lácteos")
     id_sucursal_1 = _crear_insumo(cursor, categoria_id, sucursal_id=1, nombre="Leche")
     id_sucursal_2 = _crear_insumo(cursor, categoria_id, sucursal_id=2, nombre="Leche")
@@ -64,11 +63,7 @@ def test_permite_actualizar_otros_campos_sin_tocar_el_codigo(cursor):
     assert cursor.fetchone()[0] == codigo_original
 
 
-# --- Verificación posterior (2026-09-23) ---
-
 def test_prefijo_usa_solo_letras_de_la_categoria(cursor):
-    # ADR 0002: "3 letras mayúsculas". Con un guion dentro de las 3 primeras
-    # posiciones, el segundo insumo fallaba al leer el secuencial del primero.
     categoria_id = _crear_categoria(cursor, nombre="Té-hierbas")
     id1 = _crear_insumo(cursor, categoria_id, nombre="Manzanilla")
     id2 = _crear_insumo(cursor, categoria_id, nombre="Menta")
@@ -79,8 +74,6 @@ def test_prefijo_usa_solo_letras_de_la_categoria(cursor):
 
 
 def test_dos_altas_concurrentes_misma_categoria_y_sucursal(esquema, database_url):
-    # Con MAX()+1 sin bloqueo, las dos transacciones calculaban el mismo
-    # secuencial y la segunda moría por UniqueViolation.
     setup_conn = psycopg2.connect(database_url)
     setup_conn.autocommit = True
     with setup_conn.cursor() as cur:
@@ -106,7 +99,7 @@ def test_dos_altas_concurrentes_misma_categoria_y_sucursal(esquema, database_url
                     (nombre, categoria_id),
                 )
                 resultados[nombre] = cur.fetchone()[0]
-                time.sleep(0.5)  # la transacción sigue abierta mientras la otra intenta
+                time.sleep(0.5)
             conn.commit()
         except psycopg2.Error as error:
             conn.rollback()

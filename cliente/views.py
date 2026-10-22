@@ -1,15 +1,3 @@
-"""Módulo Cliente — la cara pública del Módulo de Pedidos (diagrama de casos
-de uso, actor Cliente). No requiere login: la mesa se identifica al escanear
-su QR y los pedidos del comensal se recuerdan en su sesión.
-
-CU-PED-16 Escanear código QR de mesa  -> mesa()
-CU-PED-01 Consultar menú disponible   -> menu()
-CU-PED-05 Realizar autopedido          -> autopedido()  (incluye 02 y 08)
-CU-PED-13 Consultar estado del pedido  -> pedido()
-CU-PED-17/18/19 Retroalimentación      -> retroalimentacion()
-CU-ADM-16 Revisar sugerencias y denuncias (Administrador) -> RetroalimentacionListView
-"""
-
 from collections import OrderedDict
 
 from django.contrib import messages
@@ -21,6 +9,7 @@ from django.views.generic import ListView
 
 from catalogo.models import Producto
 from core.mixins import RoleRequiredMixin, rol_requerido
+from core.tenancy import RestauranteMixin, filtrar
 from operativo.models import Cliente, DetalleOrden, Mesa, Orden
 
 from .forms import MAX_CANTIDAD_POR_PRODUCTO, RetroalimentacionForm, leer_cantidades
@@ -28,10 +17,13 @@ from .models import Retroalimentacion
 
 SESION_MESA = "cliente_mesa_id"
 SESION_PEDIDOS = "cliente_pedidos"
+SESION_MESA_ASIGNADA = "cliente_mesa_asignada"
+SESION_TIPO_CONSUMO = "cliente_tipo_consumo"
+SESION_CARRITO = "cliente_carrito"
+SESION_NOMBRE = "cliente_nombre"
 ROLES_ADMIN = ["ADMINISTRADOR"]
 
 
-# ---------------------------------------------------------------- helpers
 def _mesa_de_sesion(request):
     mesa_id = request.session.get(SESION_MESA)
     if not mesa_id:
@@ -44,7 +36,6 @@ def _pedidos_de_sesion(request):
 
 
 def _pedido_en_curso(request, mesa):
-    """Pedido activo de la mesa, solo si lo hizo este mismo comensal."""
     if mesa is None:
         return None
     orden = mesa.orden_activa
@@ -54,11 +45,23 @@ def _pedido_en_curso(request, mesa):
 
 
 def _productos_disponibles(mesa):
-    """CU-PED-01: platillos disponibles de la sucursal de la mesa."""
-    qs = Producto.objects.filter(disponible=True).select_related("categoria")
-    if mesa is not None:
-        qs = qs.filter(sucursal=mesa.sucursal)
+    if mesa is None:
+        return Producto.objects.none()
+    qs = Producto.objects.filter(disponible=True, sucursal=mesa.sucursal).select_related("categoria")
     return qs.order_by("categoria__nombre", "nombre")
+
+
+def _mesa_asignada(request, mesa):
+    return mesa is not None and request.session.get(SESION_MESA_ASIGNADA) == mesa.pk
+
+
+def _puede_pedir(request, mesa):
+    return _mesa_asignada(request, mesa) and mesa.orden_activa is None
+
+
+def _carrito(request, mesa):
+    guardado = request.session.get(SESION_CARRITO, {})
+    return [(p, guardado[str(p.pk)]) for p in _productos_disponibles(mesa) if str(p.pk) in guardado]
 
 
 def _agrupar_por_categoria(productos):
@@ -68,20 +71,52 @@ def _agrupar_por_categoria(productos):
     return list(grupos.items())
 
 
-# ------------------------------------------------------------ vistas públicas
 def mesa(request, mesa_id):
-    """CU-PED-16: el QR de la mesa apunta aquí; identifica la mesa y lleva al menú."""
     mesa_obj = get_object_or_404(Mesa, pk=mesa_id, activa=True)
+    if request.session.get(SESION_MESA) != mesa_obj.pk:
+        for clave in (SESION_MESA_ASIGNADA, SESION_TIPO_CONSUMO, SESION_CARRITO, SESION_NOMBRE):
+            request.session.pop(clave, None)
     request.session[SESION_MESA] = mesa_obj.pk
+    if _mesa_asignada(request, mesa_obj):
+        return redirect("cliente:menu" if request.session.get(SESION_TIPO_CONSUMO) else "cliente:tipo_consumo")
+    with transaction.atomic():
+        libre = Mesa.objects.select_for_update().get(pk=mesa_obj.pk)
+        if libre.estado == Mesa.DISPONIBLE and libre.orden_activa is None:
+            libre.estado = Mesa.OCUPADA
+            libre.save(update_fields=["estado"])
+            request.session[SESION_MESA_ASIGNADA] = libre.pk
+            return redirect("cliente:tipo_consumo")
     return redirect("cliente:menu")
+
+
+def tipo_consumo(request):
+    mesa_obj = _mesa_de_sesion(request)
+    if not _mesa_asignada(request, mesa_obj):
+        return redirect("cliente:menu")
+    if request.method == "POST":
+        tipo = request.POST.get("tipo")
+        if tipo in dict(Orden.TIPO_CONSUMO_CHOICES):
+            request.session[SESION_TIPO_CONSUMO] = tipo
+            return redirect("cliente:menu")
+        messages.error(request, "Elige si tu pedido es para llevar o para comer aquí.")
+    return render(request, "cliente/tipo_consumo.html", {
+        "mesa": mesa_obj,
+        "tipos": Orden.TIPO_CONSUMO_CHOICES,
+        "actual": request.session.get(SESION_TIPO_CONSUMO),
+    })
 
 
 def menu(request):
     mesa_obj = _mesa_de_sesion(request)
-    productos = _productos_disponibles(mesa_obj)
+    productos = list(_productos_disponibles(mesa_obj))
+    guardado = request.session.get(SESION_CARRITO, {})
+    for producto in productos:
+        producto.cantidad_carrito = guardado.get(str(producto.pk), 0)
     en_curso = _pedido_en_curso(request, mesa_obj)
-    puede_pedir = mesa_obj is not None and mesa_obj.estado == Mesa.DISPONIBLE
-
+    puede_pedir = _puede_pedir(request, mesa_obj)
+    tipo = request.session.get(SESION_TIPO_CONSUMO)
+    if puede_pedir and not tipo:
+        return redirect("cliente:tipo_consumo")
     return render(
         request,
         "cliente/menu.html",
@@ -91,14 +126,44 @@ def menu(request):
             "puede_pedir": puede_pedir,
             "pedido_en_curso": en_curso,
             "max_cantidad": MAX_CANTIDAD_POR_PRODUCTO,
+            "tipo_consumo": dict(Orden.TIPO_CONSUMO_CHOICES).get(tipo),
+            "nombre": request.session.get(SESION_NOMBRE, ""),
         },
     )
 
 
 @require_POST
+def carrito(request):
+    mesa_obj = _mesa_de_sesion(request)
+    if not _puede_pedir(request, mesa_obj):
+        return redirect("cliente:menu")
+    seleccion = leer_cantidades(request.POST, _productos_disponibles(mesa_obj))
+    if not seleccion:
+        messages.error(request, "Elige al menos un platillo para ir al apartado de compra.")
+        return redirect("cliente:menu")
+    request.session[SESION_CARRITO] = {str(p.pk): c for p, c in seleccion}
+    request.session[SESION_NOMBRE] = request.POST.get("nombre", "").strip()[:150]
+    return redirect("cliente:compra")
+
+
+def compra(request):
+    mesa_obj = _mesa_de_sesion(request)
+    items = _carrito(request, mesa_obj)
+    if not _puede_pedir(request, mesa_obj) or not items:
+        return redirect("cliente:menu")
+    lineas = [(p, c, p.precio * c) for p, c in items]
+    tipo = request.session.get(SESION_TIPO_CONSUMO, Orden.EN_RESTAURANTE)
+    return render(request, "cliente/compra.html", {
+        "mesa": mesa_obj,
+        "lineas": lineas,
+        "total": sum(sub for _, _, sub in lineas),
+        "tipo_consumo": dict(Orden.TIPO_CONSUMO_CHOICES)[tipo],
+        "nombre": request.session.get(SESION_NOMBRE, ""),
+    })
+
+
+@require_POST
 def autopedido(request):
-    """CU-PED-05 Realizar autopedido: incluye CU-PED-02 (seleccionar platillos)
-    y CU-PED-08 (enviar a cocina: la orden entra PENDIENTE a la cola del Chef)."""
     mesa_obj = _mesa_de_sesion(request)
     if mesa_obj is None:
         messages.error(request, "Escanea el código QR de tu mesa para hacer un pedido.")
@@ -111,14 +176,16 @@ def autopedido(request):
 
     with transaction.atomic():
         mesa_bloqueada = Mesa.objects.select_for_update().get(pk=mesa_obj.pk)
-        if mesa_bloqueada.estado != Mesa.DISPONIBLE:
+        if not _mesa_asignada(request, mesa_bloqueada) or mesa_bloqueada.orden_activa is not None:
             messages.error(request, "Esta mesa ya tiene un pedido en curso. Pide ayuda a tu mesero.")
             return redirect("cliente:menu")
 
         nombre = request.POST.get("nombre", "").strip()[:150]
-        cliente = Cliente.objects.create(nombre=nombre) if nombre else None
+        restaurante = mesa_bloqueada.sucursal.restaurante
+        cliente = Cliente.objects.create(nombre=nombre, restaurante=restaurante) if nombre else None
         orden = Orden.objects.create(
-            mesa=mesa_bloqueada, cliente=cliente, origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.PENDIENTE
+            mesa=mesa_bloqueada, cliente=cliente, origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.PENDIENTE,
+            tipo_consumo=request.session.get(SESION_TIPO_CONSUMO, Orden.EN_RESTAURANTE),
         )
         DetalleOrden.objects.bulk_create(
             DetalleOrden(orden=orden, producto=p, cantidad=c, precio_unitario=p.precio) for p, c in seleccion
@@ -126,6 +193,7 @@ def autopedido(request):
         mesa_bloqueada.estado = Mesa.OCUPADA
         mesa_bloqueada.save(update_fields=["estado"])
 
+    request.session.pop(SESION_CARRITO, None)
     pedidos = _pedidos_de_sesion(request)
     pedidos.append(orden.pk)
     request.session[SESION_PEDIDOS] = pedidos[-20:]
@@ -134,7 +202,6 @@ def autopedido(request):
 
 
 def pedido(request, pk):
-    """CU-PED-13: solo el comensal que hizo el pedido puede verlo."""
     if pk not in _pedidos_de_sesion(request):
         raise Http404("Pedido no encontrado")
     orden = get_object_or_404(
@@ -144,7 +211,6 @@ def pedido(request, pk):
 
 
 def mis_pedidos(request):
-    """Acceso rápido al último pedido de la sesión (o al menú si no hay)."""
     pedidos = _pedidos_de_sesion(request)
     if pedidos:
         return redirect("cliente:pedido", pk=pedidos[-1])
@@ -152,7 +218,6 @@ def mis_pedidos(request):
 
 
 def retroalimentacion(request):
-    """CU-PED-17 (sugerencia CU-PED-18 / denuncia CU-PED-19)."""
     mesa_obj = _mesa_de_sesion(request)
     if request.method == "POST":
         form = RetroalimentacionForm(request.POST)
@@ -167,10 +232,8 @@ def retroalimentacion(request):
     return render(request, "cliente/retroalimentacion.html", {"form": form, "mesa": mesa_obj})
 
 
-# ---------------------------------------------------- vistas del Administrador
-class RetroalimentacionListView(RoleRequiredMixin, ListView):
-    """CU-ADM-16 Revisar sugerencias y denuncias."""
-
+class RetroalimentacionListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "mesa__sucursal__restaurante"
     model = Retroalimentacion
     roles_permitidos = ROLES_ADMIN
     template_name = "cliente/retroalimentacion_list.html"
@@ -181,7 +244,7 @@ class RetroalimentacionListView(RoleRequiredMixin, ListView):
 @require_POST
 @rol_requerido(*ROLES_ADMIN)
 def retroalimentacion_revisar(request, pk):
-    item = get_object_or_404(Retroalimentacion, pk=pk)
+    item = get_object_or_404(filtrar(Retroalimentacion.objects, request, "mesa__sucursal__restaurante"), pk=pk)
     item.revisada = not item.revisada
     item.save(update_fields=["revisada", "actualizado_en"])
     return redirect("cliente:retroalimentacion_list")

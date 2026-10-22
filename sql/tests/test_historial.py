@@ -51,7 +51,6 @@ def test_actualizar_a_el_mismo_valor_no_crea_historial(cursor):
 def test_sin_usuario_actual_falla_con_error_claro(cursor):
     categoria_id = _crear_categoria(cursor)
     insumo_id = _crear_insumo(cursor, categoria_id, nombre="Leche entera")
-    # A propósito, no se llama a _set_usuario_actual.
     with pytest.raises(psycopg2.errors.NotNullViolation):
         cursor.execute(
             "UPDATE item_inventario SET nombre = %s WHERE id = %s",
@@ -60,9 +59,6 @@ def test_sin_usuario_actual_falla_con_error_claro(cursor):
 
 
 def test_sin_usuario_actual_falla_con_error_claro_aunque_la_sesion_ya_lo_haya_usado(conn):
-    # Tras un SET LOCAL, Postgres deja la variable definida con valor ''
-    # (no NULL) el resto de la sesión. El cast ''::BIGINT fallaba con
-    # "invalid input syntax" en vez del NotNullViolation documentado.
     with conn.cursor() as cur:
         _set_usuario_actual(cur, 1)
     conn.rollback()
@@ -76,8 +72,6 @@ def test_sin_usuario_actual_falla_con_error_claro_aunque_la_sesion_ya_lo_haya_us
 
 
 def test_cambio_de_unidad_y_sucursal_quedan_en_historial(cursor):
-    # RF-4 dice "cada campo modificado": unidad_medida y sucursal_id
-    # faltaban en el trigger.
     categoria_id = _crear_categoria(cursor)
     insumo_id = _crear_insumo(cursor, categoria_id, unidad_medida="kg")
     _set_usuario_actual(cursor, 42)
@@ -100,7 +94,6 @@ def test_cambio_de_unidad_y_sucursal_quedan_en_historial(cursor):
     "DELETE FROM item_inventario_historial WHERE item_inventario_id = %s",
 ])
 def test_historial_no_se_edita_ni_se_borra(cursor, sentencia):
-    # Verificación posterior (2026-09-23): un changelog editable no audita nada.
     categoria_id = _crear_categoria(cursor)
     insumo_id = _crear_insumo(cursor, categoria_id, nombre="Leche entera")
     _set_usuario_actual(cursor, 42)

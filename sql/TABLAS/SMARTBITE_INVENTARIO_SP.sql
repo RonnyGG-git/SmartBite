@@ -1,9 +1,3 @@
--- Smart Bite — Esquema de Inventario
--- Fuente: specs/001-esquema-inventario/plan.md (Spec 001, aprobada 2026-09-23)
--- Se ejecuta una sola vez sobre una base Postgres vacía.
-
--- actualizado_en lo fija la base en cada UPDATE, sin depender de que el
--- cliente se acuerde de mandarlo (vista_reporte_inventario filtra por él).
 CREATE OR REPLACE FUNCTION fn_marcar_actualizado_en()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -12,7 +6,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Tablas de auditoría (historial y kardex): solo se agregan filas.
 CREATE OR REPLACE FUNCTION fn_rechazar_cambio_auditoria()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -34,8 +27,6 @@ CREATE TRIGGER trg_categoria_insumo_actualizado_en
     FOR EACH ROW
     EXECUTE FUNCTION fn_marcar_actualizado_en();
 
--- sucursal_id: sin FK todavía — restaurantes_sucursal no existe en Neon
--- (verificado 2026-09-23); ver Decisión #4 del plan.
 CREATE TABLE item_inventario (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     codigo_unico            VARCHAR(30) NOT NULL,
@@ -67,12 +58,6 @@ CREATE TRIGGER trg_item_inventario_actualizado_en
     FOR EACH ROW
     EXECUTE FUNCTION fn_marcar_actualizado_en();
 
--- RF-7: rechaza intentar desactivar un insumo que ya está inactivo.
--- `UPDATE OF activo`: el trigger solo corre si el UPDATE menciona la
--- columna activo — así no bloquea editar otros datos de un insumo inactivo
--- ni los movimientos que actualizan su stock. (Desde Django, un save()
--- completo manda todas las columnas: para editar un insumo inactivo usar
--- save(update_fields=[...]) sin activo.)
 CREATE OR REPLACE FUNCTION fn_item_inventario_validar_desactivacion()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -88,11 +73,6 @@ CREATE TRIGGER trg_item_inventario_validar_desactivacion
     FOR EACH ROW
     EXECUTE FUNCTION fn_item_inventario_validar_desactivacion();
 
--- Trazabilidad (requisito no funcional + RF-12): stock_actual solo cambia a
--- través de movimiento_inventario. Un insumo nace con stock 0 (el stock
--- inicial es una ENTRADA) y un UPDATE directo del stock se rechaza. Los
--- triggers de movimiento actualizan item_inventario desde dentro de otro
--- trigger, por eso ahí pg_trigger_depth() vale 2 o más.
 CREATE OR REPLACE FUNCTION fn_item_inventario_proteger_stock()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -111,13 +91,6 @@ CREATE TRIGGER trg_item_inventario_proteger_stock
     FOR EACH ROW
     EXECUTE FUNCTION fn_item_inventario_proteger_stock();
 
--- RF-1 / ADR 0002: codigo_unico = <3 letras de categoria>-<secuencial de
--- 5 digitos, por sucursal>. El cliente no lo especifica, el trigger lo
--- calcula siempre. El prefijo toma solo letras (sin tildes, guiones ni
--- espacios); el bloqueo consultivo serializa las altas del mismo prefijo y
--- sucursal para que dos transacciones simultáneas no calculen el mismo
--- secuencial (con READ COMMITTED, el MAX que corre después del bloqueo ya
--- ve la fila que la otra transacción confirmó).
 CREATE OR REPLACE FUNCTION fn_item_inventario_generar_codigo()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -148,7 +121,6 @@ CREATE TRIGGER trg_item_inventario_generar_codigo
     FOR EACH ROW
     EXECUTE FUNCTION fn_item_inventario_generar_codigo();
 
--- RF-37: codigo_unico es inmutable una vez asignado.
 CREATE OR REPLACE FUNCTION fn_item_inventario_codigo_inmutable()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -164,7 +136,6 @@ CREATE TRIGGER trg_item_inventario_codigo_inmutable
     FOR EACH ROW
     EXECUTE FUNCTION fn_item_inventario_codigo_inmutable();
 
--- RF-4: historial de cambios (changelog) de item_inventario.
 CREATE TABLE item_inventario_historial (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     item_inventario_id  BIGINT NOT NULL REFERENCES item_inventario(id),
@@ -180,12 +151,6 @@ CREATE TRIGGER trg_item_inventario_historial_solo_agregar
     FOR EACH ROW
     EXECUTE FUNCTION fn_rechazar_cambio_auditoria();
 
--- El cliente debe hacer `SET LOCAL app.usuario_actual = <id>` antes del
--- UPDATE; si no lo hace, usuario_id queda NULL y el INSERT falla por la
--- constraint NOT NULL (falla clara, no un cambio de historial silencioso).
--- NULLIF: después de un SET LOCAL, en el resto de la sesión Postgres
--- devuelve '' (no NULL) para la variable, y ''::BIGINT fallaría en cada
--- UPDATE de item_inventario — incluidos los que hacen los movimientos.
 CREATE OR REPLACE FUNCTION fn_item_inventario_registrar_historial()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -240,10 +205,6 @@ CREATE TRIGGER trg_item_inventario_registrar_historial
     FOR EACH ROW
     EXECUTE FUNCTION fn_item_inventario_registrar_historial();
 
--- Kardex unificado (ENTRADA / SALIDA / AJUSTE). stock_anterior/stock_nuevo
--- los calculan los triggers de más abajo (fn_movimiento_inventario_aplicar
--- y fn_movimiento_inventario_aprobar). compra_id, aprobado_por y
--- usuario_id sin FK: ver Decisión #4.
 CREATE TABLE movimiento_inventario (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     item_inventario_id  BIGINT NOT NULL REFERENCES item_inventario(id),
@@ -271,13 +232,6 @@ CREATE TABLE movimiento_inventario (
     CONSTRAINT ck_movimiento_origen_requiere_causa CHECK (origen_perdida IS NULL OR causa_perdida IS NOT NULL)
 );
 
--- RF-12/13/14/17/20: aplica ENTRADA/SALIDA/AJUSTE sobre
--- item_inventario.stock_actual con bloqueo de fila (evita perder
--- actualizaciones con concurrencia). Umbral de aprobación de AJUSTE
--- configurable vía `SET app.umbral_ajuste_aprobacion = <valor>`; si no se
--- fija, usa 20 (unidades) como valor por defecto — es un placeholder
--- razonable, la spec lo deja explícitamente pendiente de que Ronny/el
--- Administrador confirmen el valor real de negocio.
 CREATE OR REPLACE FUNCTION fn_movimiento_inventario_aplicar()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -297,8 +251,6 @@ BEGIN
             nuevo_stock := stock_actual_bloqueado + NEW.cantidad_movimiento;
         ELSE
             nuevo_stock := stock_actual_bloqueado - NEW.cantidad_movimiento;
-            -- RF-14: mensaje con cifras. Mismo SQLSTATE que el CHECK de
-            -- stock_actual, que sigue ahí como última barrera.
             IF nuevo_stock < 0 THEN
                 RAISE EXCEPTION 'Stock insuficiente para el insumo %: disponible %, solicitado %',
                     NEW.item_inventario_id, stock_actual_bloqueado, NEW.cantidad_movimiento
@@ -321,14 +273,11 @@ BEGIN
 
         NEW.stock_anterior := stock_actual_bloqueado;
         diferencia := abs(NEW.cantidad_objetivo - stock_actual_bloqueado);
-        -- NULLIF: mismo caso que app.usuario_actual ('' tras un SET LOCAL previo).
         umbral := COALESCE(NULLIF(current_setting('app.umbral_ajuste_aprobacion', true), '')::NUMERIC, 20);
 
         IF diferencia > umbral THEN
             NEW.requiere_aprobacion := true;
             NEW.stock_nuevo := NULL;
-            -- No se toca item_inventario todavía: RF-17 exige aprobación
-            -- primero (ver fn_movimiento_inventario_aprobar).
         ELSE
             NEW.stock_nuevo := NEW.cantidad_objetivo;
             UPDATE item_inventario
@@ -343,23 +292,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Prefijo numérico a propósito: Postgres corre los triggers BEFORE del
--- mismo evento en orden alfabético, y la validación de RF-38 tiene que
--- correr ANTES de aplicar el movimiento (si no, una pérdida duplicada
--- fallaría con "stock insuficiente" en vez del error específico de RF-38).
 CREATE TRIGGER trg_movimiento_inventario_20_aplicar
     BEFORE INSERT ON movimiento_inventario
     FOR EACH ROW
     EXECUTE FUNCTION fn_movimiento_inventario_aplicar();
 
--- RF-17 + RF-18: el kardex es de solo agregar. Sobre una fila ya
--- registrada lo único permitido es aprobar, una sola vez, un AJUSTE que
--- quedó pendiente (poner aprobado_por); el trigger completa el resto.
--- BEFORE UPDATE (no AFTER, a diferencia de lo que decía el pseudocódigo
--- original del plan) — necesita modificar NEW de la propia fila, y eso
--- solo es válido en un trigger BEFORE. stock_anterior se toma al aprobar
--- (con bloqueo), no al solicitar: si entre medio hubo otros movimientos,
--- el kardex sigue encadenando.
 CREATE OR REPLACE FUNCTION fn_movimiento_inventario_aprobar()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -415,9 +352,6 @@ CREATE TRIGGER trg_movimiento_inventario_no_borrar
     FOR EACH ROW
     EXECUTE FUNCTION fn_rechazar_cambio_auditoria();
 
--- RF-38: una pérdida por vencimiento (manual o automática) no puede
--- duplicarse el mismo día para el mismo insumo. Solo mira causa_perdida =
--- 'VENCIMIENTO' — otras causas (DANIO, EXTRAVIO) no se ven afectadas.
 CREATE OR REPLACE FUNCTION fn_movimiento_inventario_evitar_perdida_duplicada()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -439,10 +373,6 @@ CREATE TRIGGER trg_movimiento_inventario_10_evitar_perdida_duplicada
     FOR EACH ROW
     EXECUTE FUNCTION fn_movimiento_inventario_evitar_perdida_duplicada();
 
--- RF-28/29/36: solicitud de reabastecimiento. El índice único parcial (solo
--- una fila PENDIENTE por insumo) es lo que hace RF-29/RF-36 atómico de
--- verdad ante concurrencia — nunca un SELECT-antes-de-INSERT desde el
--- trigger, que sí tendría condición de carrera.
 CREATE TABLE solicitud_reabastecimiento (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     item_inventario_id  BIGINT NOT NULL REFERENCES item_inventario(id),
@@ -461,9 +391,6 @@ CREATE TRIGGER trg_solicitud_reabastecimiento_actualizado_en
     FOR EACH ROW
     EXECUTE FUNCTION fn_marcar_actualizado_en();
 
--- cantidad_sugerida = lo que falta para llegar al mínimo (stock_minimo -
--- stock_nuevo) — no está fijado por ningún RF, es un default razonable
--- documentado en el plan, no una cifra de negocio confirmada.
 CREATE OR REPLACE FUNCTION fn_generar_solicitud_si_hace_falta(
     p_item_inventario_id BIGINT, p_stock_nuevo NUMERIC
 ) RETURNS VOID AS $$
@@ -478,22 +405,12 @@ BEGIN
             INSERT INTO solicitud_reabastecimiento (item_inventario_id, cantidad_sugerida)
             VALUES (p_item_inventario_id, v_stock_minimo - p_stock_nuevo);
         EXCEPTION WHEN unique_violation THEN
-            -- Ya hay una solicitud PENDIENTE para este insumo (RF-29) —
-            -- no se genera otra. El índice único parcial es la garantía
-            -- real ante concurrencia (RF-36), esto solo evita que el
-            -- movimiento entero falle por la excepción.
             NULL;
         END;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
 
--- RF-26: genera una pérdida automática (SALIDA por el stock restante
--- completo) para cada insumo activo vencido con stock. Pensada para que la
--- aplicación la invoque periódicamente (`SELECT fn_generar_perdidas_vencimiento();`)
--- — la periodicidad es responsabilidad de la app, no de este esquema.
--- usuario_id = 0 es un placeholder de "proceso automático del sistema"
--- hasta que exista cuentas.Usuario (Decisión #4).
 CREATE OR REPLACE FUNCTION fn_generar_perdidas_vencimiento()
 RETURNS INTEGER AS $$
 DECLARE
@@ -516,8 +433,6 @@ BEGIN
                  'Vencimiento automático', 'VENCIMIENTO', 'AUTOMATICA', 0);
             generadas := generadas + 1;
         EXCEPTION WHEN OTHERS THEN
-            -- Ya existe una pérdida por vencimiento hoy para este insumo
-            -- (RF-38) u otro error puntual: se omite y se sigue con el resto.
             CONTINUE;
         END;
     END LOOP;
@@ -525,16 +440,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- RF-10/11/33: insumos activos, con mínimo configurado, por debajo de él.
 CREATE VIEW vista_control_existencias AS
 SELECT id, codigo_unico, nombre, sucursal_id, stock_actual, stock_minimo
 FROM item_inventario
 WHERE activo = true AND stock_minimo IS NOT NULL AND stock_actual < stock_minimo;
 
--- RF-21/22/23/34: insumos activos con vencimiento dentro del rango de
--- alerta. 7 días es un default razonable si el insumo no tiene su propio
--- dias_alerta_vencimiento configurado — no es una cifra de negocio
--- confirmada, mismo criterio que el umbral de RF-17.
 CREATE VIEW vista_proximos_a_vencer AS
 SELECT id, codigo_unico, nombre, sucursal_id, fecha_vencimiento,
        COALESCE(dias_alerta_vencimiento, 7) AS dias_alerta_aplicado
@@ -542,11 +452,6 @@ FROM item_inventario
 WHERE activo = true AND fecha_vencimiento IS NOT NULL
   AND fecha_vencimiento <= CURRENT_DATE + COALESCE(dias_alerta_vencimiento, 7);
 
--- RF-27/35: disponibilidad de una lista de pares insumo-cantidad (ej. los
--- ingredientes de una receta). Un insumo inactivo siempre da disponible =
--- false, sin importar el stock (RF-35). LEFT JOIN: un insumo inexistente
--- vuelve como no disponible en vez de desaparecer del resultado (si
--- desaparecía, una receta con un ingrediente inválido parecía completa).
 CREATE OR REPLACE FUNCTION fn_verificar_disponibilidad(items JSONB)
 RETURNS TABLE (item_inventario_id BIGINT, cantidad_requerida NUMERIC, disponible BOOLEAN) AS $$
     SELECT
@@ -557,9 +462,6 @@ RETURNS TABLE (item_inventario_id BIGINT, cantidad_requerida NUMERIC, disponible
     LEFT JOIN item_inventario i ON i.id = (elem->>'item_inventario_id')::BIGINT;
 $$ LANGUAGE sql STABLE;
 
--- RF-30/32: reporte de inventario. El filtro por categoría/estado/rango de
--- fechas lo arma quien consulte la vista con WHERE — la vista solo expone
--- las columnas necesarias, no impone los filtros.
 CREATE VIEW vista_reporte_inventario AS
 SELECT i.id, i.codigo_unico, i.nombre, c.nombre AS categoria, i.activo,
        i.stock_actual, i.stock_minimo, i.fecha_vencimiento, i.sucursal_id,

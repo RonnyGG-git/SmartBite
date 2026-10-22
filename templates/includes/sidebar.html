@@ -56,7 +56,9 @@
         <a class="sidebar-item" href="{% url 'restaurantes:restaurantes_list' %}"><svg class="ico"><use href="#i-building"/></svg>Restaurantes</a>
         <a class="sidebar-item" href="{% url 'restaurantes:sucursales_list' %}"><svg class="ico"><use href="#i-store"/></svg>Sucursales</a>
         <a class="sidebar-item" href="{% url 'cuentas:usuarios_list' %}"><svg class="ico"><use href="#i-users"/></svg>Usuarios</a>
-        <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}"><svg class="ico"><use href="#i-key"/></svg>Roles</a>
+        {% if user.is_superuser %}
+          <a class="sidebar-item" href="{% url 'cuentas:roles_list' %}"><svg class="ico"><use href="#i-key"/></svg>Roles</a>
+        {% endif %}
         <a class="sidebar-item" href="{% url 'cliente:retroalimentacion_list' %}"><svg class="ico"><use href="#i-info"/></svg>Sugerencias</a>
       </div>
     {% endif %}
@@ -67,7 +69,7 @@
       <span class="avatar" aria-hidden="true">{{ user.nombre|default:user.email|first|upper }}</span>
       <span class="user-chip-text">
         <span class="user-chip-name">{{ user.nombre|default:user.email }}</span>
-        <span class="user-chip-role">{{ user.rol|default:"Sin rol" }}</span>
+        <span class="user-chip-role">{{ user.rol|default:"Sin rol" }}{% if restaurante_actual %} · {{ restaurante_actual.nombre }}{% endif %}</span>
       </span>
     </div>
     <form method="post" action="{% url 'cuentas:logout' %}">

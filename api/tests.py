@@ -9,8 +9,6 @@ from inventario.models import ItemInventario
 
 
 class MenuPublicoTests(TestCase):
-    """GET /api/v1/menu/: público, de solo lectura (prueba de humo de la API)."""
-
     def setUp(self):
         self.d = crear_escenario()
         self.cliente = APIClient()
@@ -19,10 +17,10 @@ class MenuPublicoTests(TestCase):
     def nombres(self, respuesta):
         return [p["nombre"] for p in respuesta.json()["results"]]
 
-    def test_sin_login_lista_los_platillos_disponibles(self):
+    def test_sin_mesa_no_mezcla_menus_de_restaurantes(self):
         respuesta = self.cliente.get(self.url)
         self.assertEqual(respuesta.status_code, 200)
-        self.assertEqual(sorted(self.nombres(respuesta)), ["Ajiaco", "Bandeja paisa"])
+        self.assertEqual(self.nombres(respuesta), [])
 
     def test_con_mesa_filtra_por_la_sucursal_de_la_mesa(self):
         respuesta = self.cliente.get(self.url, {"mesa": self.d["mesa"].pk})
@@ -40,8 +38,8 @@ class MenuPublicoTests(TestCase):
         self.assertEqual(platillo["precio"], "32000.00")
 
     def test_respuesta_paginada(self):
-        cuerpo = self.cliente.get(self.url).json()
-        self.assertEqual(cuerpo["count"], 2)
+        cuerpo = self.cliente.get(self.url, {"mesa": self.d["mesa"].pk}).json()
+        self.assertEqual(cuerpo["count"], 1)
         self.assertIn("next", cuerpo)
 
     def test_mesa_inexistente_da_404_con_formato_de_error(self):
@@ -66,8 +64,6 @@ class MenuPublicoTests(TestCase):
 
 
 class TokenTests(TestCase):
-    """POST /api/v1/auth/token/: email y contraseña → token para Postman."""
-
     def setUp(self):
         crear_escenario()
         self.usuario = crear_usuario("JEFE_INVENTARIO")
@@ -97,8 +93,6 @@ class TokenTests(TestCase):
 
 
 class InventarioPermisosTests(TestCase):
-    """GET /api/v1/inventario/items/: mismos roles que la vista web (ROLES_LECTURA)."""
-
     def setUp(self):
         d = crear_escenario()
         self.item = ItemInventario.objects.create(
@@ -154,8 +148,6 @@ class InventarioPermisosTests(TestCase):
 
 
 class AjusteStockApiTests(TestCase):
-    """POST /api/v1/inventario/items/<id>/ajustar/: roles ROLES_INVENTARIO."""
-
     def setUp(self):
         d = crear_escenario()
         self.item = ItemInventario.objects.create(nombre="Leche", stock_actual=10, stock_minimo=5, sucursal=d["centro"])
@@ -212,10 +204,6 @@ class AjusteStockApiTests(TestCase):
 
 
 class ErroresDelDominioTests(SimpleTestCase):
-    """La ValidationError de Django (la que lanza el dominio, por ejemplo una
-    transición de orden inválida) sale como 400 con el formato de la API, no
-    como 500."""
-
     def manejar(self, exc):
         from api.excepciones import manejador_de_errores
         return manejador_de_errores(exc, {})

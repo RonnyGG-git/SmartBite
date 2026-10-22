@@ -1,13 +1,3 @@
-"""06 — Estados según la app Django de Ronny (rama smartbite): la Compra
-(campo estado: PENDIENTE, RECIBIDA, ANULADA; vistas compra_crear,
-compra_recibir y compra_anular) y el nivel de stock de un ItemInventario
-(propiedad stock_bajo). UML 2.5.1 cláusula 14.
-
-- La transición que sale del inicial no lleva evento ni guarda (14.2.3.7):
-  en el ítem va a una elección y las guardas están en sus salidas.
-- Los pedidos que la vista ignora (recibir o anular una compra que ya no está
-  PENDIENTE) son transiciones internas: el objeto no cambia de estado.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -20,7 +10,6 @@ def tr(a, b, estilo="", valor="", puntos=()):
     d.arista(a, b, TRANSICION + estilo, valor, puntos=puntos)
 
 
-# ---------------- Compra ----------------
 d.marco_diagrama("stm Compra", 30, 100, 690, 600)
 i0 = d.inicio(90, 190)
 pend = d.estado("PENDIENTE", 240, 170, 220, 66)
@@ -38,7 +27,6 @@ d.texto("anular / (el stock\nno cambia)", 470, 340, 150, 36, tam=11, alin="cente
 d.nota("RECIBIDA y ANULADA no tienen salida: ninguna vista las cambia. Recibir o anular otra vez no hace "
        "nada (la vista solo actúa si la compra está PENDIENTE).", 60, 600, 630, 56, tam=11)
 
-# ---------------- Nivel de stock del ítem ----------------
 d.marco_diagrama("stm ItemInventario (nivel de stock)", 750, 100, 740, 600)
 i1 = d.inicio(800, 190)
 elec = d.eleccion(1080, 188)

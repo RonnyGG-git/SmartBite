@@ -14,8 +14,6 @@ def _datos_recetas():
 
 
 class DatosRecetasTests(TestCase):
-    """El archivo versionado cumple el contrato que espera el motor."""
-
     def test_cubre_todas_las_categorias_y_dificultades(self):
         recetas = _datos_recetas()
         self.assertGreaterEqual(len(recetas), 20)
@@ -43,8 +41,6 @@ class DatosRecetasTests(TestCase):
 class CargarRecetasTests(TestCase):
 
     def setUp(self):
-        # La caché del buscador es del proceso: sin limpiarla, un test vería
-        # el índice construido por otro.
         servicio._cache.update({"firma": None, "buscador": None})
 
     def _cargar(self):

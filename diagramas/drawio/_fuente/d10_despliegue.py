@@ -1,16 +1,3 @@
-"""10 — Despliegue: dónde corre hoy la app Django de Ronny (rama smartbite) y
-cómo llega a la base. Fuente: smartbite/settings.py (DEBUG = True,
-ALLOWED_HOSTS = [], DATABASE_URL leída del .env o, si no está, SQLite),
-.env.example y la base smartbite_app creada en Neon. UML 2.5.1, cláusula 19.
-
-- Nodos = cubos; «device» y «executionEnvironment» en inglés (19.4.4).
-- Artefactos con icono de hoja dentro del nodo donde están desplegados
-  (19.2.4); «file» del perfil estándar (22).
-- Caminos de comunicación sólidos con el protocolo como estereotipo.
-- Con ALLOWED_HOSTS vacío y DEBUG = True, Django solo atiende a localhost:
-  el navegador corre en la misma computadora.
-- Producción no está definida: no se dibuja un servidor que no existe.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -18,7 +5,6 @@ d = Diagrama("Despliegue - Inventario", 1600, 800)
 d.titulo("Diagrama de despliegue — Inventario (Smart Bite)",
          "Dónde corre hoy la app Django y cómo se conecta con la base de datos en Neon")
 
-# --- Computadora de cada integrante
 d.nodo("Computadora de desarrollo (cada integrante)", 40, 110, 900, 470, palabra_clave="device")
 nav = d.nodo("Navegador web", 70, 215, 220, 100, palabra_clave="executionEnvironment", color=AZUL, tam=12,
              detalle="http://127.0.0.1:8000")
@@ -32,13 +18,11 @@ d.artefacto(".env", 380, 450, 250, 90, palabra_clave="file", color=GRIS,
 d.artefacto("db.sqlite3", 660, 450, 250, 90, palabra_clave="file", color=GRIS,
             detalle="solo si no hay DATABASE_URL\n(no se sube al repo)")
 
-# --- Neon
 d.nodo("Neon (PostgreSQL gestionado en la nube)", 1080, 110, 480, 470)
 pg = d.nodo("PostgreSQL — rama test-inventario-jose", 1110, 200, 420, 170, palabra_clave="executionEnvironment",
             color=VERDE, tam=12, detalle="base smartbite_app: las tablas de Django\n(inventario_iteminventario, …),\n"
                                          "creadas con manage.py migrate")
 
-# --- Caminos de comunicación (línea sólida, como una asociación)
 Y_HTTP = 265
 d.flecha(290, Y_HTTP, 380, Y_HTTP, ASOCIACION)
 d.texto("«HTTP»", 292, Y_HTTP - 22, 86, 18, tam=12, alin="center", color="#222222")

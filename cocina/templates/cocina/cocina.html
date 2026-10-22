@@ -16,7 +16,7 @@
     <header class="ticket-head">
       <div>
         <div class="ticket-mesa">Mesa {{ orden.mesa.numero }}</div>
-        <div class="ticket-id">#{{ orden.id }} · {{ orden.creado_en|date:"H:i" }}{% if orden.origen == "AUTOPEDIDO" %} · <span class="ticket-origin">QR</span>{% endif %}</div>
+        <div class="ticket-id">#{{ orden.id }} · {{ orden.creado_en|date:"H:i" }}{% if orden.origen == "AUTOPEDIDO" %} · <span class="ticket-origin">QR</span>{% endif %}{% if orden.tipo_consumo == "PARA_LLEVAR" %} · <span class="ticket-origin">PARA LLEVAR</span>{% endif %}</div>
       </div>
       <span class="ticket-state">
         {% if orden.estado == "PENDIENTE" %}<span class="pulse-dot" aria-hidden="true"></span>{% endif %}

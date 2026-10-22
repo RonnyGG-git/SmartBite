@@ -16,9 +16,6 @@ def test_seed_categorias_corre_limpio_y_crea_las_esperadas(cursor):
 
 
 def test_seed_categorias_es_idempotente(cursor):
-    # No se compara contra un conteo total fijo: otros tests (los de
-    # concurrencia de T7/T10) usan conexiones con autocommit=True y dejan
-    # categorías propias committeadas de verdad en la sesión compartida.
     cursor.execute(INSERTS_SQL.read_text(encoding="utf-8"))
     cursor.execute("SELECT COUNT(*) FROM categoria_insumo")
     primera_vez = cursor.fetchone()[0]

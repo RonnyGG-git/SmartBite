@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }} — Smart Bite{% endblock %}
+{% block content_publico %}
+<div class="auth">
+  <section class="auth-aside" aria-hidden="true">
+    <span class="sidebar-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </span>
+    <div>
+      <h1>Cada restaurante, <em>con lo suyo.</em></h1>
+      <p>Menús, mesas, inventario y personal separados por restaurante.</p>
+    </div>
+    <div class="auth-ring"></div>
+  </section>
+
+  <main class="auth-main">
+    <div class="auth-form">
+      <h2>{{ titulo }}</h2>
+      <p>{{ subtitulo }}</p>
+
+      <form method="post">
+        {% csrf_token %}
+        {% include "includes/form_fields.html" with form=form %}
+        <button type="submit" class="btn btn-primary btn-lg btn-block"><span>Continuar</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+      </form>
+      <p><a href="{% url 'cuentas:login' %}">Ya tengo cuenta: iniciar sesión</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -5,7 +5,10 @@
 <section class="menu-hero">
   <h1>Nuestro menú</h1>
   {% if puede_pedir %}
-    <p>Elige tus platillos y envía el pedido directo a cocina.</p>
+    <p>Elige tus platillos de cualquier categoría y pasa al apartado de compra.</p>
+    {% if tipo_consumo %}
+      <a class="chip is-active tipo-chip" href="{% url 'cliente:tipo_consumo' %}" title="Cambiar">{{ tipo_consumo }} · cambiar</a>
+    {% endif %}
   {% else %}
     <p>Platillos disponibles hoy.</p>
   {% endif %}
@@ -25,7 +28,7 @@
 {% elif not puede_pedir %}
   <div class="notice">
     <svg class="ico"><use href="#i-user"/></svg>
-    <span>Tu mesa está siendo atendida por un mesero. Puedes ver el menú; para pedir, llámalo.</span>
+    <span>Esta mesa ya está ocupada. Puedes ver el menú; para pedir, llama al mesero.</span>
   </div>
 {% endif %}
 
@@ -36,7 +39,7 @@
     {% endfor %}
   </nav>
 
-  <form method="post" action="{% url 'cliente:autopedido' %}" id="form-pedido" {% if puede_pedir %}data-pedido{% endif %}>
+  <form method="post" action="{% url 'cliente:carrito' %}" id="form-pedido" {% if puede_pedir %}data-pedido{% endif %}>
     {% csrf_token %}
     {% for categoria, productos in categorias %}
       <section class="menu-section" id="cat-{{ categoria.pk }}">
@@ -51,7 +54,7 @@
                 {% if puede_pedir %}
                   <div class="stepper-qty">
                     <button type="button" class="qty-btn" data-qty="-1" aria-label="Quitar un {{ producto.nombre }}">−</button>
-                    <input type="number" name="cant_{{ producto.pk }}" value="0" min="0" max="{{ max_cantidad }}" inputmode="numeric" aria-label="Cantidad de {{ producto.nombre }}">
+                    <input type="number" name="cant_{{ producto.pk }}" value="{{ producto.cantidad_carrito }}" min="0" max="{{ max_cantidad }}" inputmode="numeric" aria-label="Cantidad de {{ producto.nombre }}">
                     <button type="button" class="qty-btn" data-qty="1" aria-label="Agregar un {{ producto.nombre }}">+</button>
                   </div>
                 {% endif %}
@@ -69,7 +72,7 @@
       <section class="menu-section">
         <div class="field">
           <label for="id_nombre_pedido">¿A nombre de quién? <span class="subtle">(opcional)</span></label>
-          <input type="text" id="id_nombre_pedido" name="nombre" maxlength="150" autocomplete="name">
+          <input type="text" id="id_nombre_pedido" name="nombre" value="{{ nombre }}" maxlength="150" autocomplete="name">
         </div>
       </section>
 
@@ -78,7 +81,7 @@
           <span class="order-bar-count"><span data-order-count>0</span> platillos</span>
           <span class="order-bar-total mono" data-order-total>$0</span>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-flame"/></svg><span>Enviar a cocina</span></button>
+        <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-cart"/></svg><span>Ir al apartado de compra</span></button>
       </div>
     {% endif %}
   </form>

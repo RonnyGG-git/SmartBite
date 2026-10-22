@@ -6,7 +6,6 @@ import pytest
 
 
 def _cargar_env_test():
-    """Carga sql/tests/.env.test si existe, sin pisar variables ya definidas."""
     ruta = Path(__file__).parent / ".env.test"
     if not ruta.exists():
         return
@@ -36,8 +35,6 @@ TABLAS_SQL = Path(__file__).resolve().parents[1] / "TABLAS" / "SMARTBITE_INVENTA
 
 @pytest.fixture(scope="session")
 def esquema(database_url):
-    """Recrea el esquema desde cero una vez por sesión de tests, aplicando
-    sql/TABLAS/SMARTBITE_INVENTARIO_SP.sql tal como se aplicaría en Neon."""
     connection = psycopg2.connect(database_url)
     connection.autocommit = True
     with connection.cursor() as cur:

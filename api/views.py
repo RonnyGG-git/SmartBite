@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from cliente.views import _productos_disponibles
+from core.tenancy import filtrar
 from inventario.models import ItemInventario
 from inventario.views import ROLES_INVENTARIO, ROLES_LECTURA
 from operativo.models import Mesa
@@ -23,12 +24,6 @@ from .serializers import (
 
 
 class TokenView(generics.GenericAPIView):
-    """Devuelve el token del usuario (lo crea la primera vez).
-
-    Se manda en cada pedido como `Authorization: Token <token>`; es lo que usa
-    Postman, porque la sesión web exige además el token CSRF en los POST.
-    """
-
     serializer_class = TokenSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -51,12 +46,6 @@ class TokenView(generics.GenericAPIView):
     ],
 )
 class MenuView(generics.ListAPIView):
-    """CU-PED-01: platillos disponibles. Público y de solo lectura.
-
-    Usa la misma consulta que el menú web del cliente (cliente.views), para no
-    tener dos versiones de qué platillo se muestra.
-    """
-
     serializer_class = ProductoMenuSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -75,10 +64,10 @@ class MenuView(generics.ListAPIView):
 
 @extend_schema(tags=["inventario"])
 class ItemInventarioViewSet(viewsets.ReadOnlyModelViewSet):
-    """Ítems de inventario. Consultar: ROLES_LECTURA, como el listado web.
-    Ajustar el stock: ROLES_INVENTARIO, como item_ajustar_stock."""
-
     queryset = ItemInventario.objects.select_related("sucursal").order_by("nombre")
+
+    def get_queryset(self):
+        return filtrar(super().get_queryset(), self.request, "sucursal__restaurante")
 
     @property
     def roles_permitidos(self):
@@ -90,8 +79,6 @@ class ItemInventarioViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(request=AjusteStockSerializer, responses={201: AjusteStockRespuestaSerializer})
     @action(detail=True, methods=["post"])
     def ajustar(self, request, pk=None):
-        """Entrada o salida manual de stock; crea el MovimientoInventario.
-        Misma regla que la vista web (ItemInventario.ajustar_stock)."""
         item = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

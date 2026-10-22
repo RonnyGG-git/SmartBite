@@ -29,8 +29,6 @@ class PermisosInventarioTests(TestCase):
 
 
 class AjustarStockTests(TestCase):
-    """ItemInventario.ajustar_stock(): la regla única que usan la vista web y la API."""
-
     def setUp(self):
         d = crear_escenario()
         self.item = ItemInventario.objects.create(nombre="Leche", stock_actual=10, stock_minimo=5, sucursal=d["centro"])

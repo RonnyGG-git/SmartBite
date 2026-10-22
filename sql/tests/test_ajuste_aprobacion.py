@@ -35,7 +35,6 @@ def test_ajuste_sobre_el_umbral_queda_pendiente_sin_tocar_el_stock(cursor):
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=100,
                                 motivo="Conteo físico con diferencia grande")
 
-    # El stock del insumo NO cambia todavía.
     assert _stock_actual(cursor, insumo_id) == 50
     cursor.execute(
         "SELECT requiere_aprobacion, stock_nuevo, aprobado_por FROM movimiento_inventario WHERE id = %s",
@@ -48,9 +47,9 @@ def test_aprobar_ajuste_pendiente_recien_ahi_aplica_el_stock(cursor):
     insumo_id = _crear_insumo_con_stock(cursor, 50)
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=100,
                                 motivo="Conteo físico con diferencia grande")
-    assert _stock_actual(cursor, insumo_id) == 50  # todavía pendiente
+    assert _stock_actual(cursor, insumo_id) == 50
 
-    _set_usuario_actual(cursor, 1)  # no aplica a este trigger, pero no debe romper nada
+    _set_usuario_actual(cursor, 1)
     cursor.execute(
         "UPDATE movimiento_inventario SET aprobado_por = %s WHERE id = %s",
         (99, mov_id),
@@ -68,8 +67,6 @@ def test_umbral_configurable_por_sesion(cursor):
     insumo_id = _crear_insumo_con_stock(cursor, 50)
     cursor.execute("SET LOCAL app.umbral_ajuste_aprobacion = 5")
 
-    # Con el default (20) esta diferencia de 10 se aplicaría directo; con
-    # el umbral bajado a 5, debe quedar pendiente de aprobación.
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=60,
                                 motivo="Ajuste chico, umbral bajado")
 
@@ -80,27 +77,21 @@ def test_umbral_configurable_por_sesion(cursor):
     assert cursor.fetchone() == (True,)
 
 
-# --- Verificación posterior (2026-09-23) ---
-
 def test_umbral_de_una_transaccion_anterior_no_rompe_el_siguiente_ajuste(conn):
-    # Mismo problema que app.usuario_actual: tras un SET LOCAL la variable
-    # queda en '' y ''::NUMERIC tumbaba todo AJUSTE posterior en la conexión.
     with conn.cursor() as cur:
         cur.execute("SET LOCAL app.umbral_ajuste_aprobacion = 5")
     conn.rollback()
     with conn.cursor() as cur:
         insumo_id = _crear_insumo_con_stock(cur, 50)
         _crear_movimiento(cur, insumo_id, "AJUSTE", cantidad_objetivo=55, motivo="Conteo físico")
-        assert _stock_actual(cur, insumo_id) == 55  # vuelve al default (20)
+        assert _stock_actual(cur, insumo_id) == 55
 
 
 def test_rechaza_aprobar_un_ajuste_que_no_estaba_pendiente(cursor):
-    # Antes, "aprobar" un ajuste que ya se había aplicado solo volvía a fijar
-    # el stock y borraba en silencio el efecto de los movimientos posteriores.
     insumo_id = _crear_insumo_con_stock(cursor, 10)
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=8,
                                 motivo="Conteo físico")
-    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5)  # stock 13
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5)
     with pytest.raises(psycopg2.errors.RaiseException):
         cursor.execute(
             "UPDATE movimiento_inventario SET aprobado_por = 99 WHERE id = %s", (mov_id,)
@@ -119,12 +110,10 @@ def test_rechaza_aprobar_dos_veces(cursor):
 
 
 def test_aprobar_ajuste_registra_el_stock_real_al_momento_de_aprobar(cursor):
-    # El kardex tiene que encadenar: si entre la solicitud y la aprobación
-    # entró mercancía, el stock_anterior del ajuste es el de ese momento.
     insumo_id = _crear_insumo_con_stock(cursor, 100)
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=10,
                                 motivo="Conteo físico con diferencia grande")
-    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=50)  # stock real 150
+    _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=50)
     cursor.execute("UPDATE movimiento_inventario SET aprobado_por = 99 WHERE id = %s", (mov_id,))
     cursor.execute(
         "SELECT stock_anterior, stock_nuevo FROM movimiento_inventario WHERE id = %s", (mov_id,)

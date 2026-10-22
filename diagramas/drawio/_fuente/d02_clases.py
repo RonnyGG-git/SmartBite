@@ -1,13 +1,3 @@
-"""02 — Clases de Inventario según inventario/models.py de la app Django de
-Ronny (rama smartbite), más las clases de otras apps con las que se relaciona.
-UML 2.5.1: 9.2.4, 9.5.4, 9.6.4, 11.4.4, 11.5.4.
-
-- Atributos = campos del modelo con su tipo de Django; '/' = @property.
-- Generalización hacia core::TimestampedModel (abstracta): todos menos
-  DetalleCompra, que hereda directo de models.Model.
-- on_delete=CASCADE → composición (la parte se borra con el todo);
-  on_delete=PROTECT → asociación (no se puede borrar mientras haya referencias).
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -72,7 +62,6 @@ alto_det = d.ultima_altura
 ingr = d.clase_simple("recetas::ProductoIngrediente", 780, Y2, 220, 50)
 suc = d.clase_simple("restaurantes::Sucursal", 1040, Y2, 200, 50)
 
-# Generalización: un solo árbol hacia la clase abstracta (UML 9.7.4)
 for c in (prov, compra, item, mov):
     d.arista(c, TS, GENERALIZACION + "edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;entryX=0.5;entryY=1;")
 
@@ -81,28 +70,22 @@ def fy(y_abs, y0, h):
     return round((y_abs - y0) / h, 4)
 
 
-# Compra * — 1 Proveedor (PROTECT)
 Y_CP = Y1 + 60
 d.arista(compra, prov, ASOCIACION + f"exitX=0;exitY={fy(Y_CP, Y1, alto_compra)};entryX=1;"
          f"entryY={fy(Y_CP, Y1, alto_prov)};",
          etiquetas=[(-1, "0..*", "right", "top"), (1, "proveedor 1", "left", "bottom")])
-# ItemInventario ◆— MovimientoInventario (CASCADE): composición, rombo en el todo
 Y_IM = Y1 + 70
 d.arista(item, mov, COMPOSICION + f"exitX=1;exitY={fy(Y_IM, Y1, alto_item)};entryX=0;"
          f"entryY={fy(Y_IM, Y1, alto_mov)};",
          etiquetas=[(-1, "item 1", "left", "bottom"), (1, "movimientos 0..*", "right", "top")])
-# Compra ◆— DetalleCompra (CASCADE)
 d.arista(compra, detalle, COMPOSICION + "exitX=0.5;exitY=1;entryX=0.5;entryY=0;",
          etiquetas=[(-1, "compra 1", "left", "top"), (1, "detalles 0..*", "left")])
-# DetalleCompra * — 1 ItemInventario (PROTECT), por el pasillo entre Compra e Item
 Y_DI = Y1 + alto_item - 30
 d.arista(detalle, item, ASOC_ORTO + f"exitX=1;exitY=0.3;entryX=0;entryY={fy(Y_DI, Y1, alto_item)};",
          puntos=[(750, Y2 + round(0.3 * alto_det)), (750, Y_DI)],
          etiquetas=[(-1, "0..*", "left"), (1, "item 1", "right")])
-# recetas::ProductoIngrediente * — 1 ItemInventario (PROTECT)
 d.arista(ingr, item, ASOCIACION + f"exitX=0.5;exitY=0;entryX={fy(890, 780, 360)};entryY=1;",
          etiquetas=[(-1, "usado_en_recetas 0..*", "left"), (1, "item_inventario 1", "left", "top")])
-# ItemInventario * — 1 restaurantes::Sucursal (PROTECT)
 d.arista(item, suc, ASOCIACION + f"exitX={fy(1110, 780, 360)};exitY=1;entryX=0.35;entryY=0;",
          etiquetas=[(-1, "items_inventario 0..*", "left", "top"), (1, "sucursal 1", "left")])
 

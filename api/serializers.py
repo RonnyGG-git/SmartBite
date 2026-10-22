@@ -37,8 +37,6 @@ class MovimientoInventarioSerializer(serializers.ModelSerializer):
 
 
 class AjusteStockSerializer(serializers.Serializer):
-    """Mismos campos y límites que inventario.forms.AjusteStockForm."""
-
     tipo = serializers.ChoiceField(choices=MovimientoInventario.TIPO_CHOICES)
     cantidad = serializers.IntegerField(min_value=1)
     motivo = serializers.CharField(max_length=255)
@@ -50,8 +48,6 @@ class AjusteStockRespuestaSerializer(serializers.Serializer):
 
 
 class TokenSerializer(serializers.Serializer):
-    """Email y contraseña del usuario (Usuario.USERNAME_FIELD es el email)."""
-
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
 

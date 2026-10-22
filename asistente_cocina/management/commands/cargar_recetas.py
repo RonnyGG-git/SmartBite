@@ -7,9 +7,6 @@ from django.db import transaction
 
 from asistente_cocina.models import RecetaSugerida
 
-# El archivo vive junto a la app para que la base de conocimiento quede
-# versionada con el código. No es un fixture de loaddata (no lleva model/pk):
-# se carga por nombre para que el comando sea idempotente.
 ARCHIVO_RECETAS = Path(__file__).resolve().parents[2] / "fixtures" / "recetas.json"
 
 CAMPOS = ("descripcion", "categoria", "dificultad", "tiempo_min", "porciones",
@@ -35,7 +32,6 @@ class Command(BaseCommand):
             raise CommandError(f"No se pudo leer {ruta}: {error}")
 
         creadas = actualizadas = 0
-        # Todo o nada: una receta inválida no deja la base a medias.
         with transaction.atomic():
             for datos in recetas:
                 nombre = datos.get("nombre")

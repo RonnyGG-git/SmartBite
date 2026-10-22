@@ -12,18 +12,20 @@ class MenuClienteTests(TestCase):
         self.d = crear_escenario()
 
     def escanear(self, mesa=None):
-        return self.client.get(reverse("cliente:mesa", args=[(mesa or self.d["mesa"]).pk]))
+        resp = self.client.get(reverse("cliente:mesa", args=[(mesa or self.d["mesa"]).pk]))
+        self.client.post(reverse("cliente:tipo_consumo"), {"tipo": "EN_RESTAURANTE"})
+        return resp
 
-    def test_qr_identifica_la_mesa_y_lleva_al_menu(self):
+    def test_qr_identifica_la_mesa_y_pide_el_tipo_de_consumo(self):
         resp = self.escanear()
-        self.assertRedirects(resp, reverse("cliente:menu"))
+        self.assertRedirects(resp, reverse("cliente:tipo_consumo"))
         self.assertEqual(self.client.session["cliente_mesa_id"], self.d["mesa"].pk)
 
     def test_menu_solo_muestra_platillos_de_la_sucursal_de_la_mesa(self):
         self.escanear()
         resp = self.client.get(reverse("cliente:menu"))
         self.assertContains(resp, "Bandeja paisa")
-        self.assertNotContains(resp, "Ajiaco")  # es de la sucursal Norte
+        self.assertNotContains(resp, "Ajiaco")
 
     def test_menu_se_ve_igual_con_sesion_de_personal_abierta(self):
         self.client.force_login(crear_usuario("MESERO"))
@@ -105,7 +107,7 @@ class RetroalimentacionTests(TestCase):
         self.assertEqual(item.mesa, self.d["mesa"])
 
     def test_solo_el_administrador_revisa_los_mensajes(self):
-        item = Retroalimentacion.objects.create(mensaje="Más opciones veganas")
+        item = Retroalimentacion.objects.create(mensaje="Más opciones veganas", mesa=self.d["mesa"])
         self.client.force_login(crear_usuario("MESERO"))
         self.assertEqual(self.client.get(reverse("cliente:retroalimentacion_list")).status_code, 403)
 

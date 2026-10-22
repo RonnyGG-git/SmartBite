@@ -1,11 +1,3 @@
-"""04 — Comunicación: recibir una compra (CU-COM-13, que registra las
-entradas de inventario, CU-INV-05) tal como lo hace la app Django de Ronny:
-inventario/views.py::compra_recibir. UML 2.5.1, 17.9.
-
-- Líneas de vida 'nombre: Tipo' sin subrayar; enlaces sólidos; cada mensaje
-  con su número anidado, guarda [..] e iteración *[..] (17.9).
-- Dos mensajes por el mismo enlace van separados por coma.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -31,7 +23,6 @@ for a, b in [("vista", "compra"), ("vista", "det"), ("vista", "item"), ("vista",
              ("compra", "bd"), ("item", "bd"), ("mov", "bd")]:
     d.arista(ID[a], ID[b], LINK)
 
-# Enlace de la vista consigo misma (sus propias llamadas)
 vx, vy = C["vista"][0], C["vista"][1] - H / 2
 d.flecha(vx - 50, vy, vx + 50, vy, LINK, puntos=[(vx - 50, vy - 50), (vx + 50, vy - 50)])
 d.flecha(vx - 20, vy - 64, vx + 26, vy - 64, "html=1;endArrow=block;endFill=1;endSize=7;strokeColor=#333333;")

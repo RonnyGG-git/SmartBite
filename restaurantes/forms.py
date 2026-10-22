@@ -16,14 +16,11 @@ class RestauranteForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Campos críticos: no pueden llegar vacíos aunque el modelo los permita.
         for campo in ("nombre", "nif", "email", "direccion"):
             self.fields[campo].required = True
 
-    # G8: NIF/RUT con formato válido, no solo "relleno algo".
     nif = forms.CharField(max_length=30, validators=[nif_validator], error_messages={"invalid": nif_validator.message})
 
-    # G8: teléfono con formato válido y opcional (blank=True en el modelo).
     telefono = forms.CharField(
         max_length=30,
         required=False,
@@ -37,7 +34,6 @@ class RestauranteForm(forms.ModelForm):
         error_messages={"invalid": telefono_validator.message},
     )
 
-    # G8: solo URLs públicas http/https.
     logo_url = forms.URLField(
         required=False,
         validators=[url_publica_validator],
@@ -45,7 +41,6 @@ class RestauranteForm(forms.ModelForm):
     )
 
     def clean_nif(self):
-        # Normaliza el NIF quitando espacios y puntos de separacion.
         return self.cleaned_data["nif"].replace(" ", "").upper()
 
     def clean_telefono(self):

@@ -1,5 +1,3 @@
-"""Verificación temporal de los hallazgos H8, H9, H11 y G8. No forma parte de la suite."""
-
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -17,6 +15,9 @@ from restaurantes.models import Restaurante
 class H8AutoDesactivacionTests(TestCase):
     def setUp(self):
         self.admin = crear_usuario("ADMINISTRADOR")
+        Restaurante.objects.create(
+            nombre="La Ceiba", nif="900123456", email="hola@laceiba.co", direccion="Cra 7", administrador=self.admin
+        )
         self.client.force_login(self.admin)
 
     def test_no_puede_desactivarse_a_si_mismo(self):
@@ -42,8 +43,6 @@ class H8AutoDesactivacionTests(TestCase):
 
 
 class H9CantidadMinimaTests(TestCase):
-    """No requiere base de datos: valida el campo directamente."""
-
     def _validar(self, cantidad):
         campo = ProductoIngrediente._meta.get_field("cantidad_requerida")
         campo.run_validators(cantidad)
@@ -66,7 +65,7 @@ class H9CantidadMinimaTests(TestCase):
             self._validar(Decimal("-1.500"))
 
     def test_acepta_el_minimo_exacto(self):
-        self._validar(Decimal("0.001"))  # no debe lanzar
+        self._validar(Decimal("0.001"))
 
 
 class H11UnicidadProductoTests(TestCase):
@@ -75,7 +74,6 @@ class H11UnicidadProductoTests(TestCase):
         self.categoria = Categoria.objects.get(nombre="Platos fuertes")
 
     def test_rechaza_nombre_repetido_en_la_misma_sucursal(self):
-        # crear_escenario ya creo "Bandeja paisa" en la sucursal centro.
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 Producto.objects.create(
@@ -86,7 +84,6 @@ class H11UnicidadProductoTests(TestCase):
                 )
 
     def test_permite_mismo_nombre_en_sucursales_distintas(self):
-        # "Ajiaco" ya existe en la sucursal norte; debe poder repetirse en centro.
         nuevo = Producto.objects.create(
             nombre="Ajiaco", precio=Decimal("3"), categoria=self.categoria, sucursal=self.d["centro"]
         )
