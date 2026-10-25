@@ -5,7 +5,7 @@
 <a href="{% url 'operativo:mesas_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Mesas</a>
 <div class="page-header">
   <div>
-    <span class="eyebrow">Mesa {{ orden.mesa.numero }}</span>
+    <span class="eyebrow">{{ orden.ubicacion }}</span>
     <h1>Orden <span class="mono">#{{ orden.id }}</span></h1>
     {% if orden.cliente %}<p><svg class="ico ico-sm"><use href="#i-user"/></svg> {{ orden.cliente.nombre }}</p>{% endif %}
   </div>
@@ -78,7 +78,7 @@
   <aside class="card">
     <h3 class="card-title">Resumen</h3>
     <dl class="dl">
-      <div><dt>Mesa</dt><dd>{{ orden.mesa.numero }}</dd></div>
+      <div><dt>Ubicación</dt><dd>{{ orden.ubicacion }}</dd></div>
       <div><dt>Creada</dt><dd class="mono">{{ orden.creado_en|date:"d/m/Y H:i" }}</dd></div>
       <div><dt>Total</dt><dd class="mono money">{{ orden.total|moneda }}</dd></div>
       <div><dt>Origen</dt><dd>{{ orden.get_origen_display }}</dd></div>
@@ -86,6 +86,16 @@
     </dl>
 
     {% if not orden.es_final %}
+      {% if puede_operar and not orden.mesa %}
+        <form method="post" action="{% url 'operativo:asignar_mesa' orden.pk %}" class="mt-16 field">
+          {% csrf_token %}
+          <label for="asignar-mesa">{% if orden.tipo_consumo == "EN_RESTAURANTE" %}El cliente llegó: asígnale una mesa{% else %}Asignar mesa (opcional){% endif %}</label>
+          <select id="asignar-mesa" name="mesa" required>
+            {% for m in mesas_libres %}<option value="{{ m.pk }}">Mesa {{ m.numero }} ({{ m.capacidad }} personas)</option>{% empty %}<option value="">No hay mesas libres</option>{% endfor %}
+          </select>
+          <button type="submit" class="btn btn-secondary btn-block mt-16"{% if not mesas_libres %} disabled{% endif %}><svg class="ico"><use href="#i-table"/></svg><span>Asignar mesa</span></button>
+        </form>
+      {% endif %}
       {% if orden.estado == "PENDIENTE" or orden.estado == "EN_PREPARACION" %}
         <p class="notice mt-16"><svg class="ico"><use href="#i-flame"/></svg><span>{% if orden.estado == "PENDIENTE" %}En la cola de cocina. Puedes agregar productos o cancelarla hasta que el chef la empiece.{% else %}El chef la está preparando.{% endif %}</span></p>
       {% endif %}

@@ -7,7 +7,7 @@
   <div>
     <span class="eyebrow">Caja</span>
     <h1>Cobrar orden <span class="mono">#{{ orden.id }}</span></h1>
-    <p>Mesa {{ orden.mesa.numero }}{% if orden.cliente %} · {{ orden.cliente.nombre }}{% endif %}</p>
+    <p>{{ orden.ubicacion }}{% if orden.cliente %} · {{ orden.cliente.nombre }}{% endif %}</p>
   </div>
 </div>
 

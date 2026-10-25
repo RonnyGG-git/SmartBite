@@ -17,7 +17,7 @@
         {% for orden in ventas %}
         <tr>
           <td class="mono">#{{ orden.id }}</td>
-          <td>Mesa {{ orden.mesa.numero }}</td>
+          <td>{{ orden.ubicacion }}</td>
           <td class="muted">{{ orden.cliente.nombre|default:"—" }}</td>
           <td class="num money">{{ orden.total|moneda }}</td>
           <td class="mono muted nowrap">{{ orden.creado_en|date:"d/m/Y H:i" }}</td>

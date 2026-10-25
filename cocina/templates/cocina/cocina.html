@@ -15,7 +15,7 @@
   <article class="ticket" data-estado="{{ orden.estado }}">
     <header class="ticket-head">
       <div>
-        <div class="ticket-mesa">Mesa {{ orden.mesa.numero }}</div>
+        <div class="ticket-mesa">{{ orden.ubicacion }}</div>
         <div class="ticket-id">#{{ orden.id }} · {{ orden.creado_en|date:"H:i" }}{% if orden.origen == "AUTOPEDIDO" %} · <span class="ticket-origin">QR</span>{% endif %}{% if orden.tipo_consumo == "PARA_LLEVAR" %} · <span class="ticket-origin">PARA LLEVAR</span>{% endif %}</div>
       </div>
       <span class="ticket-state">

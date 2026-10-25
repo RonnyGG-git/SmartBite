@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Simulador de llamadas — Smart Bite{% endblock %}
+{% block extra_head %}
+<style>
+  .sim-grid { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .sim-grid { grid-template-columns: minmax(0, 1fr); } }
+  .sim-log { display: flex; flex-direction: column; gap: 10px; min-height: 320px; max-height: 60vh; overflow-y: auto; padding: 4px; }
+  .sim-msg { max-width: 82%; padding: 10px 14px; border-radius: var(--radius); line-height: 1.45; }
+  .sim-msg[data-rol="agente"] { align-self: flex-start; background: var(--surface); border: 1px solid var(--line-strong); }
+  .sim-msg[data-rol="cliente"] { align-self: flex-end; background: var(--accent-soft); border: 1px solid var(--accent-line); }
+  .sim-msg[data-rol="sistema"] { align-self: center; background: transparent; color: var(--info); font-size: 0.85rem; }
+  .sim-input { display: flex; gap: 8px; margin-top: 12px; }
+  .sim-input input { flex: 1; min-width: 0; }
+  .sim-estado { font-family: var(--font-mono); font-size: 0.8rem; color: var(--info); }
+  .sim-mic[aria-pressed="true"] { background: var(--danger-soft); border-color: var(--danger); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Agente telefónico</span>
+    <h1>Simulador de llamadas</h1>
+    <p>Prueba el agente desde el navegador con micrófono y altavoces, sin número telefónico. Los pedidos que confirmes se registran de verdad y llegan a cocina.</p>
+  </div>
+</div>
+
+<div class="sim-grid">
+  <section class="card">
+    <h3 class="card-title">Llamada</h3>
+    <div class="form-fields">
+      <div class="field">
+        <label for="sim-sucursal">Sucursal que recibe la llamada</label>
+        <select id="sim-sucursal">
+          {% for sucursal in sucursales %}<option value="{{ sucursal.pk }}">{{ sucursal.restaurante.nombre }} — {{ sucursal.nombre }}</option>{% empty %}<option value="">No hay sucursales activas</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="sim-telefono">Número que llama (opcional)</label>
+        <input id="sim-telefono" type="tel" inputmode="tel" placeholder="3001234567" autocomplete="off">
+        <span class="field-help">Simula el identificador de llamada para probar clientes registrados.</span>
+      </div>
+      <div class="field field--check">
+        <input id="sim-interrumpir" type="checkbox">
+        <label for="sim-interrumpir">Permitir interrumpir al agente (usa audífonos)</label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" id="sim-llamar" class="btn btn-primary"><span>Llamar</span></button>
+      <button type="button" id="sim-colgar" class="btn btn-ghost" disabled><span>Colgar</span></button>
+    </div>
+    <p class="sim-estado mt-16" id="sim-estado" aria-live="polite">Sin llamada</p>
+    <p class="subtle mt-16">El reconocimiento de voz del navegador (Chrome/Edge) envía el audio a su proveedor. Si tu navegador no lo soporta, escribe en la caja de texto.</p>
+  </section>
+
+  <section class="card">
+    <h3 class="card-title">Conversación</h3>
+    <div class="sim-log" id="sim-log" aria-live="polite"></div>
+    <form class="sim-input" id="sim-form">
+      <button type="button" id="sim-mic" class="btn btn-ghost sim-mic" aria-pressed="false" disabled>Hablar</button>
+      <input id="sim-texto" type="text" maxlength="500" placeholder="O escribe lo que diría el cliente…" disabled autocomplete="off">
+      <button type="submit" class="btn btn-primary" id="sim-enviar" disabled>Enviar</button>
+    </form>
+  </section>
+</div>
+
+{% csrf_token %}
+<script>
+  window.SIMULADOR_URLS = {
+    iniciar: "{% url 'agente_telefonico:demo_iniciar' %}",
+    turno: "{% url 'agente_telefonico:demo_turno' 0 %}",
+    colgar: "{% url 'agente_telefonico:demo_colgar' 0 %}"
+  };
+</script>
+<script src="{% static 'agente_telefonico/simulador.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "includes/generic_form.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+  .mapa-sucursal { height: 320px; border-radius: var(--radius); border: 1px solid var(--line-strong); margin-top: 16px; }
+  .mapa-ayuda { margin-top: 8px; color: var(--text-2); font-size: 13px; }
+</style>
+{% endblock %}
+{% block content %}
+{{ block.super }}
+<div class="card medium">
+  <h3 class="card-title">Ubicación en el mapa</h3>
+  <p class="mapa-ayuda">Haz clic en el mapa (o arrastra el marcador) donde queda la sucursal. Así los clientes la ven en «Restaurantes cerca».</p>
+  <div id="mapa-sucursal" class="mapa-sucursal" role="application" aria-label="Mapa para ubicar la sucursal"></div>
+  <div class="form-actions">
+    <button type="button" class="btn btn-ghost" id="mapa-mi-ubicacion">Usar mi ubicación actual</button>
+    <button type="button" class="btn btn-ghost" id="mapa-quitar">Quitar ubicación</button>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  (function () {
+    const lat = document.querySelector("[data-mapa=latitud]");
+    const lng = document.querySelector("[data-mapa=longitud]");
+    if (!lat || !lng || !window.L) return;
+    const inicial = lat.value && lng.value ? [parseFloat(lat.value), parseFloat(lng.value)] : null;
+    const mapa = L.map("mapa-sucursal").setView(inicial || [4.711, -74.0721], inicial ? 16 : 6);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; colaboradores de OpenStreetMap",
+    }).addTo(mapa);
+    let marcador = null;
+    function fijar(latlng) {
+      lat.value = latlng.lat.toFixed(6);
+      lng.value = latlng.lng.toFixed(6);
+      if (!marcador) {
+        marcador = L.marker(latlng, { draggable: true }).addTo(mapa);
+        marcador.on("dragend", () => fijar(marcador.getLatLng()));
+      } else {
+        marcador.setLatLng(latlng);
+      }
+    }
+    if (inicial) fijar(L.latLng(inicial[0], inicial[1]));
+    mapa.on("click", (e) => fijar(e.latlng));
+    document.getElementById("mapa-mi-ubicacion").addEventListener("click", () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const punto = L.latLng(pos.coords.latitude, pos.coords.longitude);
+        fijar(punto);
+        mapa.setView(punto, 17);
+      });
+    });
+    document.getElementById("mapa-quitar").addEventListener("click", () => {
+      lat.value = "";
+      lng.value = "";
+      if (marcador) { mapa.removeLayer(marcador); marcador = null; }
+    });
+  })();
+</script>
+{% endblock %}

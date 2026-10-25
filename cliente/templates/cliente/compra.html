@@ -1,6 +1,6 @@
 {% extends "cliente/base_cliente.html" %}
 {% load core_extras %}
-{% block title %}Apartado de compra · Mesa {{ mesa.numero }} — Smart Bite{% endblock %}
+{% block title %}Apartado de compra{% if mesa %} · Mesa {{ mesa.numero }}{% endif %} — Smart Bite{% endblock %}
 {% block cliente %}
 <section class="menu-hero">
   <h1>Tu compra</h1>

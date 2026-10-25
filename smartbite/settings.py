@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'reportes',
     'api',
     'asistente_cocina',
+    'agente_telefonico',
 ]
 
 AUTH_USER_MODEL = 'cuentas.Usuario'
@@ -206,5 +207,15 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
+        'agente_telefonico': {
+            'handlers': ['consola'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
+
+AGENTE_MAX_SILENCIOS = int(os.environ.get('AGENTE_MAX_SILENCIOS', '3'))
+AGENTE_MAX_TURNOS = int(os.environ.get('AGENTE_MAX_TURNOS', '60'))
+AGENTE_VALIDAR_STOCK = os.environ.get('AGENTE_VALIDAR_STOCK', 'true').lower() == 'true'
+AGENTE_RETENCION_DIAS = int(os.environ.get('AGENTE_RETENCION_DIAS', '30'))

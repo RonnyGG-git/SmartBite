@@ -20,11 +20,11 @@
     <span><strong>Tu pedido #{{ pedido_en_curso.pk }} está en curso.</strong> {{ pedido_en_curso.get_estado_display }} · ver estado</span>
     <svg class="ico"><use href="#i-arrow-right"/></svg>
   </a>
-{% elif not mesa %}
-  <div class="notice">
+{% elif not sucursal %}
+  <a class="notice" href="{% url 'cliente:restaurantes' %}">
     <svg class="ico"><use href="#i-qr"/></svg>
-    <span>Escanea el código QR de tu mesa para pedir desde tu teléfono.</span>
-  </div>
+    <span>Escanea el código QR de tu mesa o <strong>elige un restaurante</strong> para pedir desde tu teléfono.</span>
+  </a>
 {% elif not puede_pedir %}
   <div class="notice">
     <svg class="ico"><use href="#i-user"/></svg>

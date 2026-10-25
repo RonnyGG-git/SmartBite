@@ -17,4 +17,5 @@ urlpatterns = [
     path("ordenes/<int:pk>/productos/", views.agregar_producto, name="agregar_producto"),
     path("ordenes/<int:pk>/estado/", views.cambiar_estado_orden, name="cambiar_estado_orden"),
     path("ordenes/<int:pk>/cuenta/", views.solicitar_cuenta, name="solicitar_cuenta"),
+    path("ordenes/<int:pk>/mesa/", views.asignar_mesa, name="asignar_mesa"),
 ]

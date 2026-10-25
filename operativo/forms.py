@@ -23,6 +23,7 @@ class CrearOrdenForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["mesa"].queryset = Mesa.objects.filter(estado=Mesa.DISPONIBLE, activa=True)
+        self.fields["mesa"].required = True
         self.fields["cliente"].required = False
 
 

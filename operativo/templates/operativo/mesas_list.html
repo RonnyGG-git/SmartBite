@@ -10,6 +10,28 @@
   </div>
 </div>
 
+{% if pedidos_sin_mesa %}
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Pedidos sin mesa</h2><span class="badge badge-warning badge-plain mono">{{ pedidos_sin_mesa|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Modalidad</th><th>Estado</th><th class="num">Acción</th></tr></thead>
+      <tbody>
+        {% for o in pedidos_sin_mesa %}
+        <tr>
+          <td class="mono">#{{ o.pk }} · {{ o.get_origen_display }}</td>
+          <td>{{ o.cliente.nombre|default:"—" }}</td>
+          <td>{{ o.get_tipo_consumo_display }}</td>
+          <td>{{ o.get_estado_display }}</td>
+          <td class="actions"><a class="btn btn-sm btn-quiet" href="{% url 'operativo:detalle_orden' o.pk %}">{% if o.tipo_consumo == "EN_RESTAURANTE" %}Asignar mesa{% else %}Ver{% endif %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 {% if mesas %}
 <div class="chips" role="group" aria-label="Filtrar mesas por estado">
   <button type="button" class="chip" data-filter="TODAS" aria-pressed="true">Todas <span class="chip-count"></span></button>

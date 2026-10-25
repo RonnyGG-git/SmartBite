@@ -64,8 +64,13 @@ class RestauranteForm(forms.ModelForm):
 class SucursalForm(forms.ModelForm):
     class Meta:
         model = Sucursal
-        fields = ["restaurante", "nombre", "direccion", "telefono", "activo"]
-        widgets = {"telefono": forms.TextInput(attrs={"placeholder": "+57 604 1234567"})}
+        fields = ["restaurante", "nombre", "direccion", "telefono", "latitud", "longitud", "activo"]
+        widgets = {
+            "telefono": forms.TextInput(attrs={"placeholder": "+57 604 1234567"}),
+            "latitud": forms.NumberInput(attrs={"step": "any", "data-mapa": "latitud"}),
+            "longitud": forms.NumberInput(attrs={"step": "any", "data-mapa": "longitud"}),
+        }
+        help_texts = {"latitud": "Marca la sucursal en el mapa; se llena sola."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -81,3 +86,9 @@ class SucursalForm(forms.ModelForm):
 
     def clean_telefono(self):
         return self.cleaned_data["telefono"].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (cleaned_data.get("latitud") is None) != (cleaned_data.get("longitud") is None):
+            self.add_error("longitud", "Indica latitud y longitud juntas, o deja las dos vacías.")
+        return cleaned_data

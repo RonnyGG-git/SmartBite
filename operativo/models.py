@@ -75,18 +75,26 @@ class Orden(TimestampedModel):
     }
     ORIGEN_MESERO = "MESERO"
     ORIGEN_AUTOPEDIDO = "AUTOPEDIDO"
-    ORIGEN_CHOICES = [(ORIGEN_MESERO, "Mesero"), (ORIGEN_AUTOPEDIDO, "Autopedido (QR)")]
+    ORIGEN_TELEFONO = "AGENTE_TELEFONICO"
+    ORIGEN_CHOICES = [
+        (ORIGEN_MESERO, "Mesero"),
+        (ORIGEN_AUTOPEDIDO, "Autopedido (QR)"),
+        (ORIGEN_TELEFONO, "Agente telefónico"),
+    ]
 
     EN_RESTAURANTE = "EN_RESTAURANTE"
     PARA_LLEVAR = "PARA_LLEVAR"
     TIPO_CONSUMO_CHOICES = [(EN_RESTAURANTE, "Comer en el restaurante"), (PARA_LLEVAR, "Para llevar")]
 
-    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes")
+    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes", null=True, blank=True)
+    sucursal = models.ForeignKey(
+        "restaurantes.Sucursal", on_delete=models.PROTECT, related_name="ordenes", null=True, blank=True
+    )
     cliente = models.ForeignKey(
         Cliente, on_delete=models.SET_NULL, related_name="ordenes", null=True, blank=True
     )
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default=PENDIENTE)
-    origen = models.CharField(max_length=12, choices=ORIGEN_CHOICES, default=ORIGEN_MESERO)
+    origen = models.CharField(max_length=20, choices=ORIGEN_CHOICES, default=ORIGEN_MESERO)
     tipo_consumo = models.CharField(max_length=15, choices=TIPO_CONSUMO_CHOICES, default=EN_RESTAURANTE)
     tiempo_estimado_min = models.PositiveSmallIntegerField(null=True, blank=True)
     preparacion_iniciada_en = models.DateTimeField(null=True, blank=True)
@@ -96,7 +104,18 @@ class Orden(TimestampedModel):
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Orden #{self.pk} — Mesa {self.mesa.numero}"
+        return f"Orden #{self.pk} — {self.ubicacion}"
+
+    def save(self, *args, **kwargs):
+        if self.sucursal_id is None and self.mesa_id is not None:
+            self.sucursal_id = Mesa.objects.values_list("sucursal_id", flat=True).get(pk=self.mesa_id)
+        super().save(*args, **kwargs)
+
+    @property
+    def ubicacion(self):
+        if self.mesa_id:
+            return f"Mesa {self.mesa.numero}"
+        return f"{self.get_origen_display()} · {self.get_tipo_consumo_display()}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -133,13 +152,14 @@ class Orden(TimestampedModel):
 
     def _aplicar_efectos_de_entrada(self, nuevo_estado):
         if nuevo_estado == self.EN_PREPARACION:
-            self.mesa.estado = Mesa.OCUPADA
-            self.mesa.save(update_fields=["estado"])
+            if self.mesa_id:
+                self.mesa.estado = Mesa.OCUPADA
+                self.mesa.save(update_fields=["estado"])
             from inventario.services import descontar_insumos_por_receta
 
             return descontar_insumos_por_receta(self)["faltantes"]
 
-        if nuevo_estado in (self.ENTREGADA, self.CANCELADA):
+        if nuevo_estado in (self.ENTREGADA, self.CANCELADA) and self.mesa_id:
             self.mesa.estado = Mesa.DISPONIBLE
             self.mesa.save(update_fields=["estado"])
 

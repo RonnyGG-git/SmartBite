@@ -22,6 +22,6 @@ class DetalleOrdenInline(admin.TabularInline):
 
 @admin.register(Orden)
 class OrdenAdmin(admin.ModelAdmin):
-    list_display = ("id", "mesa", "cliente", "estado", "creado_en")
-    list_filter = ("estado",)
+    list_display = ("id", "mesa", "sucursal", "cliente", "estado", "origen", "creado_en")
+    list_filter = ("estado", "origen")
     inlines = [DetalleOrdenInline]

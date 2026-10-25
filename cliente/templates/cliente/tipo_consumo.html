@@ -1,9 +1,9 @@
 {% extends "cliente/base_cliente.html" %}
-{% block title %}¿Para llevar o aquí? · Mesa {{ mesa.numero }} — Smart Bite{% endblock %}
+{% block title %}¿Para llevar o aquí?{% if mesa %} · Mesa {{ mesa.numero }}{% endif %} — Smart Bite{% endblock %}
 {% block cliente %}
 <section class="menu-hero">
   <h1>Bienvenido</h1>
-  <p>Ya tienes la mesa {{ mesa.numero }}. ¿Cómo quieres tu pedido?</p>
+  <p>{% if mesa %}Ya tienes la mesa {{ mesa.numero }}.{% else %}Vas a pedir en {{ sucursal.restaurante.nombre }} — {{ sucursal.nombre }}.{% endif %} ¿Cómo quieres tu pedido?</p>
 </section>
 
 <form method="post" class="tipo-opciones">
@@ -12,7 +12,7 @@
     <button type="submit" name="tipo" value="{{ valor }}" class="tipo-opcion{% if valor == actual %} is-selected{% endif %}">
       <svg class="ico"><use href="#{% if valor == 'PARA_LLEVAR' %}i-box{% else %}i-utensils{% endif %}"/></svg>
       <span class="tipo-opcion-titulo">{{ texto }}</span>
-      <span class="tipo-opcion-sub">{% if valor == "PARA_LLEVAR" %}Te lo empacamos para llevar{% else %}Te lo servimos en tu mesa{% endif %}</span>
+      <span class="tipo-opcion-sub">{% if valor == "PARA_LLEVAR" %}Te lo empacamos para llevar{% elif mesa %}Te lo servimos en tu mesa{% else %}Al llegar te asignamos una mesa{% endif %}</span>
     </button>
   {% endfor %}
 </form>

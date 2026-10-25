@@ -13,7 +13,7 @@ ROLES_CAJA = ["ADMINISTRADOR", "CAJERO"]
 
 
 class PagoListView(RestauranteMixin, RoleRequiredMixin, ListView):
-    ruta_restaurante = "orden__mesa__sucursal__restaurante"
+    ruta_restaurante = "orden__sucursal__restaurante"
     model = Pago
     roles_permitidos = ROLES_CAJA
     template_name = "caja/pagos_list.html"
@@ -24,7 +24,7 @@ class PagoListView(RestauranteMixin, RoleRequiredMixin, ListView):
 def cobrar_orden(request, pk):
     if not usuario_tiene_rol(request.user, ROLES_CAJA):
         return redirect("operativo:detalle_orden", pk=pk)
-    orden = get_object_or_404(filtrar(Orden.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
 
     if request.method == "POST":
         form = CobrarOrdenForm(request.POST)
@@ -59,7 +59,7 @@ def cobrar_orden(request, pk):
 
 
 class CuentasPorCobrarView(RestauranteMixin, RoleRequiredMixin, ListView):
-    ruta_restaurante = "mesa__sucursal__restaurante"
+    ruta_restaurante = "sucursal__restaurante"
     model = Orden
     roles_permitidos = ROLES_CAJA
     template_name = "caja/por_cobrar.html"
@@ -74,7 +74,7 @@ class CuentasPorCobrarView(RestauranteMixin, RoleRequiredMixin, ListView):
 
 
 class VentaListView(RestauranteMixin, RoleRequiredMixin, ListView):
-    ruta_restaurante = "mesa__sucursal__restaurante"
+    ruta_restaurante = "sucursal__restaurante"
     model = Orden
     roles_permitidos = ROLES_CAJA
     template_name = "caja/ventas_list.html"

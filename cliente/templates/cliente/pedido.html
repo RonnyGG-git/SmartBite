@@ -15,7 +15,7 @@
   <p>
     {% if orden.estado == "PENDIENTE" %}El chef lo tomará en breve.
     {% elif orden.estado == "EN_PREPARACION" %}{% if orden.listo_estimado_en %}Estará listo aproximadamente a las <strong class="mono">{{ orden.listo_estimado_en|time:"H:i" }}</strong> ({{ orden.tiempo_estimado_min }} min).{% else %}Tu pedido se está cocinando.{% endif %}
-    {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% else %}Tu mesero lo llevará a la mesa en un momento.{% endif %}
+    {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% elif orden.mesa %}Tu mesero lo llevará a la mesa en un momento.{% elif orden.tipo_consumo == "PARA_LLEVAR" %}Ya puedes pasar a recogerlo.{% else %}Pídelo en caja y te asignamos una mesa.{% endif %}
     {% elif orden.estado == "ENTREGADA" %}Buen provecho.
     {% else %}Si fue un error, habla con tu mesero.{% endif %}
   </p>

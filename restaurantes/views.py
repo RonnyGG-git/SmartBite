@@ -73,7 +73,7 @@ class SucursalCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
     ruta_restaurante = "restaurante"
     form_class = SucursalForm
     roles_permitidos = ROLES_ADMIN
-    template_name = "includes/generic_form.html"
+    template_name = "restaurantes/sucursal_form.html"
     extra_context = {"titulo": "Nueva Sucursal"}
     success_url = reverse_lazy("restaurantes:sucursales_list")
 
@@ -83,7 +83,7 @@ class SucursalUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
     ruta_restaurante = "restaurante"
     form_class = SucursalForm
     roles_permitidos = ROLES_ADMIN
-    template_name = "includes/generic_form.html"
+    template_name = "restaurantes/sucursal_form.html"
     extra_context = {"titulo": "Editar Sucursal"}
     success_url = reverse_lazy("restaurantes:sucursales_list")
 

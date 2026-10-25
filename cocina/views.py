@@ -27,7 +27,7 @@ def insumos_faltantes(orden):
 
 
 class CocinaListView(RestauranteMixin, RoleRequiredMixin, ListView):
-    ruta_restaurante = "mesa__sucursal__restaurante"
+    ruta_restaurante = "sucursal__restaurante"
     roles_permitidos = ROLES_COCINA
     template_name = "cocina/cocina.html"
     context_object_name = "ordenes"
@@ -48,7 +48,7 @@ class CocinaListView(RestauranteMixin, RoleRequiredMixin, ListView):
 @require_POST
 @rol_requerido(*ROLES_COCINA)
 def actualizar_estado(request, pk):
-    orden = get_object_or_404(filtrar(Orden.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     accion = request.POST.get("accion")
 
     if accion == "iniciar" and orden.estado == Orden.PENDIENTE:
@@ -67,7 +67,8 @@ def actualizar_estado(request, pk):
         messages.success(request, f"Orden #{orden.pk} en preparación ({minutos} min).")
     elif accion == "listo" and orden.estado == Orden.EN_PREPARACION:
         orden.cambiar_estado(Orden.LISTA)
-        messages.success(request, f"Orden #{orden.pk} lista para servir en la mesa {orden.mesa.numero}.")
+        destino = f"servir en la mesa {orden.mesa.numero}" if orden.mesa_id else "entregar al cliente"
+        messages.success(request, f"Orden #{orden.pk} lista para {destino}.")
     else:
         messages.error(request, "Esa acción ya no aplica al estado actual de la orden.")
     return redirect("cocina:cocina")
