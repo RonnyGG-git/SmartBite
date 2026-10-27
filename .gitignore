@@ -21,6 +21,3 @@ CLAUDE.md
 # Anclados a la raíz: diagramas/_specs/ sí se sube.
 /docs/
 /specs/
-
-# Herramientas del agente: skills y configuracion local de OpenCode.
-.opencode/
