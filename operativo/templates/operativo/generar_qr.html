@@ -1,10 +1,21 @@
 {% extends "base.html" %}
-{% block title %}QR Mesa {{ mesa.numero }} — Smart Bite{% endblock %}
+{% block title %}QR mesa {{ mesa.numero }} — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>QR — Mesa {{ mesa.numero }}</h1><p>El cliente escanea este código para ver el menú y pedir</p></div></div>
-<div class="card" style="max-width:420px; text-align:center;">
-  <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Mesa {{ mesa.numero }}" style="width:100%; border-radius:16px; background:white; padding:16px;">
-  <p style="color:#9ca3af; font-size:13px; word-break:break-all; margin-top:16px;">{{ url_menu }}</p>
-  <a href="{% url 'operativo:mesas_list' %}" class="btn btn-secondary" style="width:100%; margin-top:12px;">← Volver a Mesas</a>
+<a href="{% url 'operativo:mesas_list' %}" class="back-link no-print"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Mesas</a>
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Mesa {{ mesa.numero }}</span>
+    <h1>Código QR del menú</h1>
+    <p>El cliente escanea este código para ver el menú de la sucursal.</p>
+  </div>
+  <div class="page-actions no-print">
+    <button type="button" class="btn btn-secondary" data-action="print"><svg class="ico"><use href="#i-printer"/></svg><span>Imprimir</span></button>
+  </div>
+</div>
+<div class="card narrow">
+  <div class="qr-frame">
+    <img src="data:image/png;base64,{{ qr_base64 }}" alt="Código QR que abre el menú de la mesa {{ mesa.numero }}">
+  </div>
+  <p class="qr-url">{{ url_menu }}</p>
 </div>
 {% endblock %}

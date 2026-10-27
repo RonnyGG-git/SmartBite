@@ -2,23 +2,37 @@
 {% load core_extras %}
 {% block title %}Ventas — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Ventas</h1><p>Órdenes entregadas y cobradas</p></div></div>
-<div class="card" style="padding:0; overflow:hidden;">
-  <table>
-    <thead><tr><th>Orden</th><th>Mesa</th><th>Cliente</th><th>Total</th><th>Fecha</th></tr></thead>
-    <tbody>
-      {% for orden in ventas %}
-      <tr>
-        <td>#{{ orden.id }}</td>
-        <td>Mesa {{ orden.mesa.numero }}</td>
-        <td>{{ orden.cliente.nombre|default:"—" }}</td>
-        <td style="color:#4ade80; font-weight:700;">{{ orden.total|moneda }}</td>
-        <td>{{ orden.creado_en|date:"d/m/Y H:i" }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5"><div class="empty-state">No hay ventas registradas.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Caja</span>
+    <h1>Ventas</h1>
+    <p>Órdenes entregadas y cobradas.</p>
+  </div>
+</div>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Mesa</th><th>Cliente</th><th class="num">Total</th><th>Fecha</th></tr></thead>
+      <tbody>
+        {% for orden in ventas %}
+        <tr>
+          <td class="mono">#{{ orden.id }}</td>
+          <td>Mesa {{ orden.mesa.numero }}</td>
+          <td class="muted">{{ orden.cliente.nombre|default:"—" }}</td>
+          <td class="num money">{{ orden.total|moneda }}</td>
+          <td class="mono muted nowrap">{{ orden.creado_en|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-receipt"/></svg>
+            <strong>No hay ventas registradas</strong>
+            <span>Las órdenes entregadas y cobradas aparecerán aquí.</span>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

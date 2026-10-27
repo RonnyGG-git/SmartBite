@@ -17,6 +17,7 @@ documentado en el `README.md` del repo original (`smartibite-frontend/README.md`
 - [Puesta en marcha](#puesta-en-marcha)
 - [Flujo probado end-to-end](#flujo-probado-end-to-end)
 - [Trabajar con Git y ramas](#trabajar-con-git-y-ramas)
+- [Paridad con los casos de uso](#paridad-con-los-casos-de-uso)
 - [Pendiente](#pendiente-fuera-de-alcance-de-esta-migración)
 
 ## Stack
@@ -68,7 +69,8 @@ smartbite/
 ├── operativo/                   # mesas, clientes, órdenes y QR
 ├── caja/                        # métodos de pago, cobro y ventas
 ├── cocina/                      # vista de órdenes pendientes/en preparación
-├── menu_cliente/                 # menú público (sin login), accedido vía QR
+├── cliente/                      # cara pública de Pedidos: menú QR, autopedido, estado, opiniones
+├── menu_cliente/                 # solo redirige /menu/?mesa=N (QR antiguos) a cliente
 └── reportes/                    # dashboard y reportes agregados
 ```
 
@@ -140,9 +142,12 @@ El corazón del flujo de servicio en sala.
   `Mesa` y `Cliente`), `DetalleOrden` (línea de producto dentro de una orden).
 - **Rutas** (`/operativo/`): CRUD de mesas, generación de QR por mesa
   (`mesas/qr/<id>/`), crear orden, agregar producto a una orden, cambiar
-  estado, alta rápida de cliente.
-- `generar_qr` codifica en el QR la URL pública del menú
-  (`menu_cliente:menu?mesa=<id>`) usando `qrcode`.
+  estado, solicitar cuenta, alta rápida de cliente.
+- `Orden` guarda además `origen` (mesero o autopedido QR), el tiempo estimado
+  que fija el Chef y cuándo se pidió la cuenta.
+- El Mesero solo cancela órdenes `PENDIENTE` y pide la cuenta de las `LISTA`;
+  la preparación la mueve el Chef en `cocina` y el cierre lo hace `caja`.
+- `generar_qr` codifica en el QR la URL de `cliente:mesa` usando `qrcode`.
 
 ### `caja` — pagos y ventas
 
@@ -151,24 +156,38 @@ El corazón del flujo de servicio en sala.
   monto, referencia de transacción).
 - **Rutas** (`/caja/`): listado de pagos, `cobrar_orden` (crea el `Pago`,
   pasa la orden a `ENTREGADA` y libera la mesa dentro de una transacción
-  atómica), listado de ventas (`ventas/`, órdenes ya entregadas).
+  atómica), `por-cobrar/` (cuentas que pidió el mesero), listado de ventas
+  (`ventas/`, órdenes ya entregadas).
 
 ### `cocina` — pantalla de preparación
 
 Sin modelos propios: reutiliza `operativo.Orden`.
 
 - **Vista:** `CocinaListView` lista las órdenes en estado `PENDIENTE` o
-  `EN_PREPARACION`, visible solo para `ADMINISTRADOR`/`JEFE_COCINA`.
-- **Rutas** (`/cocina/`): una sola vista de listado.
+  `EN_PREPARACION`, visible solo para `ADMINISTRADOR`/`JEFE_COCINA`, y avisa
+  si el stock no alcanza para la receta de algún platillo.
+- **Rutas** (`/cocina/`): listado y `ordenes/<id>/estado/` (iniciar con tiempo
+  estimado → marcar lista).
 
-### `menu_cliente` — menú público vía QR
+### `cliente` — el comensal (sin login)
 
-Sin modelos propios ni login. Es la única vista pública del sistema.
+Cara pública del módulo de Pedidos del diagrama de casos de uso. La mesa se
+identifica al escanear su QR y los pedidos del comensal se recuerdan en su
+sesión. Las páginas usan `templates/base_publico.html`, que se ve igual haya
+o no una sesión de personal abierta.
 
-- **Vista:** `menu` recibe `?mesa=<id>` desde el QR generado en `operativo`,
-  filtra productos disponibles de la sucursal de esa mesa, agrupados por
-  categoría.
-- **Rutas** (`/menu/`): una sola vista pública.
+- **Modelos:** `Retroalimentacion` (sugerencia o denuncia, opcionalmente
+  asociada a la mesa; el Administrador la marca como revisada).
+- **Rutas** (`/cliente/`): `mesa/<id>/` (destino del QR), `menu/` (solo
+  platillos disponibles de la sucursal de la mesa), `pedido/` (POST del
+  autopedido: crea la orden `PENDIENTE` y ocupa la mesa), `pedido/<id>/`
+  (estado del pedido, solo para quien lo hizo), `opinion/`, y para el
+  Administrador `retroalimentacion/`.
+
+### `menu_cliente` — compatibilidad
+
+Solo redirige `/menu/?mesa=<id>` (URL de los QR impresos antes de existir
+`cliente`) a `/cliente/mesa/<id>/`.
 
 ### `reportes` — dashboard y reportes
 
@@ -189,9 +208,9 @@ Definidos en `cuentas.models.ROLES_SISTEMA` y creados por `seed_datos`:
 | Rol | Acceso típico |
 |---|---|
 | `ADMINISTRADOR` | Todo el sistema (equivalente a superusuario a nivel de negocio) |
-| `JEFE_INVENTARIO` | Inventario, proveedores, compras |
-| `JEFE_COCINA` | Pantalla de cocina |
-| `MESERO` | Mesas, crear/gestionar órdenes |
+| `JEFE_INVENTARIO` | Inventario, proveedores, compras (platillos solo en consulta) |
+| `JEFE_COCINA` | Pantalla de cocina, platillos, categorías y recetas |
+| `MESERO` | Mesas, crear órdenes, cancelar pendientes, solicitar cuenta |
 | `CAJERO` | Cobrar órdenes, ventas |
 
 El control de acceso se aplica por vista con `RoleRequiredMixin.roles_permitidos`
@@ -315,6 +334,11 @@ git reset --hard             # descarta todos los cambios sin confirmar
 git clean -fd                # borra archivos no rastreados
 git push --force              # sobrescribe el historial remoto
 ```
+
+## Paridad con los casos de uso
+
+`docs/PARIDAD-CASOS-DE-USO.md` contrasta cada caso de uso del diagrama
+(7 módulos, 114 casos) con lo que existe en el código.
 
 ## Pendiente (fuera de alcance de esta migración)
 

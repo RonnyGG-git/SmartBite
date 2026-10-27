@@ -1,29 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Permisos de {{ rol }} — Smart Bite{% endblock %}
 {% block content %}
+<a href="{% url 'cuentas:roles_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Roles</a>
 <div class="page-header">
   <div>
-    <h1>Permisos — {{ rol.get_nombre_display }}</h1>
-    <p>Selecciona los permisos que tendrá este rol</p>
+    <span class="eyebrow">Permisos</span>
+    <h1>{{ rol.get_nombre_display }}</h1>
+    <p>Selecciona los permisos que tendrá este rol.</p>
   </div>
 </div>
 
-<div class="card" style="max-width:640px;">
+<div class="card medium">
   <form method="post">
     {% csrf_token %}
-    <div style="display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto; margin-bottom:20px;">
+    <div class="check-list">
       {% for checkbox in form.permisos %}
-        <label style="display:flex; align-items:center; gap:10px; background:#0f172a; border:1px solid #2e3b55; border-radius:12px; padding:12px; cursor:pointer;">
+        <label class="check-row" for="{{ checkbox.id_for_label }}">
           {{ checkbox.tag }}
-          <span style="color:white; font-size:14px;">{{ checkbox.choice_label }}</span>
+          <span>{{ checkbox.choice_label }}</span>
         </label>
       {% empty %}
-        <p style="color:#9ca3af;">No hay permisos registrados. Créalos desde el panel de administración.</p>
+        <div class="empty-state">
+          <svg class="ico"><use href="#i-key"/></svg>
+          <strong>No hay permisos registrados</strong>
+          <span>Créalos desde el panel de administración.</span>
+        </div>
       {% endfor %}
     </div>
-    <div class="form-actions">
-      <a href="{% url 'cuentas:roles_list' %}" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Guardar Permisos</button>
+    <div class="form-actions form-actions--end">
+      <a href="{% url 'cuentas:roles_list' %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Guardar permisos</span></button>
     </div>
   </form>
 </div>

@@ -3,45 +3,57 @@
 {% block content %}
 <div class="page-header">
   <div>
+    <span class="eyebrow">Administración</span>
     <h1>Usuarios</h1>
-    <p>Gestión de usuarios del sistema</p>
+    <p>Cuentas del personal, su rol y sucursal.</p>
   </div>
-  <a href="{% url 'cuentas:usuario_crear' %}" class="btn btn-primary">+ Nuevo Usuario</a>
+  <a href="{% url 'cuentas:usuario_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo usuario</span></a>
 </div>
 
-<div class="card" style="padding:0; overflow:hidden;">
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre</th><th>Email</th><th>Rol</th><th>Sucursal</th><th>Estado</th><th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for usuario in usuarios %}
-      <tr>
-        <td>{{ usuario.nombre }}</td>
-        <td>{{ usuario.email }}</td>
-        <td>{{ usuario.rol|default:"—" }}</td>
-        <td>{{ usuario.sucursal|default:"—" }}</td>
-        <td>
-          <span class="badge {% if usuario.is_active %}badge-success{% else %}badge-danger{% endif %}">
-            {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
-          </span>
-        </td>
-        <td>
-          <a href="{% url 'cuentas:usuario_editar' usuario.pk %}" class="btn btn-sm btn-ghost">Editar</a>
-          <form method="post" action="{% url 'cuentas:usuario_toggle_activo' usuario.pk %}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-secondary">
-              {% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6"><div class="empty-state">No hay usuarios registrados.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Nombre</th><th>Rol</th><th>Sucursal</th><th>Estado</th><th class="num">Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for usuario in usuarios %}
+        <tr>
+          <td>
+            <span class="user-chip user-chip--inline">
+              <span class="avatar" aria-hidden="true">{{ usuario.nombre|default:usuario.email|first|upper }}</span>
+              <span class="user-chip-text">
+                <span class="cell-title">{{ usuario.nombre }}</span>
+                <span class="cell-sub">{{ usuario.email }}</span>
+              </span>
+            </span>
+          </td>
+          <td>{% if usuario.rol %}<span class="badge badge-muted badge-plain">{{ usuario.rol }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="muted">{{ usuario.sucursal|default:"—" }}</td>
+          <td>
+            <span class="badge {% if usuario.is_active %}badge-success{% else %}badge-danger{% endif %}">
+              {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
+            </span>
+          </td>
+          <td class="actions">
+            <form method="post" action="{% url 'cuentas:usuario_toggle_activo' usuario.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-ghost"><svg class="ico"><use href="#i-power"/></svg><span>{% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}</span></button>
+            </form>
+            <a href="{% url 'cuentas:usuario_editar' usuario.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">
+          <div class="empty-state">
+            <svg class="ico"><use href="#i-users"/></svg>
+            <strong>No hay usuarios registrados</strong>
+            <a href="{% url 'cuentas:usuario_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo usuario</span></a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

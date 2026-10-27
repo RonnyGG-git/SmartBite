@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,9 +14,33 @@ from .models import Rol, Usuario
 ROLES_ADMIN = ["ADMINISTRADOR"]
 
 
+# Pantalla de inicio por rol: "/" (dashboard) es solo del Administrador, así que
+# mandar a todos allí daba 403 a los demás roles justo después de loguearse.
+INICIO_POR_ROL = {
+    "ADMINISTRADOR": "reportes:dashboard",
+    "MESERO": "operativo:mesas_list",
+    "JEFE_COCINA": "cocina:cocina",
+    "CAJERO": "caja:por_cobrar",
+    "JEFE_INVENTARIO": "inventario:inventario_list",
+}
+
+
 class LoginView(DjangoLoginView):
     template_name = "cuentas/login.html"
     redirect_authenticated_user = True
+
+    def get_redirect_url(self):
+        # `next=/` solo aparece porque el usuario pegó la raíz; se ignora para
+        # caer en la pantalla propia de su rol. Cualquier otro `next` se respeta.
+        destino = super().get_redirect_url()
+        return "" if destino == "/" else destino
+
+    def get_default_redirect_url(self):
+        usuario = self.request.user
+        if usuario.is_superuser:
+            return reverse_lazy("reportes:dashboard")
+        nombre_rol = usuario.rol.nombre if usuario.rol_id else None
+        return reverse_lazy(INICIO_POR_ROL.get(nombre_rol, "reportes:dashboard"))
 
 
 class LogoutView(DjangoLogoutView):
@@ -59,6 +84,11 @@ def usuario_toggle_activo(request, pk):
     if not (request.user.is_superuser or (request.user.rol_id and request.user.rol.nombre in ROLES_ADMIN)):
         return redirect("cuentas:usuarios_list")
     usuario = get_object_or_404(Usuario, pk=pk)
+    # H8: nadie puede desactivarse a sí mismo; evita dejar la cuenta
+    # administrativa sin ningún administrador activo en la sucursal.
+    if usuario.pk == request.user.pk:
+        messages.error(request, "No puedes desactivar tu propia cuenta")
+        return redirect("cuentas:usuarios_list")
     usuario.is_active = not usuario.is_active
     usuario.save(update_fields=["is_active"])
     return redirect("cuentas:usuarios_list")

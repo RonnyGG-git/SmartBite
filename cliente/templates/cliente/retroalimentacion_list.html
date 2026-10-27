@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Sugerencias y denuncias — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Administración</span>
+    <h1>Sugerencias y denuncias</h1>
+    <p>Mensajes que envían los clientes desde el menú de su mesa.</p>
+  </div>
+</div>
+
+<div class="stack stagger">
+  {% for m in mensajes %}
+  <article class="card feedback{% if m.revisada %} is-read{% endif %}">
+    <div class="tile-head">
+      <div class="page-actions">
+        <span class="badge {% if m.tipo == 'DENUNCIA' %}badge-danger{% else %}badge-info{% endif %}">{{ m.get_tipo_display }}</span>
+        {% if m.mesa %}<span class="subtle">Mesa {{ m.mesa.numero }}</span>{% endif %}
+        <span class="subtle mono">{{ m.creado_en|date:"d/m/Y H:i" }}</span>
+      </div>
+      <form method="post" action="{% url 'cliente:retroalimentacion_revisar' m.pk %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm {% if m.revisada %}btn-quiet{% else %}btn-ghost{% endif %}">
+          <svg class="ico"><use href="#{% if m.revisada %}i-x{% else %}i-check{% endif %}"/></svg>
+          <span>{% if m.revisada %}Marcar pendiente{% else %}Marcar revisada{% endif %}</span>
+        </button>
+      </form>
+    </div>
+    <p class="feedback-msg">{{ m.mensaje|linebreaksbr }}</p>
+    {% if m.nombre or m.contacto %}
+      <p class="subtle"><svg class="ico ico-sm"><use href="#i-user"/></svg> {{ m.nombre|default:"Anónimo" }}{% if m.contacto %} · {{ m.contacto }}{% endif %}</p>
+    {% endif %}
+  </article>
+  {% empty %}
+  <div class="empty-state card">
+    <svg class="ico"><use href="#i-info"/></svg>
+    <strong>No hay mensajes de clientes</strong>
+    <span>Las sugerencias y denuncias enviadas desde el menú QR aparecerán aquí.</span>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

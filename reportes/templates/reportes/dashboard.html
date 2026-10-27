@@ -2,28 +2,81 @@
 {% load core_extras %}
 {% block title %}Dashboard — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Dashboard</h1><p>Resumen general del sistema</p></div></div>
-
-<div class="grid grid-3" style="margin-bottom:28px;">
-  <div class="card card-stat" style="border-color:#3b82f6;"><p>Usuarios activos</p><h2 style="color:#3b82f6;">{{ total_usuarios }}</h2></div>
-  <div class="card card-stat" style="border-color:#a78bfa;"><p>Productos</p><h2 style="color:#a78bfa;">{{ total_productos }}</h2></div>
-  <div class="card card-stat" style="border-color:#22c55e;"><p>Mesas ocupadas</p><h2 style="color:#22c55e;">{{ mesas_ocupadas }} / {{ total_mesas }}</h2></div>
-  <div class="card card-stat" style="border-color:#eab308;"><p>Órdenes hoy</p><h2 style="color:#eab308;">{{ ordenes_hoy }}</h2></div>
-  <div class="card card-stat" style="border-color:#22c55e;"><p>Ventas hoy</p><h2 style="color:#22c55e;">{{ ventas_hoy|moneda }}</h2></div>
-  <div class="card card-stat" style="border-color:#ef4444;"><p>Ítems con stock bajo</p><h2 style="color:#ef4444;">{{ items_stock_bajo|length }}</h2></div>
+<div class="page-header">
+  <div>
+    <span class="eyebrow">{% now "l j \d\e F" %}</span>
+    <h1>Hola, {{ user.nombre|default:"equipo" }}</h1>
+    <p>Así va el servicio de hoy.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'reportes:reportes' %}" class="btn btn-ghost"><svg class="ico"><use href="#i-chart"/></svg><span>Ver reportes</span></a>
+  </div>
 </div>
 
-{% if items_stock_bajo %}
-<div class="card">
-  <h2 style="margin-top:0;">⚠ Ítems con stock bajo</h2>
-  <table>
-    <thead><tr><th>Ítem</th><th>Stock actual</th><th>Mínimo</th><th>Sucursal</th></tr></thead>
-    <tbody>
-      {% for item in items_stock_bajo %}
-      <tr><td>{{ item.nombre }}</td><td style="color:#ef4444; font-weight:700;">{{ item.stock_actual }}</td><td>{{ item.stock_minimo }}</td><td>{{ item.sucursal.nombre }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
+<section class="stats" aria-label="Indicadores del día">
+  <div class="stat stat--hero spotlight">
+    <span class="stat-label"><svg class="ico"><use href="#i-receipt"/></svg>Ventas de hoy</span>
+    <div>
+      <div class="stat-value" data-countup>{{ ventas_hoy|moneda }}</div>
+      <p class="stat-hint mt-12">Cobros registrados en caja desde las 00:00</p>
+    </div>
+  </div>
+
+  <div class="stat spotlight">
+    <span class="stat-label"><svg class="ico"><use href="#i-receipt"/></svg>Órdenes hoy</span>
+    <span class="stat-value" data-countup>{{ ordenes_hoy }}</span>
+  </div>
+
+  <div class="stat spotlight">
+    <span class="stat-label"><svg class="ico"><use href="#i-table"/></svg>Mesas ocupadas</span>
+    <div>
+      <span class="stat-value">{{ mesas_ocupadas }}<small> / {{ total_mesas }}</small></span>
+      <div class="meter is-idle mt-12" style="--p: {% widthratio mesas_ocupadas total_mesas 100 %};" role="img" aria-label="{% widthratio mesas_ocupadas total_mesas 100 %}% de ocupación"><span></span></div>
+    </div>
+  </div>
+
+  <div class="stat spotlight">
+    <span class="stat-label"><svg class="ico"><use href="#i-users"/></svg>Usuarios activos</span>
+    <span class="stat-value" data-countup>{{ total_usuarios }}</span>
+  </div>
+
+  <div class="stat spotlight">
+    <span class="stat-label"><svg class="ico"><use href="#i-utensils"/></svg>Productos</span>
+    <span class="stat-value" data-countup>{{ total_productos }}</span>
+  </div>
+</section>
+
+<section class="card card-flush">
+  <div class="card-head">
+    <h2>
+      <svg class="ico {% if items_stock_bajo %}text-danger{% else %}text-ok{% endif %}"><use href="#{% if items_stock_bajo %}i-alert{% else %}i-check{% endif %}"/></svg>
+      Stock bajo
+    </h2>
+    {% if items_stock_bajo %}
+      <span class="badge badge-danger">{{ items_stock_bajo|length }} ítem{{ items_stock_bajo|length|pluralize }}</span>
+    {% endif %}
+  </div>
+  {% if items_stock_bajo %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ítem</th><th class="num">Stock actual</th><th class="num">Mínimo</th><th>Sucursal</th></tr></thead>
+        <tbody>
+          {% for item in items_stock_bajo %}
+          <tr>
+            <td class="cell-title">{{ item.nombre }}</td>
+            <td class="num text-danger">{{ item.stock_actual }}</td>
+            <td class="num muted">{{ item.stock_minimo }}</td>
+            <td class="muted">{{ item.sucursal.nombre }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>Todo el inventario está sobre el mínimo</strong>
+      <span>Te avisaremos aquí cuando algún insumo necesite reposición.</span>
+    </div>
+  {% endif %}
+</section>
 {% endblock %}

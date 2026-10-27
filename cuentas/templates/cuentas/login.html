@@ -1,27 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Iniciar sesión — Smart Bite{% endblock %}
 {% block content_publico %}
-<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at top left, #16213e, transparent 40%), radial-gradient(circle at bottom right, #1b1464, transparent 40%), #050816;">
-  <div class="card" style="width:100%; max-width:400px;">
-    <h1 style="text-align:center; margin-top:0;">🍽️ Smart Bite</h1>
-    <p style="text-align:center; color:#9ca3af; margin-bottom:24px;">Inicia sesión para continuar</p>
+<div class="auth">
+  <section class="auth-aside" aria-hidden="true">
+    <span class="sidebar-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </span>
+    <div>
+      <h1>Sala, cocina y caja <em>al mismo ritmo.</em></h1>
+      <p>Mesas, comandas, cobros e inventario de tu restaurante en un solo lugar.</p>
+    </div>
+    <div class="auth-points">
+      <span><svg class="ico"><use href="#i-table"/></svg>Mesas en vivo</span>
+      <span><svg class="ico"><use href="#i-flame"/></svg>Comandas a cocina</span>
+      <span><svg class="ico"><use href="#i-box"/></svg>Stock bajo control</span>
+    </div>
+    <div class="auth-ring"></div>
+  </section>
 
-    {% if form.errors %}
-      <div class="alert alert-error">Email o contraseña incorrectos.</div>
-    {% endif %}
+  <main class="auth-main">
+    <div class="auth-form">
+      <h2>Inicia sesión</h2>
+      <p>Usa el email y la contraseña de tu cuenta.</p>
 
-    <form method="post">
-      {% csrf_token %}
-      <div style="margin-bottom:16px;">
-        <label for="{{ form.username.id_for_label }}">Email</label>
-        {{ form.username }}
-      </div>
-      <div style="margin-bottom:16px;">
-        <label for="{{ form.password.id_for_label }}">Contraseña</label>
-        {{ form.password }}
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;">Iniciar sesión</button>
-    </form>
-  </div>
+      {% if form.errors %}
+        <div class="alert alert-error" role="alert">
+          <svg class="ico"><use href="#i-alert"/></svg>
+          <span>Email o contraseña incorrectos.</span>
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label for="{{ form.username.id_for_label }}">Email</label>
+          {{ form.username }}
+        </div>
+        <div class="field">
+          <label for="{{ form.password.id_for_label }}">Contraseña</label>
+          {{ form.password }}
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg btn-block"><span>Entrar</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+      </form>
+    </div>
+  </main>
 </div>
 {% endblock %}

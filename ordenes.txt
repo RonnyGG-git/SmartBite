@@ -1,0 +1,25 @@
+1. Tareas completadas [x]
+Tarea
+T1.1
+T1.2
+T1.3
+T2.1
+T4.4
+2. Tareas pendientes [ ]
+Fase 3: T3.1, T3.2, T3.3, T3.4
+Fase 4: T4.1, T4.2, T4.3, T4.5, T4.6
+Fase 5: T5.1, T5.2, T5.3
+Fase 6: T6.1, T6.2, T6.3, T6.4, T6.5
+Fase 7: T7.1, T7.2
+3. Primera tarea pendiente
+T3.1 — Proteger generar_qr con autenticacion
+4. RF / Hallazgo que cubre
+RF-009 (Proteccion de vistas) | Hallazgo H3 — generar_qr sin autenticacion.
+5. Dependencias
+Ninguna. Fase 3 indica: "sin dependencias entre si" (linea 31). Las tareas de Fase 3 son independientes entre sí y no dependen de ninguna tarea pendiente anterior.
+6. Por qué está lista para implementarse ahora
+- Todas las Fases 1, 2 y 4.4 están completadas.
+- Fase 3 no tiene dependencias de ninguna otra fase ni entre sus propias tareas.
+- Solo requiere agregar el decorador @rol_requerido a la vista generar_qr en operativo/views.py.
+7. Si alguna tarea debe realizarse antes
+Ninguna. T3.1 puede implementarse en este momento sin restricciones. Las demás tareas de Fase 3 (T3.2, T3.3, T3.4) también están listas, pero ninguna es prerequisito de T3.1.

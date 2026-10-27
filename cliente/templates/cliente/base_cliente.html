@@ -1,0 +1,21 @@
+{% extends "base_publico.html" %}
+{% block body_class %}cliente{% endblock %}
+{% block content_publico %}
+<div class="menu-page">
+  <header class="cliente-bar">
+    <a class="sidebar-brand" href="{% url 'cliente:menu' %}">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </a>
+    {% if mesa %}<span class="menu-table"><svg class="ico ico-sm"><use href="#i-table"/></svg>Mesa {{ mesa.numero }}</span>{% endif %}
+  </header>
+
+  {% block cliente %}{% endblock %}
+
+  <nav class="cliente-links" aria-label="Opciones del cliente">
+    <a href="{% url 'cliente:menu' %}"><svg class="ico ico-sm"><use href="#i-utensils"/></svg>Menú</a>
+    <a href="{% url 'cliente:mis_pedidos' %}"><svg class="ico ico-sm"><use href="#i-receipt"/></svg>Mi pedido</a>
+    <a href="{% url 'cliente:retroalimentacion' %}"><svg class="ico ico-sm"><use href="#i-info"/></svg>Opinar</a>
+  </nav>
+</div>
+{% endblock %}

@@ -1,21 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Nueva Compra — Smart Bite{% endblock %}
+{% block title %}Nueva compra — Smart Bite{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Nueva Compra</h1><p>Registra una orden de compra a un proveedor</p></div></div>
-<div class="card" style="max-width:720px;">
+<a href="{% url 'inventario:compras_list' %}" class="back-link"><svg class="ico ico-sm"><use href="#i-arrow-left"/></svg>Compras</a>
+<div class="page-header">
+  <div>
+    <h1>Nueva compra</h1>
+    <p>Registra una orden de compra a un proveedor.</p>
+  </div>
+</div>
+<div class="card medium">
   <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <h3>Ítems a comprar</h3>
+    {% include "includes/form_fields.html" with form=form %}
+
+    <h3 class="section-title">Ítems a comprar</h3>
     {{ formset.management_form }}
+    {% if formset.non_form_errors %}
+      <ul class="errorlist nonfield alert alert-error">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
     {% for f in formset %}
-      <div class="form-grid" style="border-bottom:1px solid #1f2937; padding-bottom:12px; margin-bottom:12px;">
-        {{ f.as_p }}
+      <div class="formset-row">
+        <span class="formset-index">Ítem {{ forloop.counter }}</span>
+        {% include "includes/form_fields.html" with form=f grid=True %}
       </div>
     {% endfor %}
-    <div class="form-actions">
-      <a href="{% url 'inventario:compras_list' %}" class="btn btn-secondary">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Crear Compra</button>
+
+    <div class="form-actions form-actions--end">
+      <a href="{% url 'inventario:compras_list' %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Crear compra</span></button>
     </div>
   </form>
 </div>

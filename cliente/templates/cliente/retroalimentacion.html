@@ -1,0 +1,41 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Tu opinión — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Tu opinión</h1>
+  <p>Envíanos una sugerencia o reporta un problema. Lo lee el administrador del restaurante.</p>
+</section>
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+  <fieldset class="segmented">
+    <legend>{{ form.tipo.label }}</legend>
+    {% for radio in form.tipo %}
+      <label class="segmented-opt" for="{{ radio.id_for_label }}">
+        {{ radio.tag }}
+        <span class="segmented-title">{{ radio.choice_label }}</span>
+        <span class="segmented-hint">{% if radio.data.value == "SUGERENCIA" %}Una idea o comentario sobre el servicio{% else %}Una queja o incidente formal{% endif %}</span>
+      </label>
+    {% endfor %}
+  </fieldset>
+
+  <div class="form-fields mt-16">
+    {% for field in form %}
+      {% if field.name != "tipo" %}
+        <div class="field{% if field.errors %} field--error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-check"/></svg><span>Enviar</span></button>
+  </div>
+</form>
+{% endblock %}
