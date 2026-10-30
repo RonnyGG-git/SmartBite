@@ -232,13 +232,13 @@ class Agente:
             numero = resultado["pedido_id"]
             if resultado["aviso_cocina"]:
                 texto = (
-                    f"¡Perfecto! Tu pedido quedó registrado con el número {numero}. Ya fue enviado a cocina. "
-                    "Muchas gracias por comprar con nosotros."
+                    f"¡Perfecto! Tu pedido quedó registrado con el número {numero}. El restaurante lo confirmará "
+                    "en breve y pasará a cocina. Muchas gracias por comprar con nosotros."
                 )
             else:
                 texto = (
                     f"Tu pedido quedó registrado con el número {numero}. El restaurante lo verá en su lista de "
-                    "pedidos pendientes. Muchas gracias por comprar con nosotros."
+                    "pedidos por confirmar. Muchas gracias por comprar con nosotros."
                 )
             return Respuesta(texto, finalizar=True)
         if resultado["error"] == "PRODUCTO_NO_DISPONIBLE":

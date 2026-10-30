@@ -53,12 +53,14 @@ class Cliente(TimestampedModel):
 
 
 class Orden(TimestampedModel):
+    POR_CONFIRMAR = "POR_CONFIRMAR"
     PENDIENTE = "PENDIENTE"
     EN_PREPARACION = "EN_PREPARACION"
     LISTA = "LISTA"
     ENTREGADA = "ENTREGADA"
     CANCELADA = "CANCELADA"
     ESTADO_CHOICES = [
+        (POR_CONFIRMAR, "Por confirmar"),
         (PENDIENTE, "Pendiente"),
         (EN_PREPARACION, "En preparación"),
         (LISTA, "Lista"),
@@ -67,6 +69,7 @@ class Orden(TimestampedModel):
     ]
 
     TRANSICIONES_VALIDAS = {
+        POR_CONFIRMAR: [PENDIENTE, CANCELADA],
         PENDIENTE: [EN_PREPARACION, CANCELADA],
         EN_PREPARACION: [LISTA, CANCELADA],
         LISTA: [ENTREGADA, CANCELADA],
@@ -178,6 +181,22 @@ class Orden(TimestampedModel):
     @property
     def es_final(self):
         return self.estado in (self.ENTREGADA, self.CANCELADA)
+
+    @property
+    def total_pagado(self):
+        return sum((p.monto for p in self.pagos.all()), 0)
+
+    @property
+    def pagada(self):
+        return self.pagos.exists() and self.total_pagado >= self.total
+
+    @property
+    def cobrable(self):
+        if self.es_final or self.pagada:
+            return False
+        if self.mesa_id:
+            return self.estado == self.LISTA
+        return self.estado in (self.POR_CONFIRMAR, self.PENDIENTE, self.EN_PREPARACION, self.LISTA)
 
 
 class DetalleOrden(TimestampedModel):

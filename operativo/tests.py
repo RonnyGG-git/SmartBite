@@ -683,3 +683,53 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
                 Mesa.DISPONIBLE,
                 "La mesa no debe quedar OCUPADA si nadie creo la orden",
             )
+
+
+class GestionMesasTest(TestBase):
+    def setUp(self):
+        super().setUp()
+        for email, rol_nombre in (("admin.mesas@test.com", "ADMINISTRADOR"), ("mesero.mesas@test.com", "MESERO")):
+            rol, _ = Rol.objects.get_or_create(nombre=rol_nombre)
+            Usuario.objects.create_user(
+                email=email, nombre=rol_nombre, password="testpass123", rol=rol, restaurante=self.restaurante,
+            )
+        self.url_lista = reverse("operativo:mesas_list")
+
+    def test_admin_ve_botones_para_gestionar_mesas(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.get(self.url_lista)
+        self.assertContains(respuesta, reverse("operativo:mesa_crear"))
+        self.assertContains(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertContains(respuesta, reverse("operativo:mesa_eliminar", args=[self.mesa.pk]))
+
+    def test_mesero_ve_mesas_pero_no_botones_de_gestion(self):
+        self.client.login(email="mesero.mesas@test.com", password="testpass123")
+        respuesta = self.client.get(self.url_lista)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(respuesta, reverse("operativo:mesa_crear"))
+        self.assertNotContains(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertEqual(self.client.get(reverse("operativo:mesa_crear")).status_code, 403)
+
+    def test_admin_crea_mesa_en_su_sucursal(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_crear"), {
+            "numero": 5, "capacidad": 6, "sucursal": self.sucursal.pk, "activa": "on",
+        })
+        self.assertRedirects(respuesta, self.url_lista)
+        mesa = Mesa.objects.get(numero=5)
+        self.assertEqual(mesa.sucursal, self.sucursal)
+        self.assertEqual(mesa.estado, Mesa.DISPONIBLE)
+
+    def test_admin_elimina_mesa_sin_ordenes(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_eliminar", args=[self.mesa.pk]))
+        self.assertRedirects(respuesta, self.url_lista)
+        self.assertFalse(Mesa.objects.filter(pk=self.mesa.pk).exists())
+
+    def test_mesa_con_ordenes_no_se_elimina_y_avisa(self):
+        Orden.objects.create(mesa=self.mesa, estado=Orden.ENTREGADA)
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_eliminar", args=[self.mesa.pk]), follow=True)
+        self.assertRedirects(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertContains(respuesta, "tiene órdenes registradas")
+        self.assertTrue(Mesa.objects.filter(pk=self.mesa.pk).exists())

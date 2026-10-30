@@ -3,6 +3,7 @@ from io import BytesIO
 
 import qrcode
 from django.db import transaction
+from django.db.models import ProtectedError
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -40,6 +41,7 @@ class MesaListView(RestauranteMixin, RoleRequiredMixin, ListView):
             .select_related("cliente", "sucursal")
             .order_by("creado_en")
         )
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_ADMIN)
         return contexto
 
 
@@ -69,6 +71,16 @@ class MesaDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
     roles_permitidos = ROLES_ADMIN
     template_name = "includes/confirm_delete.html"
     success_url = reverse_lazy("operativo:mesas_list")
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                f"La mesa {self.object.numero} tiene órdenes registradas y no se puede eliminar. Desactívala en su lugar.",
+            )
+            return redirect("operativo:mesa_editar", pk=self.object.pk)
 
 
 def crear_orden(request):

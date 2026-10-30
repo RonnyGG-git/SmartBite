@@ -30,6 +30,7 @@
     {% if rol == "ADMINISTRADOR" or rol == "CAJERO" %}
       <div class="nav-group">
         <div class="nav-label">Caja</div>
+        <a class="sidebar-item" href="{% url 'caja:para_llevar' %}"><svg class="ico"><use href="#i-box"/></svg>Para llevar y en línea</a>
         <a class="sidebar-item" href="{% url 'caja:por_cobrar' %}" data-match="/caja/ordenes/"><svg class="ico"><use href="#i-receipt"/></svg>Por cobrar</a>
         <a class="sidebar-item" href="{% url 'caja:pagos_list' %}"><svg class="ico"><use href="#i-card"/></svg>Pagos</a>
         <a class="sidebar-item" href="{% url 'caja:ventas_list' %}"><svg class="ico"><use href="#i-chart"/></svg>Ventas</a>

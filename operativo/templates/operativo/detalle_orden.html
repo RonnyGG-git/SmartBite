@@ -96,6 +96,19 @@
           <button type="submit" class="btn btn-secondary btn-block mt-16"{% if not mesas_libres %} disabled{% endif %}><svg class="ico"><use href="#i-table"/></svg><span>Asignar mesa</span></button>
         </form>
       {% endif %}
+      {% if orden.estado == "POR_CONFIRMAR" %}
+        <p class="notice notice-accent mt-16"><svg class="ico"><use href="#i-info"/></svg><span>Pedido sin mesa esperando que caja lo acepte. Todavía no está en cocina.</span></p>
+        {% if puede_cobrar %}
+          <form method="post" action="{% url 'caja:aceptar_orden' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-block"><svg class="ico"><use href="#i-check"/></svg><span>Aceptar (paga al recoger)</span></button>
+          </form>
+          <form method="post" action="{% url 'caja:rechazar_orden' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-quiet is-danger btn-block"><svg class="ico"><use href="#i-x"/></svg><span>Rechazar pedido</span></button>
+          </form>
+        {% endif %}
+      {% endif %}
       {% if orden.estado == "PENDIENTE" or orden.estado == "EN_PREPARACION" %}
         <p class="notice mt-16"><svg class="ico"><use href="#i-flame"/></svg><span>{% if orden.estado == "PENDIENTE" %}En la cola de cocina. Puedes agregar productos o cancelarla hasta que el chef la empiece.{% else %}El chef la está preparando.{% endif %}</span></p>
       {% endif %}
@@ -119,9 +132,18 @@
         {% endif %}
       {% endif %}
 
-      {% if puede_cobrar %}
+      {% if orden.pagada %}
+        <p class="notice mt-16"><svg class="ico"><use href="#i-check"/></svg><span>Pagada ({{ orden.total_pagado|moneda }}).</span></p>
+        {% if orden.estado == "LISTA" and puede_operar or orden.estado == "LISTA" and puede_cobrar %}
+          <form method="post" action="{% url 'caja:entregar_orden' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <input type="hidden" name="volver" value="operativo:detalle_orden">
+            <button type="submit" class="btn btn-primary btn-lg btn-block"><svg class="ico"><use href="#i-check"/></svg><span>Entregar</span></button>
+          </form>
+        {% endif %}
+      {% elif puede_cobrar and orden.cobrable %}
         <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-primary btn-lg btn-block mt-16">
-          <svg class="ico"><use href="#i-card"/></svg><span>Cobrar {{ orden.total|moneda }}</span>
+          <svg class="ico"><use href="#i-card"/></svg><span>{% if orden.estado == "POR_CONFIRMAR" %}Aceptar y cobrar{% else %}Cobrar{% endif %} {{ orden.total|moneda }}</span>
         </a>
       {% endif %}
     {% else %}

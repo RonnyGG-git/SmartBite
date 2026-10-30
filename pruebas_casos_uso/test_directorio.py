@@ -92,7 +92,8 @@ class DirectorioTests(CasoDeUsoTestCase):
         self.mesa.refresh_from_db()
         self.assertEqual(self.mesa.estado, Mesa.DISPONIBLE)
         self.assertNotIn(SESION_CARRITO, self.client.session)
-        self.assertContains(self.client.get(reverse("cliente:pedido", args=[orden.pk])), "Recibido en cocina")
+        self.assertEqual(orden.estado, Orden.POR_CONFIRMAR)
+        self.assertContains(self.client.get(reverse("cliente:pedido", args=[orden.pk])), "Esperando confirmación")
         Orden.objects.filter(pk=orden.pk).update(estado=Orden.LISTA)
         self.assertContains(self.client.get(reverse("cliente:pedido", args=[orden.pk])), "pasar a recogerlo")
 

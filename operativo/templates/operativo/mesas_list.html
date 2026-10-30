@@ -8,6 +8,11 @@
     <h1>Estado de mesas</h1>
     <p>Vista general de las mesas y sus órdenes activas.</p>
   </div>
+  {% if puede_gestionar %}
+  <div class="page-actions">
+    <a href="{% url 'operativo:mesa_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva mesa</span></a>
+  </div>
+  {% endif %}
 </div>
 
 {% if pedidos_sin_mesa %}
@@ -50,6 +55,7 @@
         {{ mesa.get_estado_display }}
       </span>
     </div>
+    {% if not mesa.activa %}<span class="badge badge-plain">Inactiva</span>{% endif %}
     <div class="tile-meta"><svg class="ico ico-sm"><use href="#i-users"/></svg>{{ mesa.capacidad }} personas</div>
 
     {% with orden=mesa.orden_activa %}
@@ -81,12 +87,19 @@
         </div>
       {% endif %}
     {% endwith %}
+    {% if puede_gestionar %}
+    <div class="tile-actions">
+      <a href="{% url 'operativo:mesa_editar' mesa.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+      <a href="{% url 'operativo:mesa_eliminar' mesa.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar mesa {{ mesa.numero }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
+    </div>
+    {% endif %}
   </article>
   {% empty %}
   <div class="empty-state">
     <svg class="ico"><use href="#i-table"/></svg>
     <strong>No hay mesas registradas</strong>
     <span>Cuando se creen mesas para la sucursal aparecerán aquí.</span>
+    {% if puede_gestionar %}<a href="{% url 'operativo:mesa_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva mesa</span></a>{% endif %}
   </div>
   {% endfor %}
 </div>

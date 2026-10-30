@@ -24,7 +24,7 @@ def obtener_cliente(restaurante, nombre, telefono=""):
         return None
 
 
-def crear_orden(sucursal, lineas, origen, tipo_consumo, cliente=None, mesa=None):
+def crear_orden(sucursal, lineas, origen, tipo_consumo, cliente=None, mesa=None, estado=Orden.PENDIENTE):
     cantidades = {}
     for producto_id, cantidad in lineas:
         if not isinstance(cantidad, int) or not 1 <= cantidad <= MAX_CANTIDAD_POR_LINEA:
@@ -47,7 +47,7 @@ def crear_orden(sucursal, lineas, origen, tipo_consumo, cliente=None, mesa=None)
             raise ValidationError(f"Productos no disponibles: {sorted(faltan)}.")
         orden = Orden.objects.create(
             sucursal=sucursal, mesa=mesa, cliente=cliente, origen=origen,
-            tipo_consumo=tipo_consumo, estado=Orden.PENDIENTE,
+            tipo_consumo=tipo_consumo, estado=estado,
         )
         DetalleOrden.objects.bulk_create(
             DetalleOrden(orden=orden, producto=productos[pk], cantidad=c, precio_unitario=productos[pk].precio)

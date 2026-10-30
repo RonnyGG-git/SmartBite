@@ -216,6 +216,7 @@ class Herramientas:
                     origen=Orden.ORIGEN_TELEFONO,
                     tipo_consumo=llamada.tipo_consumo,
                     cliente=cliente,
+                    estado=Orden.POR_CONFIRMAR,
                 )
             except ValidationError as error:
                 return {"ok": False, "error": "PRODUCTO_NO_DISPONIBLE", "detalle": error.messages[0]}

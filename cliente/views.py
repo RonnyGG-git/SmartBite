@@ -247,7 +247,10 @@ def _registrar_pedido(request, orden):
     pedidos = _pedidos_de_sesion(request)
     pedidos.append(orden.pk)
     request.session[SESION_PEDIDOS] = pedidos[-20:]
-    messages.success(request, "Pedido enviado a cocina.")
+    if orden.estado == Orden.POR_CONFIRMAR:
+        messages.success(request, "Pedido recibido. El restaurante lo confirmará en breve.")
+    else:
+        messages.success(request, "Pedido enviado a cocina.")
     return redirect("cliente:pedido", pk=orden.pk)
 
 
@@ -271,7 +274,8 @@ def autopedido(request):
             with transaction.atomic():
                 cliente = obtener_cliente(sucursal_obj.restaurante, nombre)
                 orden = crear_orden(
-                    sucursal_obj, [(p.pk, c) for p, c in seleccion], Orden.ORIGEN_AUTOPEDIDO, tipo, cliente=cliente
+                    sucursal_obj, [(p.pk, c) for p, c in seleccion], Orden.ORIGEN_AUTOPEDIDO, tipo,
+                    cliente=cliente, estado=Orden.POR_CONFIRMAR,
                 )
         except ValidationError:
             messages.error(request, "Algún platillo dejó de estar disponible. Revisa tu pedido.")

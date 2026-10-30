@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Para llevar y en línea — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Caja</span>
+    <h1>Para llevar y en línea</h1>
+    <p>Pedidos sin mesa (directorio, QR de directorio y teléfono). Aceptarlos los manda a cocina; rechazarlos los cancela sin cocinarlos.</p>
+  </div>
+  {% if por_confirmar %}<span class="badge badge-warning badge-lg badge-plain"><span class="pulse-dot" aria-hidden="true"></span>{{ por_confirmar|length }} por confirmar</span>{% endif %}
+</div>
+
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Por confirmar</h2><span class="badge badge-muted badge-plain mono">{{ por_confirmar|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Productos</th><th>Modalidad</th><th>Recibido</th><th class="num">Total</th><th class="num">Acciones</th></tr></thead>
+      <tbody>
+        {% for orden in por_confirmar %}
+        <tr>
+          <td class="mono">#{{ orden.id }} · {{ orden.get_origen_display }}</td>
+          <td>{{ orden.cliente.nombre|default:"—" }}{% if orden.cliente.telefono %}<br><span class="muted mono">{{ orden.cliente.telefono }}</span>{% endif %}</td>
+          <td class="muted">{% for d in orden.detalles.all %}{{ d.cantidad }}× {{ d.producto.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+          <td>{{ orden.get_tipo_consumo_display }}</td>
+          <td class="mono muted nowrap">hace {{ orden.creado_en|timesince }}</td>
+          <td class="num money">{{ orden.total|moneda }}</td>
+          <td class="actions">
+            <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-card"/></svg><span>Aceptar y cobrar</span></a>
+            <form method="post" action="{% url 'caja:aceptar_orden' orden.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-secondary"><svg class="ico"><use href="#i-check"/></svg><span>Aceptar (paga al recoger)</span></button>
+            </form>
+            <form method="post" action="{% url 'caja:rechazar_orden' orden.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-quiet is-danger" aria-label="Rechazar la orden {{ orden.id }}" title="Rechazar"><svg class="ico"><use href="#i-x"/></svg></button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state"><svg class="ico"><use href="#i-receipt"/></svg><strong>No hay pedidos por confirmar</strong><span>Los pedidos del directorio y del teléfono aparecerán aquí antes de ir a cocina.</span></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Listos para entregar</h2><span class="badge badge-muted badge-plain mono">{{ listas|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Pago</th><th class="num">Total</th><th class="num">Acción</th></tr></thead>
+      <tbody>
+        {% for orden in listas %}
+        <tr>
+          <td class="mono">#{{ orden.id }}</td>
+          <td>{{ orden.cliente.nombre|default:"—" }}</td>
+          <td>{% if orden.pagada %}<span class="badge badge-success">Pagado</span>{% else %}<span class="badge badge-warning">Paga al recoger</span>{% endif %}</td>
+          <td class="num money">{{ orden.total|moneda }}</td>
+          <td class="actions">
+            {% if orden.pagada %}
+              <form method="post" action="{% url 'caja:entregar_orden' orden.pk %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Entregar</span></button>
+              </form>
+            {% else %}
+              <a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-card"/></svg><span>Cobrar y entregar</span></a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="empty-state"><svg class="ico"><use href="#i-check"/></svg><strong>Nada para entregar</strong></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card card-flush">
+  <div class="card-head"><h2>En cocina</h2><span class="badge badge-muted badge-plain mono">{{ en_cocina|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Pago</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        {% for orden in en_cocina %}
+        <tr>
+          <td class="mono"><a href="{% url 'operativo:detalle_orden' orden.pk %}">#{{ orden.id }}</a></td>
+          <td>{{ orden.cliente.nombre|default:"—" }}</td>
+          <td>{{ orden.get_estado_display }}</td>
+          <td>{% if orden.pagada %}<span class="badge badge-success">Pagado</span>{% else %}<span class="badge badge-muted">Sin pagar</span>{% endif %}</td>
+          <td class="num money">{{ orden.total|moneda }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="empty-state"><strong>No hay pedidos sin mesa en cocina</strong></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
