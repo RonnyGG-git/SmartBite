@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 import qrcode
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.contrib import messages
@@ -16,7 +17,8 @@ from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
 from core.tenancy import RestauranteMixin, filtrar, limitar_opciones, restaurante_actual
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
-from .models import Cliente, DetalleOrden, Mesa, Orden, TransicionOrdenInvalida
+from .models import Cliente, DetalleOrden, Mesa, Orden, Reserva, TransicionOrdenInvalida
+from .services import cancelar_reserva as cancelar_reserva_servicio, confirmar_llegada, sincronizar_reservas
 
 ROLES_ADMIN = ["ADMINISTRADOR"]
 ROLES_MESERO = ["ADMINISTRADOR", "MESERO"]
@@ -32,8 +34,20 @@ class MesaListView(RestauranteMixin, RoleRequiredMixin, ListView):
     context_object_name = "mesas"
     queryset = Mesa.objects.select_related("sucursal").prefetch_related("ordenes")
 
+    def _reservas(self):
+        return filtrar(Reserva.objects, self.request, "mesa__sucursal__restaurante")
+
+    def get_queryset(self):
+        sincronizar_reservas(self._reservas())
+        return super().get_queryset()
+
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
+        contexto["reservas_proximas"] = (
+            self._reservas()
+            .filter(estado=Reserva.CONFIRMADA, fecha_hora__gte=timezone.now() - Reserva.TOLERANCIA)
+            .select_related("mesa")[:20]
+        )
         contexto["pedidos_sin_mesa"] = (
             filtrar(Orden.objects, self.request, "sucursal__restaurante")
             .filter(mesa__isnull=True)
@@ -169,6 +183,32 @@ def asignar_mesa(request, pk):
         mesa.save(update_fields=["estado"])
     messages.success(request, f"Mesa {mesa.numero} asignada a la orden #{orden.pk}.")
     return redirect("operativo:detalle_orden", pk=pk)
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def confirmar_reserva(request, pk):
+    reserva = get_object_or_404(filtrar(Reserva.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    try:
+        confirmar_llegada(reserva)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+        return redirect("operativo:mesas_list")
+    messages.success(request, f"Reserva {reserva.codigo} confirmada: mesa {reserva.mesa.numero} ocupada.")
+    return redirect(f"{reverse('operativo:crear_orden')}?mesaId={reserva.mesa_id}")
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def cancelar_reserva(request, pk):
+    reserva = get_object_or_404(filtrar(Reserva.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    try:
+        cancelar_reserva_servicio(reserva)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+    else:
+        messages.success(request, f"Reserva {reserva.codigo} cancelada.")
+    return redirect("operativo:mesas_list")
 
 
 @rol_requerido(*ROLES_MESERO)

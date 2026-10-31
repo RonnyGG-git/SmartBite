@@ -11,12 +11,19 @@ from django.views.generic import ListView
 from catalogo.models import Producto
 from core.mixins import RoleRequiredMixin, rol_requerido
 from core.tenancy import RestauranteMixin, filtrar
-from operativo.models import DetalleOrden, Mesa, Orden
-from operativo.services import crear_orden, obtener_cliente
+from operativo.models import DetalleOrden, Mesa, Orden, Reserva
+from operativo.services import (
+    cancelar_reserva as cancelar_reserva_servicio,
+    crear_orden,
+    crear_reserva,
+    horarios_alternativos,
+    obtener_cliente,
+    sincronizar_reservas,
+)
 from restaurantes.geo import distancia_km, leer_coordenadas
 from restaurantes.models import Sucursal
 
-from .forms import MAX_CANTIDAD_POR_PRODUCTO, RetroalimentacionForm, leer_cantidades
+from .forms import MAX_CANTIDAD_POR_PRODUCTO, ReservaForm, RetroalimentacionForm, leer_cantidades
 from .models import Retroalimentacion
 
 SESION_MESA = "cliente_mesa_id"
@@ -26,6 +33,7 @@ SESION_TIPO_CONSUMO = "cliente_tipo_consumo"
 SESION_CARRITO = "cliente_carrito"
 SESION_NOMBRE = "cliente_nombre"
 SESION_SUCURSAL = "cliente_sucursal_id"
+SESION_RESERVAS = "cliente_reservas"
 ROLES_ADMIN = ["ADMINISTRADOR"]
 
 
@@ -156,6 +164,7 @@ def mesa(request, mesa_id):
     request.session[SESION_SUCURSAL] = mesa_obj.sucursal_id
     if _mesa_asignada(request, mesa_obj):
         return redirect("cliente:menu" if request.session.get(SESION_TIPO_CONSUMO) else "cliente:tipo_consumo")
+    sincronizar_reservas(Reserva.objects.filter(mesa=mesa_obj))
     with transaction.atomic():
         libre = Mesa.objects.select_for_update().get(pk=mesa_obj.pk)
         if libre.estado == Mesa.DISPONIBLE and libre.orden_activa is None:
@@ -163,6 +172,8 @@ def mesa(request, mesa_id):
             libre.save(update_fields=["estado"])
             request.session[SESION_MESA_ASIGNADA] = libre.pk
             return redirect("cliente:tipo_consumo")
+    if libre.estado == Mesa.RESERVADA:
+        messages.info(request, "Esta mesa está reservada. Si la reserva es tuya, avísale al mesero.")
     return redirect("cliente:menu")
 
 
@@ -317,6 +328,79 @@ def mis_pedidos(request):
     if pedidos:
         return redirect("cliente:pedido", pk=pedidos[-1])
     return redirect("cliente:menu")
+
+
+def reservar(request):
+    mesa_obj, sucursal_obj = _contexto(request)
+    if sucursal_obj is None:
+        messages.error(request, "Elige primero el restaurante donde quieres reservar.")
+        return redirect("cliente:restaurantes")
+    alternativas = []
+    if request.method == "POST":
+        form = ReservaForm(request.POST)
+        if form.is_valid():
+            datos = form.cleaned_data
+            try:
+                reserva_obj = crear_reserva(
+                    sucursal_obj, datos["fecha_hora"], datos["num_personas"], datos["nombre"], datos["telefono"]
+                )
+            except ValidationError as error:
+                form.add_error(None, error.messages[0])
+                if error.code == "sin_mesa":
+                    alternativas = horarios_alternativos(sucursal_obj, datos["fecha_hora"], datos["num_personas"])
+            else:
+                codigos = list(request.session.get(SESION_RESERVAS, []))
+                codigos.append(reserva_obj.codigo)
+                request.session[SESION_RESERVAS] = codigos[-10:]
+                messages.success(request, "Reserva confirmada.")
+                return redirect("cliente:reserva", codigo=reserva_obj.codigo)
+    else:
+        form = ReservaForm(initial={
+            "fecha": request.GET.get("fecha"),
+            "hora": request.GET.get("hora"),
+            "num_personas": request.GET.get("personas") or 2,
+            "nombre": request.session.get(SESION_NOMBRE, ""),
+        })
+    mis_reservas = Reserva.objects.filter(
+        codigo__in=request.session.get(SESION_RESERVAS, []), estado=Reserva.CONFIRMADA
+    ).select_related("mesa__sucursal__restaurante")
+    return render(request, "cliente/reservar.html", {
+        "form": form,
+        "mesa": mesa_obj,
+        "sucursal": sucursal_obj,
+        "alternativas": alternativas,
+        "personas": request.POST.get("num_personas", ""),
+        "mis_reservas": mis_reservas,
+    })
+
+
+def _reserva_por_codigo(codigo):
+    return get_object_or_404(
+        Reserva.objects.select_related("mesa__sucursal__restaurante"), codigo=(codigo or "").strip().upper()
+    )
+
+
+def reserva(request, codigo):
+    reserva_obj = _reserva_por_codigo(codigo)
+    sincronizar_reservas(Reserva.objects.filter(pk=reserva_obj.pk))
+    reserva_obj.refresh_from_db()
+    return render(request, "cliente/reserva.html", {
+        "reserva": reserva_obj,
+        "mesa": _mesa_de_sesion(request),
+        "sucursal": reserva_obj.mesa.sucursal,
+    })
+
+
+@require_POST
+def cancelar_reserva(request, codigo):
+    reserva_obj = _reserva_por_codigo(codigo)
+    try:
+        cancelar_reserva_servicio(reserva_obj)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+    else:
+        messages.success(request, "Reserva cancelada.")
+    return redirect("cliente:reserva", codigo=reserva_obj.codigo)
 
 
 def retroalimentacion(request):

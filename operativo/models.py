@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 
 from core.models import TimestampedModel
 
@@ -33,6 +34,10 @@ class Mesa(TimestampedModel):
     @property
     def orden_activa(self):
         return self.ordenes.exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA]).first()
+
+    @property
+    def reserva_en_ventana(self):
+        return Reserva.en_ventana().filter(mesa=self).order_by("fecha_hora").first()
 
 
 class Cliente(TimestampedModel):
@@ -211,3 +216,64 @@ class DetalleOrden(TimestampedModel):
     @property
     def subtotal(self):
         return self.cantidad * self.precio_unitario
+
+
+class Reserva(TimestampedModel):
+    CONFIRMADA = "CONFIRMADA"
+    CUMPLIDA = "CUMPLIDA"
+    CANCELADA = "CANCELADA"
+    NO_ASISTIO = "NO_ASISTIO"
+    ESTADO_CHOICES = [
+        (CONFIRMADA, "Confirmada"),
+        (CUMPLIDA, "Cumplida"),
+        (CANCELADA, "Cancelada"),
+        (NO_ASISTIO, "No asistió"),
+    ]
+
+    ANTICIPACION = timedelta(hours=1)
+    HORIZONTE = timedelta(days=60)
+    DURACION = timedelta(hours=2)
+    VENTANA = timedelta(minutes=30)
+    TOLERANCIA = timedelta(minutes=15)
+    MAX_PERSONAS = 30
+
+    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="reservas")
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, related_name="reservas", null=True, blank=True)
+    codigo = models.CharField(max_length=12, unique=True)
+    fecha_hora = models.DateTimeField()
+    num_personas = models.PositiveSmallIntegerField()
+    nombre = models.CharField(max_length=150)
+    telefono = models.CharField(max_length=30)
+    estado = models.CharField(max_length=12, choices=ESTADO_CHOICES, default=CONFIRMADA)
+
+    class Meta:
+        ordering = ["fecha_hora"]
+        indexes = [models.Index(fields=["estado", "fecha_hora"])]
+
+    def __str__(self):
+        return f"Reserva {self.codigo} — {self.mesa}"
+
+    @property
+    def fin(self):
+        return self.fecha_hora + self.DURACION
+
+    @property
+    def es_final(self):
+        return self.estado != self.CONFIRMADA
+
+    @classmethod
+    def en_ventana(cls, ahora=None):
+        ahora = ahora or timezone.now()
+        return cls.objects.filter(
+            estado=cls.CONFIRMADA,
+            fecha_hora__lte=ahora + cls.VENTANA,
+            fecha_hora__gte=ahora - cls.TOLERANCIA,
+        )
+
+    @classmethod
+    def que_se_solapan(cls, fecha_hora):
+        return cls.objects.filter(
+            estado=cls.CONFIRMADA,
+            fecha_hora__gt=fecha_hora - cls.DURACION,
+            fecha_hora__lt=fecha_hora + cls.DURACION,
+        )

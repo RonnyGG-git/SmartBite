@@ -10,6 +10,7 @@ RUTAS = {
     "inventario.proveedor": "restaurante",
     "operativo.mesa": "sucursal__restaurante",
     "operativo.cliente": "restaurante",
+    "operativo.reserva": "mesa__sucursal__restaurante",
 }
 
 

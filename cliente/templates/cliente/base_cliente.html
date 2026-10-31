@@ -16,6 +16,7 @@
     <a href="{% url 'cliente:restaurantes' %}"><svg class="ico ico-sm"><use href="#i-store"/></svg>Restaurantes</a>
     <a href="{% url 'cliente:menu' %}"><svg class="ico ico-sm"><use href="#i-utensils"/></svg>Menú</a>
     <a href="{% url 'cliente:mis_pedidos' %}"><svg class="ico ico-sm"><use href="#i-receipt"/></svg>Mi pedido</a>
+    {% if sucursal %}<a href="{% url 'cliente:reservar' %}"><svg class="ico ico-sm"><use href="#i-clock"/></svg>Reservar</a>{% endif %}
     <a href="{% url 'cliente:retroalimentacion' %}"><svg class="ico ico-sm"><use href="#i-info"/></svg>Opinar</a>
   </nav>
 </div>

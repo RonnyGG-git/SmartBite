@@ -17,5 +17,5 @@
   {% endfor %}
 </form>
 
-<p class="menu-foot">En los dos casos verás el menú completo.</p>
+<p class="menu-foot">En los dos casos verás el menú completo.{% if not mesa %} ¿Prefieres venir otro día? <a href="{% url 'cliente:reservar' %}">Reserva una mesa</a>.{% endif %}</p>
 {% endblock %}

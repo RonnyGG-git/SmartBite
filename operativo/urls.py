@@ -10,6 +10,8 @@ urlpatterns = [
     path("mesas/<int:pk>/editar/", views.MesaUpdateView.as_view(), name="mesa_editar"),
     path("mesas/<int:pk>/eliminar/", views.MesaDeleteView.as_view(), name="mesa_eliminar"),
     path("mesas/qr/<int:mesa_id>/", views.generar_qr, name="generar_qr"),
+    path("reservas/<int:pk>/confirmar/", views.confirmar_reserva, name="confirmar_reserva"),
+    path("reservas/<int:pk>/cancelar/", views.cancelar_reserva, name="cancelar_reserva"),
 
     path("ordenes/nueva/", views.crear_orden, name="crear_orden"),
     path("ordenes/clientes/nuevo/", views.crear_cliente_rapido, name="crear_cliente_rapido"),
