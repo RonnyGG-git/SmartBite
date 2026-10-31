@@ -468,14 +468,14 @@ class CambiarEstadoOrdenAuthTest(TestBase):
     def test_cambiar_estado_mesero_no_puede_iniciar_preparacion(self):
         self._crear_usuario("mesero.estado@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.estado@test.com", password="testpass123")
-        respuesta = self.client.post(self.url, self.datos_estado)
+        respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
         self.assertRedirects(
             respuesta,
             reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
             fetch_redirect_response=False,
         )
         self.orden.refresh_from_db()
-        self.assertEqual(self.orden.estado, Orden.PENDIENTE)
+        self.assertEqual(self.orden.estado, Orden.CANCELADA)
 
     def test_cambiar_estado_administrador_tampoco_inicia_preparacion(self):
         self._crear_usuario("admin.estado@test.com", "Admin Test", "ADMINISTRADOR")
