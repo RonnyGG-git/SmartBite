@@ -5,7 +5,7 @@
   <div>
     <span class="eyebrow">Administración</span>
     <h1>Usuarios</h1>
-    <p>Cuentas del personal, su rol y sucursal.</p>
+    <p>Personal de {{ restaurante_actual.nombre|default:"tu restaurante" }}: su rol y sucursal. Los empleados que entran con el código aparecen sin rol hasta que se lo asignes.</p>
   </div>
   <a href="{% url 'cuentas:usuario_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo usuario</span></a>
 </div>

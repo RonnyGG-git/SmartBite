@@ -14,9 +14,6 @@ ROLES_SISTEMA = [
 
 
 class Permiso(TimestampedModel):
-    """Catálogo de permisos granulares (equivalente a los `authorities` del JWT
-    actual, ej. CREAR_PRODUCTO, ACTUALIZAR_STOCK)."""
-
     nombre = models.CharField(max_length=100, unique=True)
     recurso = models.CharField(max_length=100, help_text="Módulo al que pertenece, ej: Productos")
     descripcion = models.CharField(max_length=255, blank=True)
@@ -60,14 +57,14 @@ class UsuarioManager(BaseUserManager):
 
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
-    """Reemplaza el usuario del backend actual + lo guardado en localStorage
-    (token/rol/email/usuarioId/sucursalId) por un modelo real con sesión de Django."""
-
     email = models.EmailField(unique=True)
     nombre = models.CharField(max_length=150)
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, related_name="usuarios", null=True, blank=True)
     sucursal = models.ForeignKey(
         "restaurantes.Sucursal", on_delete=models.SET_NULL, related_name="usuarios", null=True, blank=True
+    )
+    restaurante = models.ForeignKey(
+        "restaurantes.Restaurante", on_delete=models.SET_NULL, related_name="empleados", null=True, blank=True
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

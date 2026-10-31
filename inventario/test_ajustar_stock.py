@@ -1,11 +1,3 @@
-"""Tests de `ItemInventario.ajustar_stock` y de los campos que sincronizan el
-modelo con la migración 0002.
-
-Se extrajeron de `test_dominio.py` (ver ese archivo, pendiente) porque el resto
-de sus clases dependen de `Orden.cambiar_estado()`, que todavía no existe en
-`operativo.models`. Estas no dependen de la máquina de estados, así que siguen
-ejecutándose en el CI.
-"""
 from datetime import date
 
 from django.core.exceptions import ValidationError
@@ -46,8 +38,6 @@ class AjustarStockTests(TestCase):
         movimiento = MovimientoInventario.objects.get()
         self.assertEqual(self.item.stock_actual, 6)
         self.assertEqual(movimiento.tipo, MovimientoInventario.PERDIDA)
-        # El movimiento se registra igual que una salida, pero queda tipado como
-        # pérdida para poder reportarlo por separado en el inventario.
         self.assertEqual(movimiento.cantidad, 4)
 
     def test_perdida_no_baja_de_cero(self):

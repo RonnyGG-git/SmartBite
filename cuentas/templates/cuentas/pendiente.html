@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Esperando rol — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">{{ user.restaurante.nombre|default:"Tu restaurante" }}</span>
+    <h1>Ya estás dentro</h1>
+    <p>Tu administrador debe asignarte un rol (mesero, cajero, cocina o inventario) para que puedas empezar a trabajar. Vuelve a entrar cuando te avise.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "cliente/base_cliente.html" %}
+{% load core_extras %}
+{% block title %}Apartado de compra{% if mesa %} · Mesa {{ mesa.numero }}{% endif %} — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Tu compra</h1>
+  <p>{{ tipo_consumo }}{% if nombre %} · a nombre de {{ nombre }}{% endif %}</p>
+</section>
+
+<section class="menu-section">
+  <div class="menu-list">
+    {% for producto, cantidad, subtotal in lineas %}
+      <article class="dish">
+        <div>
+          <h3 class="dish-name">{{ cantidad }} × {{ producto.nombre }}</h3>
+          <p class="dish-desc">{{ producto.precio|moneda }} c/u</p>
+        </div>
+        <span class="dish-price">{{ subtotal|moneda }}</span>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<form method="post" action="{% url 'cliente:autopedido' %}">
+  {% csrf_token %}
+  {% for producto, cantidad, subtotal in lineas %}
+    <input type="hidden" name="cant_{{ producto.pk }}" value="{{ cantidad }}">
+  {% endfor %}
+  <input type="hidden" name="nombre" value="{{ nombre }}">
+
+  <p class="menu-section"><a href="{% url 'cliente:menu' %}" class="btn btn-ghost btn-block"><svg class="ico"><use href="#i-arrow-left"/></svg><span>Seguir eligiendo</span></a></p>
+
+  <div class="order-bar">
+    <div class="order-bar-info">
+      <span class="order-bar-count">Total</span>
+      <span class="order-bar-total mono">{{ total|moneda }}</span>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-check"/></svg><span>Confirmar pedido</span></button>
+  </div>
+</form>
+{% endblock %}

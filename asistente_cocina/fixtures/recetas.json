@@ -1,0 +1,584 @@
+[
+  {
+    "nombre": "Patacones con hogao",
+    "descripcion": "Plátano verde frito y aplastado, servido con hogao de tomate y cebolla.",
+    "categoria": "ENTRADA",
+    "dificultad": "FACIL",
+    "tiempo_min": 25,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "plátano verde", "cantidad": "2 unidades"},
+      {"nombre": "tomate", "cantidad": "2 unidades"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "aceite", "cantidad": "250 ml"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Pelar los plátanos y cortarlos en trozos de 3 cm.",
+      "Freírlos 4 minutos, sacarlos y aplastarlos.",
+      "Volver a freír hasta que estén dorados y salar.",
+      "Sofreír tomate y cebolla picados para el hogao y servir encima."
+    ],
+    "etiquetas": "frito colombiano vegetariano picar",
+    "activo": true
+  },
+  {
+    "nombre": "Empanadas de carne",
+    "descripcion": "Empanadas de masa de maíz rellenas de carne de res y papa.",
+    "categoria": "ENTRADA",
+    "dificultad": "MEDIA",
+    "tiempo_min": 60,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "harina de maíz", "cantidad": "500 g"},
+      {"nombre": "carne de res", "cantidad": "300 g"},
+      {"nombre": "papa", "cantidad": "2 unidades"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "ajo", "cantidad": "2 dientes"},
+      {"nombre": "aceite", "cantidad": "500 ml"}
+    ],
+    "pasos": [
+      "Cocinar la papa y desmenuzarla.",
+      "Sofreír la carne molida con cebolla y ajo, mezclar con la papa.",
+      "Preparar la masa con harina de maíz, agua y sal.",
+      "Rellenar, cerrar las empanadas y freírlas hasta dorar."
+    ],
+    "etiquetas": "frito colombiano salado picar",
+    "activo": true
+  },
+  {
+    "nombre": "Ceviche de pescado",
+    "descripcion": "Pescado blanco marinado en limón con cebolla morada y cilantro.",
+    "categoria": "ENTRADA",
+    "dificultad": "MEDIA",
+    "tiempo_min": 40,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "pescado", "cantidad": "500 g"},
+      {"nombre": "limón", "cantidad": "8 unidades"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "cilantro", "cantidad": "1 manojo"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Cortar el pescado en cubos pequeños.",
+      "Cubrirlo con jugo de limón y dejarlo marinar 20 minutos en frío.",
+      "Añadir cebolla en julianas y cilantro picado.",
+      "Salar y servir frío."
+    ],
+    "etiquetas": "frio fresco mariscos sin coccion",
+    "activo": true
+  },
+  {
+    "nombre": "Sopa de tomate",
+    "descripcion": "Crema suave de tomate asado con ajo y un toque de mantequilla.",
+    "categoria": "ENTRADA",
+    "dificultad": "FACIL",
+    "tiempo_min": 30,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "tomate", "cantidad": "1 kg"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "ajo", "cantidad": "3 dientes"},
+      {"nombre": "mantequilla", "cantidad": "30 g"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Sofreír cebolla y ajo en mantequilla.",
+      "Agregar los tomates picados y cocinar 15 minutos.",
+      "Licuar, rectificar la sal y servir caliente."
+    ],
+    "etiquetas": "caliente vegetariano crema sopa",
+    "activo": true
+  },
+  {
+    "nombre": "Arroz con pollo",
+    "descripcion": "Arroz amarillo cocinado con pollo desmechado y verduras.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 50,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "arroz", "cantidad": "500 g"},
+      {"nombre": "pollo", "cantidad": "1 kg"},
+      {"nombre": "zanahoria", "cantidad": "2 unidades"},
+      {"nombre": "arveja", "cantidad": "200 g"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "ajo", "cantidad": "3 dientes"}
+    ],
+    "pasos": [
+      "Cocinar el pollo en agua con sal y desmecharlo; guardar el caldo.",
+      "Sofreír cebolla, ajo, zanahoria y arveja.",
+      "Agregar el arroz y el caldo, cocinar a fuego bajo 20 minutos.",
+      "Mezclar el pollo desmechado y servir."
+    ],
+    "etiquetas": "colombiano almuerzo familiar",
+    "activo": true
+  },
+  {
+    "nombre": "Bandeja paisa",
+    "descripcion": "Plato antioqueño con fríjoles, arroz, carne molida, chicharrón, huevo y plátano.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "DIFICIL",
+    "tiempo_min": 180,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "fríjol", "cantidad": "500 g"},
+      {"nombre": "arroz", "cantidad": "400 g"},
+      {"nombre": "carne de res", "cantidad": "400 g"},
+      {"nombre": "tocino", "cantidad": "400 g"},
+      {"nombre": "huevo", "cantidad": "4 unidades"},
+      {"nombre": "plátano maduro", "cantidad": "2 unidades"},
+      {"nombre": "aguacate", "cantidad": "1 unidad"}
+    ],
+    "pasos": [
+      "Remojar los fríjoles la noche anterior y cocinarlos con hogao.",
+      "Preparar el arroz blanco.",
+      "Freír el tocino hasta obtener chicharrón.",
+      "Sofreír la carne molida, freír el plátano maduro y los huevos.",
+      "Servir todo en una bandeja con una tajada de aguacate."
+    ],
+    "etiquetas": "colombiano tipico abundante",
+    "activo": true
+  },
+  {
+    "nombre": "Ajiaco santafereño",
+    "descripcion": "Sopa espesa de tres papas con pollo, mazorca y guascas.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "DIFICIL",
+    "tiempo_min": 120,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "pollo", "cantidad": "1 kg"},
+      {"nombre": "papa", "cantidad": "1.5 kg"},
+      {"nombre": "mazorca", "cantidad": "3 unidades"},
+      {"nombre": "guascas", "cantidad": "1 manojo"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "ajo", "cantidad": "2 dientes"}
+    ],
+    "pasos": [
+      "Cocinar el pollo con cebolla y ajo; retirarlo y desmecharlo.",
+      "Agregar las papas al caldo y cocinar hasta que la criolla se deshaga.",
+      "Añadir la mazorca en trozos y las guascas.",
+      "Devolver el pollo y servir con crema y alcaparras."
+    ],
+    "etiquetas": "sopa caliente colombiano bogota",
+    "activo": true
+  },
+  {
+    "nombre": "Pescado frito",
+    "descripcion": "Mojarra entera frita, crocante por fuera, con limón y patacón.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 35,
+    "porciones": 2,
+    "ingredientes": [
+      {"nombre": "pescado", "cantidad": "2 unidades"},
+      {"nombre": "harina", "cantidad": "100 g"},
+      {"nombre": "limón", "cantidad": "2 unidades"},
+      {"nombre": "ajo", "cantidad": "2 dientes"},
+      {"nombre": "aceite", "cantidad": "1 l"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Limpiar el pescado y hacerle cortes diagonales.",
+      "Adobar con ajo, sal y limón.",
+      "Pasarlo por harina y freír en aceite bien caliente.",
+      "Servir con limón."
+    ],
+    "etiquetas": "frito mariscos costa",
+    "activo": true
+  },
+  {
+    "nombre": "Pechuga a la plancha",
+    "descripcion": "Pechuga de pollo marinada y asada a la plancha, ligera y rápida.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "FACIL",
+    "tiempo_min": 20,
+    "porciones": 2,
+    "ingredientes": [
+      {"nombre": "pollo", "cantidad": "2 pechugas"},
+      {"nombre": "ajo", "cantidad": "2 dientes"},
+      {"nombre": "limón", "cantidad": "1 unidad"},
+      {"nombre": "aceite", "cantidad": "1 cucharada"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Aplanar las pechugas y marinarlas con ajo, limón y sal.",
+      "Asarlas en plancha caliente 5 minutos por lado.",
+      "Dejar reposar 2 minutos y servir."
+    ],
+    "etiquetas": "saludable ligero rapido plancha",
+    "activo": true
+  },
+  {
+    "nombre": "Carne asada",
+    "descripcion": "Corte de res asado con chimichurri casero.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 40,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "carne de res", "cantidad": "1 kg"},
+      {"nombre": "ajo", "cantidad": "4 dientes"},
+      {"nombre": "perejil", "cantidad": "1 manojo"},
+      {"nombre": "aceite", "cantidad": "100 ml"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Salar la carne y dejarla a temperatura ambiente.",
+      "Preparar el chimichurri con ajo, perejil, aceite y sal.",
+      "Asar la carne al término deseado.",
+      "Cortar en tiras y servir con el chimichurri."
+    ],
+    "etiquetas": "parrilla asado salado",
+    "activo": true
+  },
+  {
+    "nombre": "Pasta en salsa de tomate",
+    "descripcion": "Espaguetis con salsa de tomate, ajo y queso rallado.",
+    "categoria": "PLATO_FUERTE",
+    "dificultad": "FACIL",
+    "tiempo_min": 25,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "pasta", "cantidad": "400 g"},
+      {"nombre": "tomate", "cantidad": "6 unidades"},
+      {"nombre": "ajo", "cantidad": "3 dientes"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "queso", "cantidad": "80 g"}
+    ],
+    "pasos": [
+      "Cocinar la pasta en agua con sal.",
+      "Sofreír ajo y cebolla, agregar el tomate y cocinar 10 minutos.",
+      "Mezclar la pasta con la salsa y terminar con queso rallado."
+    ],
+    "etiquetas": "italiano vegetariano rapido",
+    "activo": true
+  },
+  {
+    "nombre": "Tres leches",
+    "descripcion": "Bizcocho esponjoso bañado en leche condensada, leche evaporada y crema.",
+    "categoria": "POSTRE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 90,
+    "porciones": 8,
+    "ingredientes": [
+      {"nombre": "harina", "cantidad": "200 g"},
+      {"nombre": "huevo", "cantidad": "5 unidades"},
+      {"nombre": "azúcar", "cantidad": "200 g"},
+      {"nombre": "leche condensada", "cantidad": "1 lata"},
+      {"nombre": "leche evaporada", "cantidad": "1 lata"},
+      {"nombre": "crema de leche", "cantidad": "200 ml"}
+    ],
+    "pasos": [
+      "Batir huevos con azúcar e incorporar la harina.",
+      "Hornear a 180 °C durante 30 minutos.",
+      "Mezclar las tres leches y bañar el bizcocho tibio.",
+      "Refrigerar mínimo 2 horas antes de servir."
+    ],
+    "etiquetas": "dulce horneado frio celebracion",
+    "activo": true
+  },
+  {
+    "nombre": "Arroz con leche",
+    "descripcion": "Postre casero de arroz cocinado en leche con canela y azúcar.",
+    "categoria": "POSTRE",
+    "dificultad": "FACIL",
+    "tiempo_min": 40,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "arroz", "cantidad": "200 g"},
+      {"nombre": "leche", "cantidad": "1 l"},
+      {"nombre": "azúcar", "cantidad": "150 g"},
+      {"nombre": "canela", "cantidad": "2 astillas"},
+      {"nombre": "leche condensada", "cantidad": "1/2 lata"}
+    ],
+    "pasos": [
+      "Cocinar el arroz en agua con la canela hasta que abra.",
+      "Agregar la leche y el azúcar y cocinar a fuego bajo revolviendo.",
+      "Añadir la leche condensada y retirar cuando espese."
+    ],
+    "etiquetas": "dulce facil casero tradicional",
+    "activo": true
+  },
+  {
+    "nombre": "Mousse de chocolate",
+    "descripcion": "Mousse aireado de chocolate, sin horno, listo en la nevera.",
+    "categoria": "POSTRE",
+    "dificultad": "FACIL",
+    "tiempo_min": 20,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "chocolate", "cantidad": "200 g"},
+      {"nombre": "crema de leche", "cantidad": "250 ml"},
+      {"nombre": "azúcar", "cantidad": "50 g"},
+      {"nombre": "huevo", "cantidad": "2 claras"}
+    ],
+    "pasos": [
+      "Derretir el chocolate a baño maría.",
+      "Batir la crema y, aparte, las claras con el azúcar.",
+      "Integrar todo con movimientos envolventes y refrigerar."
+    ],
+    "etiquetas": "dulce facil sin horno frio rapido",
+    "activo": true
+  },
+  {
+    "nombre": "Flan de caramelo",
+    "descripcion": "Flan de huevo y leche condensada cocido a baño maría con caramelo.",
+    "categoria": "POSTRE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 75,
+    "porciones": 8,
+    "ingredientes": [
+      {"nombre": "huevo", "cantidad": "5 unidades"},
+      {"nombre": "leche condensada", "cantidad": "1 lata"},
+      {"nombre": "leche", "cantidad": "400 ml"},
+      {"nombre": "azúcar", "cantidad": "150 g"}
+    ],
+    "pasos": [
+      "Hacer un caramelo con el azúcar y cubrir el molde.",
+      "Licuar huevos, leche condensada y leche.",
+      "Verter sobre el caramelo y hornear a baño maría 50 minutos.",
+      "Enfriar y desmoldar."
+    ],
+    "etiquetas": "dulce horneado clasico",
+    "activo": true
+  },
+  {
+    "nombre": "Brownies de chocolate",
+    "descripcion": "Brownies húmedos de chocolate y mantequilla con borde crocante.",
+    "categoria": "POSTRE",
+    "dificultad": "FACIL",
+    "tiempo_min": 35,
+    "porciones": 12,
+    "ingredientes": [
+      {"nombre": "chocolate", "cantidad": "200 g"},
+      {"nombre": "mantequilla", "cantidad": "150 g"},
+      {"nombre": "azúcar", "cantidad": "200 g"},
+      {"nombre": "huevo", "cantidad": "3 unidades"},
+      {"nombre": "harina", "cantidad": "100 g"}
+    ],
+    "pasos": [
+      "Derretir el chocolate con la mantequilla.",
+      "Mezclar con azúcar y huevos, luego incorporar la harina.",
+      "Hornear a 180 °C durante 25 minutos."
+    ],
+    "etiquetas": "dulce facil horneado merienda",
+    "activo": true
+  },
+  {
+    "nombre": "Torta de chocolate de tres capas",
+    "descripcion": "Torta alta de chocolate con relleno de ganache y cobertura espejo.",
+    "categoria": "POSTRE",
+    "dificultad": "DIFICIL",
+    "tiempo_min": 180,
+    "porciones": 12,
+    "ingredientes": [
+      {"nombre": "harina", "cantidad": "400 g"},
+      {"nombre": "chocolate", "cantidad": "400 g"},
+      {"nombre": "huevo", "cantidad": "6 unidades"},
+      {"nombre": "mantequilla", "cantidad": "250 g"},
+      {"nombre": "azúcar", "cantidad": "350 g"},
+      {"nombre": "crema de leche", "cantidad": "400 ml"}
+    ],
+    "pasos": [
+      "Preparar y hornear tres bizcochos de chocolate.",
+      "Hacer una ganache con chocolate y crema caliente.",
+      "Armar la torta alternando bizcocho y ganache.",
+      "Refrigerar, cubrir con el glaseado espejo y decorar."
+    ],
+    "etiquetas": "dulce horneado celebracion pasteleria",
+    "activo": true
+  },
+  {
+    "nombre": "Limonada de coco",
+    "descripcion": "Bebida cremosa y fría de limón con leche de coco.",
+    "categoria": "BEBIDA",
+    "dificultad": "FACIL",
+    "tiempo_min": 10,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "limón", "cantidad": "6 unidades"},
+      {"nombre": "leche de coco", "cantidad": "400 ml"},
+      {"nombre": "azúcar", "cantidad": "100 g"},
+      {"nombre": "hielo", "cantidad": "2 tazas"}
+    ],
+    "pasos": [
+      "Exprimir los limones.",
+      "Licuar el jugo con leche de coco, azúcar y hielo.",
+      "Servir de inmediato."
+    ],
+    "etiquetas": "frio refrescante licuado costa",
+    "activo": true
+  },
+  {
+    "nombre": "Jugo de lulo",
+    "descripcion": "Jugo natural de lulo en agua, refrescante y ácido.",
+    "categoria": "BEBIDA",
+    "dificultad": "FACIL",
+    "tiempo_min": 10,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "lulo", "cantidad": "6 unidades"},
+      {"nombre": "azúcar", "cantidad": "80 g"},
+      {"nombre": "agua", "cantidad": "1 l"},
+      {"nombre": "hielo", "cantidad": "1 taza"}
+    ],
+    "pasos": [
+      "Pelar los lulos y licuarlos con agua.",
+      "Colar, endulzar y servir con hielo."
+    ],
+    "etiquetas": "frio natural fruta refrescante",
+    "activo": true
+  },
+  {
+    "nombre": "Chocolate caliente santafereño",
+    "descripcion": "Chocolate de mesa batido en leche, para acompañar con queso.",
+    "categoria": "BEBIDA",
+    "dificultad": "FACIL",
+    "tiempo_min": 15,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "chocolate", "cantidad": "4 pastillas"},
+      {"nombre": "leche", "cantidad": "1 l"},
+      {"nombre": "queso", "cantidad": "200 g"}
+    ],
+    "pasos": [
+      "Calentar la leche con el chocolate partido.",
+      "Batir con molinillo hasta que haga espuma.",
+      "Servir con trozos de queso."
+    ],
+    "etiquetas": "caliente desayuno bogota",
+    "activo": true
+  },
+  {
+    "nombre": "Avena colombiana",
+    "descripcion": "Bebida espesa y fría de avena cocida en leche con canela.",
+    "categoria": "BEBIDA",
+    "dificultad": "MEDIA",
+    "tiempo_min": 30,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "avena", "cantidad": "150 g"},
+      {"nombre": "leche", "cantidad": "1.5 l"},
+      {"nombre": "azúcar", "cantidad": "120 g"},
+      {"nombre": "canela", "cantidad": "2 astillas"}
+    ],
+    "pasos": [
+      "Cocinar la avena en la leche con canela a fuego bajo.",
+      "Endulzar y dejar enfriar.",
+      "Licuar y refrigerar antes de servir."
+    ],
+    "etiquetas": "frio dulce cremoso",
+    "activo": true
+  },
+  {
+    "nombre": "Arroz blanco",
+    "descripcion": "Arroz blanco suelto, base de cualquier almuerzo.",
+    "categoria": "ACOMPANANTE",
+    "dificultad": "FACIL",
+    "tiempo_min": 25,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "arroz", "cantidad": "400 g"},
+      {"nombre": "ajo", "cantidad": "1 diente"},
+      {"nombre": "aceite", "cantidad": "1 cucharada"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Sofreír el ajo en aceite y agregar el arroz.",
+      "Añadir el doble de agua y sal.",
+      "Cocinar tapado a fuego bajo 18 minutos."
+    ],
+    "etiquetas": "basico guarnicion almuerzo",
+    "activo": true
+  },
+  {
+    "nombre": "Papas criollas al ajo",
+    "descripcion": "Papas criollas doradas en mantequilla con ajo y perejil.",
+    "categoria": "ACOMPANANTE",
+    "dificultad": "FACIL",
+    "tiempo_min": 25,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "papa", "cantidad": "750 g"},
+      {"nombre": "ajo", "cantidad": "3 dientes"},
+      {"nombre": "mantequilla", "cantidad": "40 g"},
+      {"nombre": "perejil", "cantidad": "al gusto"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Cocinar las papas en agua con sal 12 minutos.",
+      "Dorarlas en mantequilla con ajo picado.",
+      "Terminar con perejil."
+    ],
+    "etiquetas": "guarnicion vegetariano",
+    "activo": true
+  },
+  {
+    "nombre": "Ensalada fresca",
+    "descripcion": "Lechuga, tomate y cebolla con vinagreta de limón.",
+    "categoria": "ACOMPANANTE",
+    "dificultad": "FACIL",
+    "tiempo_min": 10,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "lechuga", "cantidad": "1 unidad"},
+      {"nombre": "tomate", "cantidad": "2 unidades"},
+      {"nombre": "cebolla", "cantidad": "1/2 unidad"},
+      {"nombre": "limón", "cantidad": "1 unidad"},
+      {"nombre": "aceite", "cantidad": "2 cucharadas"}
+    ],
+    "pasos": [
+      "Lavar y cortar las verduras.",
+      "Mezclar el jugo de limón con aceite y sal.",
+      "Aliñar justo antes de servir."
+    ],
+    "etiquetas": "frio saludable vegetariano sin coccion",
+    "activo": true
+  },
+  {
+    "nombre": "Yuca frita",
+    "descripcion": "Bastones de yuca cocida y luego frita, crocantes por fuera.",
+    "categoria": "ACOMPANANTE",
+    "dificultad": "MEDIA",
+    "tiempo_min": 45,
+    "porciones": 4,
+    "ingredientes": [
+      {"nombre": "yuca", "cantidad": "1 kg"},
+      {"nombre": "aceite", "cantidad": "1 l"},
+      {"nombre": "sal", "cantidad": "al gusto"}
+    ],
+    "pasos": [
+      "Pelar la yuca y cocinarla en agua con sal hasta que ablande.",
+      "Escurrir, cortar en bastones y retirar la vena central.",
+      "Freír hasta dorar."
+    ],
+    "etiquetas": "frito guarnicion",
+    "activo": true
+  },
+  {
+    "nombre": "Fríjoles antioqueños",
+    "descripcion": "Fríjoles rojos cocidos lentamente con plátano verde y hogao.",
+    "categoria": "ACOMPANANTE",
+    "dificultad": "DIFICIL",
+    "tiempo_min": 150,
+    "porciones": 6,
+    "ingredientes": [
+      {"nombre": "fríjol", "cantidad": "500 g"},
+      {"nombre": "plátano verde", "cantidad": "1 unidad"},
+      {"nombre": "tomate", "cantidad": "2 unidades"},
+      {"nombre": "cebolla", "cantidad": "1 unidad"},
+      {"nombre": "tocino", "cantidad": "150 g"}
+    ],
+    "pasos": [
+      "Remojar los fríjoles durante la noche.",
+      "Cocinarlos con el tocino y el plátano en trozos hasta que ablanden.",
+      "Preparar hogao con tomate y cebolla y agregarlo.",
+      "Cocinar a fuego bajo hasta que espesen."
+    ],
+    "etiquetas": "colombiano tradicional caliente",
+    "activo": true
+  }
+]

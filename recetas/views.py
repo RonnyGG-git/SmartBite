@@ -2,6 +2,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.mixins import RoleRequiredMixin, usuario_tiene_rol
+from core.tenancy import RestauranteMixin
 
 from .forms import ProductoIngredienteForm
 from .models import ProductoIngrediente
@@ -10,7 +11,8 @@ ROLES_GESTION = ["ADMINISTRADOR", "JEFE_COCINA"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_COCINA", "JEFE_INVENTARIO"]
 
 
-class RecetaListView(RoleRequiredMixin, ListView):
+class RecetaListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "producto__sucursal__restaurante"
     model = ProductoIngrediente
     roles_permitidos = ROLES_LECTURA
     template_name = "recetas/recetas_list.html"
@@ -19,12 +21,12 @@ class RecetaListView(RoleRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        # Los roles de solo lectura no ven acciones que les darían 403
         contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
         return contexto
 
 
-class RecetaCreateView(RoleRequiredMixin, CreateView):
+class RecetaCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "producto__sucursal__restaurante"
     model = ProductoIngrediente
     form_class = ProductoIngredienteForm
     roles_permitidos = ROLES_GESTION
@@ -33,7 +35,8 @@ class RecetaCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("recetas:recetas_list")
 
 
-class RecetaUpdateView(RoleRequiredMixin, UpdateView):
+class RecetaUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "producto__sucursal__restaurante"
     model = ProductoIngrediente
     form_class = ProductoIngredienteForm
     roles_permitidos = ROLES_GESTION
@@ -42,7 +45,8 @@ class RecetaUpdateView(RoleRequiredMixin, UpdateView):
     success_url = reverse_lazy("recetas:recetas_list")
 
 
-class RecetaDeleteView(RoleRequiredMixin, DeleteView):
+class RecetaDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
+    ruta_restaurante = "producto__sucursal__restaurante"
     model = ProductoIngrediente
     roles_permitidos = ROLES_GESTION
     template_name = "includes/confirm_delete.html"

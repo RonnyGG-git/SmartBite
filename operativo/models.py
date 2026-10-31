@@ -2,18 +2,12 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 
 from core.models import TimestampedModel
 
 
 class TransicionOrdenInvalida(ValidationError):
-    """Se pidió un cambio de estado que la máquina de estados no permite.
-
-    Hereda de ValidationError para que la API REST la mapee a 400 sin
-    tratamiento especial, y fija `code="transicion_invalida"` para que el
-    cliente pueda distinguirla de otros errores de validación.
-    """
-
     def __init__(self, mensaje, orden=None, **kwargs):
         self.orden = orden
         kwargs.setdefault("code", "transicion_invalida")
@@ -41,9 +35,16 @@ class Mesa(TimestampedModel):
     def orden_activa(self):
         return self.ordenes.exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA]).first()
 
+    @property
+    def reserva_en_ventana(self):
+        return Reserva.en_ventana().filter(mesa=self).order_by("fecha_hora").first()
+
 
 class Cliente(TimestampedModel):
     nombre = models.CharField(max_length=150)
+    restaurante = models.ForeignKey(
+        "restaurantes.Restaurante", on_delete=models.CASCADE, related_name="clientes", null=True, blank=True
+    )
     telefono = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
     numero_documento = models.CharField(max_length=30, blank=True)
@@ -57,12 +58,14 @@ class Cliente(TimestampedModel):
 
 
 class Orden(TimestampedModel):
+    POR_CONFIRMAR = "POR_CONFIRMAR"
     PENDIENTE = "PENDIENTE"
     EN_PREPARACION = "EN_PREPARACION"
     LISTA = "LISTA"
     ENTREGADA = "ENTREGADA"
     CANCELADA = "CANCELADA"
     ESTADO_CHOICES = [
+        (POR_CONFIRMAR, "Por confirmar"),
         (PENDIENTE, "Pendiente"),
         (EN_PREPARACION, "En preparación"),
         (LISTA, "Lista"),
@@ -71,40 +74,59 @@ class Orden(TimestampedModel):
     ]
 
     TRANSICIONES_VALIDAS = {
+        POR_CONFIRMAR: [PENDIENTE, CANCELADA],
         PENDIENTE: [EN_PREPARACION, CANCELADA],
         EN_PREPARACION: [LISTA, CANCELADA],
         LISTA: [ENTREGADA, CANCELADA],
         ENTREGADA: [],
         CANCELADA: [],
     }
-    # Canal por el que entró el pedido (CU-PED-03 vs CU-PED-05)
     ORIGEN_MESERO = "MESERO"
     ORIGEN_AUTOPEDIDO = "AUTOPEDIDO"
-    ORIGEN_CHOICES = [(ORIGEN_MESERO, "Mesero"), (ORIGEN_AUTOPEDIDO, "Autopedido (QR)")]
+    ORIGEN_TELEFONO = "AGENTE_TELEFONICO"
+    ORIGEN_CHOICES = [
+        (ORIGEN_MESERO, "Mesero"),
+        (ORIGEN_AUTOPEDIDO, "Autopedido (QR)"),
+        (ORIGEN_TELEFONO, "Agente telefónico"),
+    ]
 
-    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes")
+    EN_RESTAURANTE = "EN_RESTAURANTE"
+    PARA_LLEVAR = "PARA_LLEVAR"
+    TIPO_CONSUMO_CHOICES = [(EN_RESTAURANTE, "Comer en el restaurante"), (PARA_LLEVAR, "Para llevar")]
+
+    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes", null=True, blank=True)
+    sucursal = models.ForeignKey(
+        "restaurantes.Sucursal", on_delete=models.PROTECT, related_name="ordenes", null=True, blank=True
+    )
     cliente = models.ForeignKey(
         Cliente, on_delete=models.SET_NULL, related_name="ordenes", null=True, blank=True
     )
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default=PENDIENTE)
-    origen = models.CharField(max_length=12, choices=ORIGEN_CHOICES, default=ORIGEN_MESERO)
-    # CU-PED-23: el Chef fija un aproximado al iniciar la preparación
+    origen = models.CharField(max_length=20, choices=ORIGEN_CHOICES, default=ORIGEN_MESERO)
+    tipo_consumo = models.CharField(max_length=15, choices=TIPO_CONSUMO_CHOICES, default=EN_RESTAURANTE)
     tiempo_estimado_min = models.PositiveSmallIntegerField(null=True, blank=True)
     preparacion_iniciada_en = models.DateTimeField(null=True, blank=True)
-    # CU-PED-14 Solicitar cuenta: el Mesero envía el total a caja (CU-PED-15)
     cuenta_solicitada_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Orden #{self.pk} — Mesa {self.mesa.numero}"
+        return f"Orden #{self.pk} — {self.ubicacion}"
+
+    def save(self, *args, **kwargs):
+        if self.sucursal_id is None and self.mesa_id is not None:
+            self.sucursal_id = Mesa.objects.values_list("sucursal_id", flat=True).get(pk=self.mesa_id)
+        super().save(*args, **kwargs)
+
+    @property
+    def ubicacion(self):
+        if self.mesa_id:
+            return f"Mesa {self.mesa.numero}"
+        return f"{self.get_origen_display()} · {self.get_tipo_consumo_display()}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Lo deja `cambiar_estado` al descontar la receta. Vive en la
-        # instancia (no es columna) porque es un reporte de esa operación,
-        # no un dato que deba sobrevivir a otra lectura de la orden.
         self.insumos_faltantes = {}
 
     def puede_cambiar_a(self, estado_destino):
@@ -112,28 +134,9 @@ class Orden(TimestampedModel):
 
     @property
     def transiciones_disponibles(self):
-        """Estados a los que esta orden puede pasar desde su estado actual."""
         return list(self.TRANSICIONES_VALIDAS.get(self.estado, []))
 
     def cambiar_estado(self, nuevo_estado, **campos_extra):
-        """Única puerta de entrada para cambiar el estado de una orden.
-
-        Concentra aquí toda la regla —y no en las vistas— lo que toca al
-        entrar: estado de la mesa y descuento de insumos por receta. Así una
-        orden no puede quedar con la mesa liberada pero el inventario
-        descontado, ni al revés.
-
-        Todo ocurre en una sola transacción con la fila bloqueada
-        (`select_for_update`): si dos cajeros o dos chefs actúan sobre la
-        misma orden a la vez, el segundo ve el estado ya actualizado y su
-        transición se rechaza en vez de sobrescribir al primero.
-
-        `campos_extra` se guarda en la misma operación (por ejemplo
-        `tiempo_estimado_min` al iniciar la preparación).
-
-        Lanza TransicionOrdenInvalida si la transición no está permitida;
-        en ese caso no se persiste nada.
-        """
         with transaction.atomic():
             orden = Orden.objects.select_for_update().get(pk=self.pk)
 
@@ -150,33 +153,21 @@ class Orden(TimestampedModel):
 
             self.insumos_faltantes = orden._aplicar_efectos_de_entrada(nuevo_estado)
 
-        # Refleja en la instancia del caller lo que quedó en la BD.
         self.estado = nuevo_estado
         for campo, valor in campos_extra.items():
             setattr(self, campo, valor)
         return self
 
     def _aplicar_efectos_de_entrada(self, nuevo_estado):
-        """Ajusta mesa e inventario al entrar a `nuevo_estado`.
-
-        Se invoca dentro de la transacción de `cambiar_estado` y devuelve los
-        insumos que faltaron para poder preparar la orden.
-        """
-        # La mesa se ocupa cuando la orden entra a preparación y se
-        # libera al cerrarse (entregada o cancelada).
         if nuevo_estado == self.EN_PREPARACION:
-            self.mesa.estado = Mesa.OCUPADA
-            self.mesa.save(update_fields=["estado"])
-            # Descontar lo que consume la receta, una sola vez: solo al
-            # entrar a EN_PREPARACION, nunca al seguir advanceando.
-            # Import local: `inventario.services` no importa operativo, pero
-            # así el orden de carga de apps de Django nunca depende de cuál
-            # de las dos se importe primero.
+            if self.mesa_id:
+                self.mesa.estado = Mesa.OCUPADA
+                self.mesa.save(update_fields=["estado"])
             from inventario.services import descontar_insumos_por_receta
 
             return descontar_insumos_por_receta(self)["faltantes"]
 
-        if nuevo_estado in (self.ENTREGADA, self.CANCELADA):
+        if nuevo_estado in (self.ENTREGADA, self.CANCELADA) and self.mesa_id:
             self.mesa.estado = Mesa.DISPONIBLE
             self.mesa.save(update_fields=["estado"])
 
@@ -184,7 +175,6 @@ class Orden(TimestampedModel):
 
     @property
     def listo_estimado_en(self):
-        """Hora aproximada en que estará listo (None si el Chef no la fijó)."""
         if self.tiempo_estimado_min is None or self.preparacion_iniciada_en is None:
             return None
         return self.preparacion_iniciada_en + timedelta(minutes=self.tiempo_estimado_min)
@@ -196,6 +186,22 @@ class Orden(TimestampedModel):
     @property
     def es_final(self):
         return self.estado in (self.ENTREGADA, self.CANCELADA)
+
+    @property
+    def total_pagado(self):
+        return sum((p.monto for p in self.pagos.all()), 0)
+
+    @property
+    def pagada(self):
+        return self.pagos.exists() and self.total_pagado >= self.total
+
+    @property
+    def cobrable(self):
+        if self.es_final or self.pagada:
+            return False
+        if self.mesa_id:
+            return self.estado == self.LISTA
+        return self.estado in (self.POR_CONFIRMAR, self.PENDIENTE, self.EN_PREPARACION, self.LISTA)
 
 
 class DetalleOrden(TimestampedModel):
@@ -210,3 +216,64 @@ class DetalleOrden(TimestampedModel):
     @property
     def subtotal(self):
         return self.cantidad * self.precio_unitario
+
+
+class Reserva(TimestampedModel):
+    CONFIRMADA = "CONFIRMADA"
+    CUMPLIDA = "CUMPLIDA"
+    CANCELADA = "CANCELADA"
+    NO_ASISTIO = "NO_ASISTIO"
+    ESTADO_CHOICES = [
+        (CONFIRMADA, "Confirmada"),
+        (CUMPLIDA, "Cumplida"),
+        (CANCELADA, "Cancelada"),
+        (NO_ASISTIO, "No asistió"),
+    ]
+
+    ANTICIPACION = timedelta(hours=1)
+    HORIZONTE = timedelta(days=60)
+    DURACION = timedelta(hours=2)
+    VENTANA = timedelta(minutes=30)
+    TOLERANCIA = timedelta(minutes=15)
+    MAX_PERSONAS = 30
+
+    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="reservas")
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, related_name="reservas", null=True, blank=True)
+    codigo = models.CharField(max_length=12, unique=True)
+    fecha_hora = models.DateTimeField()
+    num_personas = models.PositiveSmallIntegerField()
+    nombre = models.CharField(max_length=150)
+    telefono = models.CharField(max_length=30)
+    estado = models.CharField(max_length=12, choices=ESTADO_CHOICES, default=CONFIRMADA)
+
+    class Meta:
+        ordering = ["fecha_hora"]
+        indexes = [models.Index(fields=["estado", "fecha_hora"])]
+
+    def __str__(self):
+        return f"Reserva {self.codigo} — {self.mesa}"
+
+    @property
+    def fin(self):
+        return self.fecha_hora + self.DURACION
+
+    @property
+    def es_final(self):
+        return self.estado != self.CONFIRMADA
+
+    @classmethod
+    def en_ventana(cls, ahora=None):
+        ahora = ahora or timezone.now()
+        return cls.objects.filter(
+            estado=cls.CONFIRMADA,
+            fecha_hora__lte=ahora + cls.VENTANA,
+            fecha_hora__gte=ahora - cls.TOLERANCIA,
+        )
+
+    @classmethod
+    def que_se_solapan(cls, fecha_hora):
+        return cls.objects.filter(
+            estado=cls.CONFIRMADA,
+            fecha_hora__gt=fecha_hora - cls.DURACION,
+            fecha_hora__lt=fecha_hora + cls.DURACION,
+        )

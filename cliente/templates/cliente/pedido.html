@@ -6,16 +6,18 @@
 <section class="menu-hero">
   <span class="eyebrow">Pedido #{{ orden.pk }}</span>
   <h1>
-    {% if orden.estado == "PENDIENTE" %}Recibido en cocina
+    {% if orden.estado == "POR_CONFIRMAR" %}Esperando confirmación
+    {% elif orden.estado == "PENDIENTE" %}Recibido en cocina
     {% elif orden.estado == "EN_PREPARACION" %}En preparación
     {% elif orden.estado == "LISTA" %}Listo para servir
     {% elif orden.estado == "ENTREGADA" %}Entregado
     {% else %}Pedido cancelado{% endif %}
   </h1>
   <p>
-    {% if orden.estado == "PENDIENTE" %}El chef lo tomará en breve.
+    {% if orden.estado == "POR_CONFIRMAR" %}El restaurante está confirmando tu pedido; en cuanto lo acepte pasa a cocina.
+    {% elif orden.estado == "PENDIENTE" %}El chef lo tomará en breve.
     {% elif orden.estado == "EN_PREPARACION" %}{% if orden.listo_estimado_en %}Estará listo aproximadamente a las <strong class="mono">{{ orden.listo_estimado_en|time:"H:i" }}</strong> ({{ orden.tiempo_estimado_min }} min).{% else %}Tu pedido se está cocinando.{% endif %}
-    {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% else %}Tu mesero lo llevará a la mesa en un momento.{% endif %}
+    {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% elif orden.mesa %}Tu mesero lo llevará a la mesa en un momento.{% elif orden.tipo_consumo == "PARA_LLEVAR" %}Ya puedes pasar a recogerlo.{% else %}Pídelo en caja y te asignamos una mesa.{% endif %}
     {% elif orden.estado == "ENTREGADA" %}Buen provecho.
     {% else %}Si fue un error, habla con tu mesero.{% endif %}
   </p>
@@ -23,7 +25,7 @@
 
 {% with e=orden.estado %}
 <ol class="stepper{% if e == 'CANCELADA' %} is-cancelled{% endif %}" aria-label="Progreso del pedido">
-  <li class="step {% if e == 'PENDIENTE' %}is-current{% elif e != 'CANCELADA' %}is-done{% endif %}">Recibido</li>
+  <li class="step {% if e == 'PENDIENTE' or e == 'POR_CONFIRMAR' %}is-current{% elif e != 'CANCELADA' %}is-done{% endif %}">Recibido</li>
   <li class="step {% if e == 'EN_PREPARACION' %}is-current{% elif e == 'LISTA' or e == 'ENTREGADA' %}is-done{% endif %}">Cocinando</li>
   <li class="step {% if e == 'LISTA' %}is-current{% elif e == 'ENTREGADA' %}is-done{% endif %}">Listo</li>
   <li class="step {% if e == 'ENTREGADA' %}is-done{% endif %}">Servido</li>

@@ -1,11 +1,3 @@
-"""05 — Actividades: ajustar el stock de un ítem (entrada o salida,
-CU-INV-05/06/08) tal como lo hace la app Django de Ronny:
-inventario/views.py::item_ajustar_stock. UML 2.5.1 cláusulas 15 y 16.
-
-- Rombos vacíos; las condiciones son guardas [..] en cada salida (15.3.4.3).
-- Fusión antes de "Elegir tipo…" para la vuelta desde los errores: entra por
-  arriba y por la derecha, sale por abajo.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 

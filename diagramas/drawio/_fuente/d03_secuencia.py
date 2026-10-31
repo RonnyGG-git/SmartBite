@@ -1,14 +1,3 @@
-"""03 — Secuencia: registrar una salida de inventario (CU-INV-06) tal como lo
-hace la app Django de Ronny: inventario/views.py::item_ajustar_stock,
-inventario/forms.py::AjusteStockForm y core/mixins.py::usuario_tiene_rol.
-UML 2.5.1 cláusula 17.
-
-- 'break' para los dos casos que cortan el flujo (sin rol, formulario
-  inválido): se ejecutan en lugar del resto (17.6.3).
-- 'critical' = transaction.atomic(): el UPDATE y el INSERT van juntos.
-- Mensajes de creación (punteados, a la cabecera) para el formulario y el
-  movimiento; las respuestas vuelven a quien llamó.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -23,7 +12,7 @@ d.marco_diagrama("sd Registrar salida de inventario", MARCO_X, MARCO_Y, MARCO_W,
 JEFE, VISTA, FORM, ITEM, MOV, BD = range(6)
 X = {JEFE: 100, VISTA: 330, FORM: 680, ITEM: 920, MOV: 1150, BD: 1380}
 W = {VISTA: 210, FORM: 190, ITEM: 190, MOV: 210, BD: 190}
-Y_FORM, Y_MOV = 418, 802          # alturas de los mensajes de creación
+Y_FORM, Y_MOV = 418, 802
 
 d.actor_de_secuencia("Jefe de Inventario", X[JEFE], TOP, FIN)
 d.linea_de_vida(":item_ajustar_stock", X[VISTA] - W[VISTA] / 2, TOP, W[VISTA], FIN - TOP, palabra_clave="vista")
@@ -32,7 +21,6 @@ d.linea_de_vida("item: ItemInventario", X[ITEM] - W[ITEM] / 2, TOP, W[ITEM], FIN
 d.linea_de_vida(":MovimientoInventario", X[MOV] - W[MOV] / 2, Y_MOV - 26, W[MOV], FIN - Y_MOV + 26)
 d.linea_de_vida("bd: PostgreSQL", X[BD] - W[BD] / 2, TOP, W[BD], FIN - TOP, color=GRIS)
 
-# Activaciones
 d.activacion(X[VISTA], 237, 950)
 d.activacion(X[VISTA], 264, 288, desplazamiento=8)
 d.activacion(X[VISTA], 304, 328, desplazamiento=8)
@@ -63,7 +51,6 @@ d.fragmento("break", MARCO_X + 20, 340, MARCO_W - 40, 50,
             "[el usuario no es ADMINISTRADOR ni JEFE_INVENTARIO]", ancho_etiqueta=64)
 msg(VISTA, JEFE, 376, "redirige al listado", RESPUESTA)
 
-# Creación del formulario: punteada hacia la cabecera
 d.flecha(X[VISTA] + 6, Y_FORM, X[FORM] - W[FORM] / 2, Y_FORM, RESPUESTA, "4: AjusteStockForm(request.POST)")
 msg(VISTA, FORM, 475, "5: is_valid()")
 msg(FORM, VISTA, 502, "True", RESPUESTA)

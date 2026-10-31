@@ -12,11 +12,8 @@ from .models import MetodoPago, Pago
 
 
 class CobrarOrdenTest(TestCase):
-    """Tests para la vista cobrar_orden (RF-006, Hallazgo H2)."""
-
     def setUp(self):
         self.client = Client()
-        # Restaurante y sucursal
         self.restaurante = Restaurante.objects.create(
             nombre="Test Restaurante",
             nif="12345678A",
@@ -27,15 +24,12 @@ class CobrarOrdenTest(TestCase):
             restaurante=self.restaurante,
             nombre="Sucursal Test",
         )
-        # Mesa
         self.mesa = Mesa.objects.create(
             numero=1,
             capacidad=4,
             sucursal=self.sucursal,
         )
-        # Metodo de pago
         self.metodo_pago = MetodoPago.objects.create(nombre="Efectivo")
-        # Categoria y producto
         self.categoria = Categoria.objects.create(nombre="Bebidas")
         self.producto = Producto.objects.create(
             nombre="Agua",
@@ -43,21 +37,18 @@ class CobrarOrdenTest(TestCase):
             categoria=self.categoria,
             sucursal=self.sucursal,
         )
-        # Usuario cajero
         self.rol_cajero = Rol.objects.create(nombre="CAJERO")
         self.usuario_cajero = Usuario.objects.create_user(
             email="cajero@test.com",
             nombre="Cajero Test",
             password="testpass123",
             rol=self.rol_cajero,
+            restaurante=self.restaurante,
         )
-        # Crear orden LISTA con total = 5000
         self.orden_lista = self._crear_orden_con_detalle(Orden.LISTA, Decimal("5000.00"))
-        # URL de cobro
         self.url_cobrar = reverse("caja:cobrar_orden", kwargs={"pk": self.orden_lista.pk})
 
     def _crear_orden_con_detalle(self, estado, precio_unitario):
-        """Helper para crear una orden con un detalle."""
         mesa = Mesa.objects.create(
             numero=Mesa.objects.count() + 10,
             capacidad=4,
@@ -72,7 +63,6 @@ class CobrarOrdenTest(TestCase):
         return orden
 
     def test_cobrar_orden_ok(self):
-        """POST con estado LISTA crea Pago y cambia a ENTREGADA."""
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(self.url_cobrar, {
             "metodo_pago": self.metodo_pago.pk,
@@ -91,20 +81,18 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(pago.monto, Decimal("5000.00"))
 
     def test_cobrar_orden_estado_pendiente(self):
-        """POST con estado PENDIENTE es rechazado."""
         orden = self._crear_orden_con_detalle(Orden.PENDIENTE, Decimal("5000.00"))
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
             "metodo_pago": self.metodo_pago.pk,
             "monto": "5000.00",
         })
-        self.assertEqual(respuesta.status_code, 200)  # Formulario con error
+        self.assertEqual(respuesta.status_code, 200)
         orden.refresh_from_db()
         self.assertEqual(orden.estado, Orden.PENDIENTE)
         self.assertEqual(orden.pagos.count(), 0)
 
     def test_cobrar_orden_estado_en_preparacion(self):
-        """POST con estado EN_PREPARACION es rechazado."""
         orden = self._crear_orden_con_detalle(Orden.EN_PREPARACION, Decimal("5000.00"))
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
@@ -117,7 +105,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(orden.pagos.count(), 0)
 
     def test_cobrar_orden_estado_entregada(self):
-        """POST con estado ENTREGADA es rechazado."""
         orden = self._crear_orden_con_detalle(Orden.ENTREGADA, Decimal("5000.00"))
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
@@ -130,7 +117,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(orden.pagos.count(), 0)
 
     def test_cobrar_orden_estado_cancelada(self):
-        """POST con estado CANCELADA es rechazado."""
         orden = self._crear_orden_con_detalle(Orden.CANCELADA, Decimal("5000.00"))
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(reverse("caja:cobrar_orden", kwargs={"pk": orden.pk}), {
@@ -143,7 +129,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(orden.pagos.count(), 0)
 
     def test_cobrar_orden_pago_duplicado(self):
-        """Segundo pago para misma orden es rechazado."""
         Pago.objects.create(
             orden=self.orden_lista,
             metodo_pago=self.metodo_pago,
@@ -158,7 +143,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(self.orden_lista.pagos.count(), 1)
 
     def test_cobrar_orden_monto_insuficiente(self):
-        """Monto menor al total es rechazado."""
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(self.url_cobrar, {
             "metodo_pago": self.metodo_pago.pk,
@@ -170,7 +154,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(self.orden_lista.pagos.count(), 0)
 
     def test_cobrar_orden_monto_exacto(self):
-        """Monto igual al total es aceptado."""
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(self.url_cobrar, {
             "metodo_pago": self.metodo_pago.pk,
@@ -186,7 +169,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(self.orden_lista.pagos.count(), 1)
 
     def test_cobrar_orden_monto_excedente(self):
-        """Monto mayor al total se acepta, excedente no registra cambio."""
         self.client.login(email="cajero@test.com", password="testpass123")
         respuesta = self.client.post(self.url_cobrar, {
             "metodo_pago": self.metodo_pago.pk,
@@ -203,16 +185,6 @@ class CobrarOrdenTest(TestCase):
         self.assertEqual(pago.monto, Decimal("6000.00"))
 
     def test_cobrar_orden_concurrencia(self):
-        """Dos solicitudes concurrentes cobrando la misma orden: solo una debe registrar pago.
-
-        Verifica que select_for_update() protege contra doble cobro.
-        Limitacion conocida: SQLite ignora select_for_update() (es un no-op),
-        por lo que ambas transacciones pueden leer el mismo estado. En PostgreSQL
-        o MySQL real, select_for_update() bloquea la fila y garantiza que solo
-        una transaccion procede. En SQLite, la serializacion a nivel de archivo
-        puede causar que ambos hilos fallen con 'database is locked', lo cual
-        tambien previene el doble cobro.
-        """
         import threading
 
         from django.db import transaction as db_transaction

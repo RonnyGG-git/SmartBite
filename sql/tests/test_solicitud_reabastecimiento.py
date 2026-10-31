@@ -24,17 +24,17 @@ def _solicitudes_pendientes(cursor, insumo_id):
 def test_salida_bajo_minimo_genera_solicitud(cursor):
     insumo_id = _crear_insumo_con_minimo(cursor, stock_minimo=5)
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
-    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=8)  # stock queda en 2
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=8)
 
     pendientes = _solicitudes_pendientes(cursor, insumo_id)
-    assert pendientes == [(3,)]  # 5 (mínimo) - 2 (stock nuevo)
+    assert pendientes == [(3,)]
 
 
 def test_no_genera_segunda_solicitud_mientras_la_primera_sigue_pendiente(cursor):
     insumo_id = _crear_insumo_con_minimo(cursor, stock_minimo=5)
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
-    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=8)  # stock=2, genera 1ra
-    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=1)  # stock=1, sigue bajo
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=8)
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=1)
 
     pendientes = _solicitudes_pendientes(cursor, insumo_id)
     assert len(pendientes) == 1
@@ -42,9 +42,9 @@ def test_no_genera_segunda_solicitud_mientras_la_primera_sigue_pendiente(cursor)
 
 def test_sin_minimo_configurado_no_genera_solicitud(cursor):
     categoria_id = _crear_categoria(cursor)
-    insumo_id = _crear_insumo(categoria_id=categoria_id, cursor=cursor)  # stock_minimo NULL
+    insumo_id = _crear_insumo(categoria_id=categoria_id, cursor=cursor)
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=1)
-    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=1)  # stock=0
+    _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=1)
 
     assert _solicitudes_pendientes(cursor, insumo_id) == []
 
@@ -52,14 +52,13 @@ def test_sin_minimo_configurado_no_genera_solicitud(cursor):
 def test_ajuste_inmediato_bajo_minimo_genera_solicitud(cursor):
     insumo_id = _crear_insumo_con_minimo(cursor, stock_minimo=10)
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=20)
-    # Ajuste chico (diferencia 5, bajo el umbral default de 20): se aplica de inmediato.
     _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=15,
-                       motivo="Conteo")  # todavía no baja del mínimo (15 > 10)
+                       motivo="Conteo")
     assert _solicitudes_pendientes(cursor, insumo_id) == []
 
     _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=8,
-                       motivo="Conteo, baja del mínimo")  # diferencia 7, bajo umbral, inmediato
-    assert _solicitudes_pendientes(cursor, insumo_id) == [(2,)]  # 10 - 8
+                       motivo="Conteo, baja del mínimo")
+    assert _solicitudes_pendientes(cursor, insumo_id) == [(2,)]
 
 
 def test_ajuste_aprobado_bajo_minimo_genera_solicitud_recien_al_aprobar(cursor):
@@ -68,13 +67,12 @@ def test_ajuste_aprobado_bajo_minimo_genera_solicitud_recien_al_aprobar(cursor):
     mov_id = _crear_movimiento(cursor, insumo_id, "AJUSTE", cantidad_objetivo=5,
                                 motivo="Ajuste grande, requiere aprobación")
 
-    # Todavía pendiente de aprobación: no debe haber solicitud de reabastecimiento.
     assert _solicitudes_pendientes(cursor, insumo_id) == []
 
     cursor.execute(
         "UPDATE movimiento_inventario SET aprobado_por = %s WHERE id = %s", (99, mov_id)
     )
-    assert _solicitudes_pendientes(cursor, insumo_id) == [(5,)]  # 10 - 5
+    assert _solicitudes_pendientes(cursor, insumo_id) == [(5,)]
 
 
 def test_dos_salidas_concurrentes_generan_una_sola_solicitud(esquema, database_url):
@@ -104,9 +102,6 @@ def test_dos_salidas_concurrentes_generan_una_sola_solicitud(esquema, database_u
         )
     setup_conn.close()
 
-    # Stock queda en 20 (min=15). Dos SALIDAs de 10 c/u: la primera deja el
-    # stock en 10 (< 15, genera la solicitud); la segunda lo deja en 0
-    # (< 15 también, pero ya hay una PENDIENTE — debe omitirse, no duplicar).
     def intentar_salida():
         conn = psycopg2.connect(database_url)
         try:
@@ -146,7 +141,6 @@ def test_dos_salidas_concurrentes_generan_una_sola_solicitud(esquema, database_u
 
 
 def test_rechaza_cantidad_sugerida_no_positiva(cursor):
-    # Verificación posterior (2026-09-23): faltaba el CHECK.
     insumo_id = _crear_insumo_con_minimo(cursor, stock_minimo=10)
     with pytest.raises(psycopg2.errors.CheckViolation):
         cursor.execute(

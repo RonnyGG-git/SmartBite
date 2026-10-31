@@ -1,12 +1,9 @@
-/* Smart Bite — interacciones de la UI (sin dependencias).
-   Cada bloque es independiente y no hace nada si su markup no está en la página. */
 (function () {
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-  /* ---- Navegación: marca el enlace activo (prefijo de ruta más largo) ---- */
   (function marcarNavActiva() {
     var links = document.querySelectorAll(".sidebar a.sidebar-item");
     if (!links.length) return;
@@ -27,7 +24,6 @@
     if (mejor) mejor.setAttribute("aria-current", "page");
   })();
 
-  /* ---- Drawer lateral en móvil ---- */
   (function drawer() {
     var boton = document.querySelector("[data-sidebar-toggle]");
     var scrim = document.querySelector(".scrim");
@@ -50,7 +46,6 @@
     });
   })();
 
-  /* ---- Toasts: auto-cierre, pausa al pasar el cursor o con la pestaña oculta ---- */
   (function toasts() {
     var toasts = document.querySelectorAll(".toast");
     toasts.forEach(function (toast) {
@@ -84,12 +79,10 @@
     });
   })();
 
-  /* ---- Formularios: evita doble envío y muestra spinner en el botón pulsado.
-     No se deshabilita el botón: su name/value (p. ej. "estado") debe viajar en el POST. ---- */
   (function envios() {
     document.addEventListener("submit", function (e) {
       var form = e.target;
-      if (e.defaultPrevented) return; // otro manejador ya canceló el envío
+      if (e.defaultPrevented) return;
       if (form.dataset.enviando === "1") {
         e.preventDefault();
         return;
@@ -98,7 +91,6 @@
       var boton = e.submitter || form.querySelector("[type=submit]");
       if (boton && boton.classList.contains("btn")) boton.classList.add("is-loading");
     });
-    // Al volver con "atrás" (bfcache) el formulario debe quedar usable otra vez
     window.addEventListener("pageshow", function (e) {
       if (!e.persisted) return;
       document.querySelectorAll("form[data-enviando]").forEach(function (f) { delete f.dataset.enviando; });
@@ -106,7 +98,6 @@
     });
   })();
 
-  /* ---- Contadores animados en las cifras del dashboard ---- */
   (function contadores() {
     var nodos = document.querySelectorAll("[data-countup]");
     if (!nodos.length || reduceMotion) return;
@@ -126,7 +117,7 @@
       function paso(t) {
         if (t0 === null) t0 = t;
         var p = Math.min((t - t0) / duracion, 1);
-        var e = 1 - Math.pow(1 - p, 4); // ease-out quart
+        var e = 1 - Math.pow(1 - p, 4);
         nodo.textContent = formatear(objetivo * e, moneda);
         if (p < 1) requestAnimationFrame(paso);
         else nodo.textContent = texto;
@@ -135,7 +126,6 @@
     });
   })();
 
-  /* ---- Barras de reportes: escala relativa al máximo de su grupo ---- */
   (function barras() {
     document.querySelectorAll("[data-bars]").forEach(function (grupo) {
       var filas = grupo.querySelectorAll("[data-value]");
@@ -147,7 +137,6 @@
         if (meter) meter.style.setProperty("--p", max ? (v / max) * 100 : 0);
       });
     });
-    // Los medidores parten en 0 y crecen tras el primer frame
     var idle = document.querySelectorAll(".meter.is-idle");
     if (!idle.length) return;
     requestAnimationFrame(function () {
@@ -157,7 +146,6 @@
     });
   })();
 
-  /* ---- Borde iluminado bajo el cursor ---- */
   (function spotlight() {
     if (!finePointer || reduceMotion) return;
     document.querySelectorAll(".spotlight").forEach(function (el) {
@@ -169,7 +157,6 @@
     });
   })();
 
-  /* ---- Filtro de mesas por estado ---- */
   (function filtroMesas() {
     var chips = document.querySelectorAll("[data-filter]");
     if (!chips.length) return;
@@ -192,7 +179,6 @@
     });
   })();
 
-  /* ---- Menú público: resalta la categoría visible ---- */
   (function menuCategorias() {
     var nav = document.querySelector(".menu-nav");
     if (!nav || !("IntersectionObserver" in window)) return;
@@ -214,7 +200,6 @@
     document.querySelectorAll(".menu-section[id]").forEach(function (s) { io.observe(s); });
   })();
 
-  /* ---- Autopedido: selector de cantidades y total en vivo ---- */
   (function autopedido() {
     var form = document.querySelector("form[data-pedido]");
     if (!form) return;
@@ -243,7 +228,7 @@
       barra.classList.toggle("is-empty", cantidad === 0);
       if (animar && !reduceMotion) {
         totalEl.classList.remove("bump");
-        void totalEl.offsetWidth; // reinicia la animación
+        void totalEl.offsetWidth;
         totalEl.classList.add("bump");
       }
     }
@@ -258,14 +243,12 @@
     form.addEventListener("input", function (e) {
       if (e.target.matches(".stepper-qty input")) recalcular(false);
     });
-    // Sin platillos no se envía (el servidor también lo valida)
     form.addEventListener("submit", function (e) {
       if (barra.classList.contains("is-empty")) e.preventDefault();
     }, true);
     recalcular(false);
   })();
 
-  /* ---- Acciones declarativas ---- */
   document.addEventListener("click", function (e) {
     var el = e.target.closest("[data-action]");
     if (!el) return;

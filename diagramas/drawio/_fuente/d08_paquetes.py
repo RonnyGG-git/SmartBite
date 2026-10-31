@@ -1,15 +1,3 @@
-"""08 — Paquetes: cómo se organiza el código de Inventario en la app Django
-de Ronny (rama smartbite), de qué depende y quién depende de él. Cada
-dependencia sale de un import o de una FK por string real:
-inventario/models.py y views.py, recetas/models.py, reportes/views.py,
-cocina/views.py, smartbite/urls.py. UML 2.5.1, cláusula 12.
-
-- Nombre en la pestaña si el paquete muestra miembros; en el cuerpo si no.
-- «import» = importa clases del otro (from x.models import …), 7.4.4.
-  «use» + un nombre = otro uso (FK por string, include de URLs, plantilla
-  heredada, datos que lee sin importar), 7.7.4.
-- Sin ciclos: nadie de quien depende inventario depende de inventario.
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -17,7 +5,6 @@ d = Diagrama("Paquetes - Inventario", 1560, 1020)
 d.titulo("Diagrama de paquetes — Inventario (Smart Bite)",
          "Dónde vive el código de Inventario en el proyecto Django, de qué depende y quién depende de él")
 
-# --- Repositorio con todas las apps
 d.paquete("SmartBite (repositorio)", 40, 100, 1140, 800, BLANCO, miembros=" ", tam=14)
 
 conf = d.paquete("smartbite", 70, 145, 300, 110, GRIS, tam=13,
@@ -50,7 +37,6 @@ cocina = d.paquete("cocina", 930, 580, 230, 80, GRIS, tam=12, miembros="views.py
 plantillas = d.paquete("templates", IX, 770, IW, 90, GRIS, tam=13,
                        miembros="base.html\nincludes/: sidebar, generic_form, form_fields…")
 
-# --- Framework, fuera del repositorio
 dj = d.paquete("django", 1240, 720, 280, 140, GRIS, tam=13,
                miembros="db: models, transaction\nforms\nviews.generic, shortcuts\nurls, contrib.admin")
 
@@ -63,8 +49,6 @@ DEP = DEPENDENCIA
 
 
 def dep(a, b, estilo, rotulo, tx, ty, w=150, puntos=()):
-    """Dependencia con el rótulo en un texto aparte, arriba de la línea, para que
-    no tape la punta de flecha en los tramos cortos."""
     d.arista(a, b, DEP + estilo, puntos=puntos)
     d.texto(rotulo, tx - w / 2, ty, w, 15 * (rotulo.count("\n") + 1) + 2, tam=11, alin="center", color="#222222")
 

@@ -12,14 +12,14 @@ Revisado el 2026-09-27, después de crear la app `cliente`.
 
 | Módulo del diagrama | Casos | ✅ | 🟡 | ❌ | Dónde vive en el código |
 |---|---:|---:|---:|---:|---|
-| Pedidos | 23 | 18 | 5 | 0 | `cliente`, `operativo`, `cocina` |
+| Pedidos | 24 | 19 | 5 | 0 | `cliente`, `operativo`, `cocina` |
 | Pagos | 16 | 5 | 4 | 7 | `caja` |
 | Facturación | 10 | 0 | 0 | 10 | — (no existe) |
 | Administración | 16 | 9 | 3 | 4 | `cuentas`, `restaurantes`, `reportes`, `cliente` |
 | Inventario | 17 | 11 | 3 | 3 | `inventario` |
 | Menú | 12 | 10 | 1 | 1 | `catalogo`, `recetas` |
 | Compras | 20 | 3 | 0 | 17 | `inventario` (compras) |
-| **Total** | **114** | **56** | **16** | **42** | |
+| **Total** | **115** | **57** | **16** | **42** | |
 
 ## Correspondencia de actores y roles
 
@@ -64,6 +64,7 @@ Revisado el 2026-09-27, después de crear la app `cliente`.
 | CU-PED-21 | Desasignar mesa a cliente | 🟡 | Solo al cancelar o cobrar. Falta liberar una mesa ocupada sin orden. |
 | CU-PED-22 | Verificar disponibilidad de ingredientes | ✅ | `cocina.views.insumos_faltantes` (receta × cantidad vs stock). No descuenta stock. |
 | CU-PED-23 | Establecer tiempo estimado de preparación | ✅ | Se fija al iniciar la preparación; lo ve el cliente. |
+| CU-PED-27 | Reservar mesa | ✅ | `cliente:reservar` / `cliente:reserva` (código, cancelación) y `operativo:confirmar_reserva` (llegada, CU-PED-04). Modelo `Reserva`. Ver [RESERVA-DE-MESA.md](RESERVA-DE-MESA.md). |
 
 ## 2. Pagos
 

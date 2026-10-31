@@ -11,6 +11,9 @@ UNIDADES_MEDIDA = [
 
 class Proveedor(TimestampedModel):
     nombre = models.CharField(max_length=150)
+    restaurante = models.ForeignKey(
+        "restaurantes.Restaurante", on_delete=models.CASCADE, related_name="proveedores", null=True, blank=True
+    )
     contacto = models.CharField(max_length=150, blank=True)
     telefono = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
@@ -35,7 +38,6 @@ class ItemInventario(TimestampedModel):
     sucursal = models.ForeignKey(
         "restaurantes.Sucursal", on_delete=models.PROTECT, related_name="items_inventario"
     )
-    # Campos que ya exige la migración 0002 (antes existían solo en la BD).
     activo = models.BooleanField(default=True)
     categoria = models.CharField(max_length=50, blank=True)
     fecha_vencimiento = models.DateField(null=True, blank=True)
@@ -47,16 +49,6 @@ class ItemInventario(TimestampedModel):
         return self.nombre
 
     def ajustar_stock(self, tipo, cantidad, motivo):
-        """Ajusta el stock y deja el movimiento registrado, todo en una transacción.
-
-        ENTRADA suma; SALIDA y PERDIDA restan con piso en 0 (nunca deja stock
-        negativo, porque la merma o el consumo no pueden inventar unidades).
-        Devuelve el MovimientoInventario creado.
-
-        Es la única puerta de entrada al stock: la usan tanto el formulario de
-        ajuste como `inventario.services.descontar_insumos_por_receta`, para
-        que una orden en marcha no pueda descuadrar el inventario a medias.
-        """
         validos = dict(MovimientoInventario.TIPO_CHOICES)
         if tipo not in validos:
             raise ValidationError(
@@ -70,12 +62,10 @@ class ItemInventario(TimestampedModel):
             )
 
         with transaction.atomic():
-            # select_for_update serializa ajustes concurrentes sobre el mismo
-            # ítem: dos cajeros ajustando a la vez no pueden pisarse.
             item = ItemInventario.objects.select_for_update().get(pk=self.pk)
             if tipo == MovimientoInventario.ENTRADA:
                 item.stock_actual += cantidad
-            else:  # SALIDA y PERDIDA restan igual, con piso en cero.
+            else:
                 item.stock_actual = max(0, item.stock_actual - cantidad)
             item.save(update_fields=["stock_actual"])
             movimiento = MovimientoInventario.objects.create(

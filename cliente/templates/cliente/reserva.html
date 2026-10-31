@@ -1,0 +1,28 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Reserva {{ reserva.codigo }} — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Tu reserva</h1>
+  <p>{{ reserva.mesa.sucursal.restaurante.nombre }} — {{ reserva.mesa.sucursal.nombre }}</p>
+</section>
+
+<div class="card">
+  <dl class="dl">
+    <div><dt>Código</dt><dd class="mono"><strong>{{ reserva.codigo }}</strong></dd></div>
+    <div><dt>Estado</dt><dd><span class="badge {% if reserva.estado == 'CONFIRMADA' %}badge-success{% elif reserva.estado == 'CUMPLIDA' %}badge-accent{% else %}badge-plain{% endif %}">{{ reserva.get_estado_display }}</span></dd></div>
+    <div><dt>Fecha y hora</dt><dd>{{ reserva.fecha_hora|date:"l j \d\e F · H:i" }}</dd></div>
+    <div><dt>Mesa</dt><dd>{{ reserva.mesa.numero }} · {{ reserva.num_personas }} persona{{ reserva.num_personas|pluralize }}</dd></div>
+    <div><dt>A nombre de</dt><dd>{{ reserva.nombre }}</dd></div>
+  </dl>
+
+  {% if reserva.estado == "CONFIRMADA" %}
+  <p class="subtle mt-16">Muestra este código al llegar. Te esperamos hasta 15 minutos después de la hora.</p>
+  <form method="post" action="{% url 'cliente:cancelar_reserva' reserva.codigo %}" class="form-actions">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost is-danger"><svg class="ico"><use href="#i-trash"/></svg><span>Cancelar reserva</span></button>
+  </form>
+  {% endif %}
+</div>
+
+<p class="menu-foot"><a href="{% url 'cliente:reservar' %}">Hacer otra reserva</a></p>
+{% endblock %}

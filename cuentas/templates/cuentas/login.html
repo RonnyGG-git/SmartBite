@@ -43,6 +43,9 @@
         </div>
         <button type="submit" class="btn btn-primary btn-lg btn-block"><span>Entrar</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
       </form>
+      <p><a href="{% url 'cliente:restaurantes' %}">Soy cliente: quiero pedir en un restaurante</a></p>
+      <p><a href="{% url 'cuentas:registro_empleado' %}">Soy empleado: entrar con el código de mi restaurante</a></p>
+      <p><a href="{% url 'cuentas:registro_admin' %}">Soy administrador: crear mi cuenta</a></p>
     </div>
   </main>
 </div>

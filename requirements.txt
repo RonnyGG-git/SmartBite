@@ -6,3 +6,8 @@ gunicorn>=23.0
 whitenoise>=6.7
 psycopg[binary]>=3.2
 dj-database-url>=2.2
+djangorestframework>=3.16
+drf-spectacular>=0.28
+
+scikit-learn>=1.5
+rapidfuzz>=3.9

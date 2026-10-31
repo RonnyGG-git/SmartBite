@@ -4,17 +4,17 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.mixins import RoleRequiredMixin, usuario_tiene_rol
+from core.tenancy import RestauranteMixin, filtrar
 
 from .forms import CategoriaForm, ProductoForm
 from .models import Categoria, Producto
 
-# Platillos y categorías del menú: Administrador y Chef (Módulo de Menú del
-# diagrama de casos de uso). El Jefe de Inventario solo consulta.
 ROLES_GESTION = ["ADMINISTRADOR", "JEFE_COCINA"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_INVENTARIO", "JEFE_COCINA"]
 
 
-class ProductoListView(RoleRequiredMixin, ListView):
+class ProductoListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Producto
     roles_permitidos = ROLES_LECTURA
     template_name = "catalogo/productos_list.html"
@@ -23,12 +23,12 @@ class ProductoListView(RoleRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        # Los roles de solo lectura no ven acciones que les darían 403
         contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
         return contexto
 
 
-class ProductoCreateView(RoleRequiredMixin, CreateView):
+class ProductoCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Producto
     form_class = ProductoForm
     roles_permitidos = ROLES_GESTION
@@ -37,14 +37,6 @@ class ProductoCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("catalogo:productos_list")
 
     def get_initial(self):
-        """Precarga nombre y descripcion si llegan por query string.
-
-        Es el puente con el Asistente de recetas: "Usar esta sugerencia"
-        manda ?nombre=...&descripcion=... y el formulario aparece ya escrito,
-        para que convertir una receta en producto sea un clic y no un
-        retipeo. Solo en GET: un POST manda los datos del formulario y no
-        debe mezclarse con lo que venga en la URL.
-        """
         inicial = super().get_initial()
         if self.request.method == "GET":
             for campo in ("nombre", "descripcion"):
@@ -54,7 +46,8 @@ class ProductoCreateView(RoleRequiredMixin, CreateView):
         return inicial
 
 
-class ProductoUpdateView(RoleRequiredMixin, UpdateView):
+class ProductoUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Producto
     form_class = ProductoForm
     roles_permitidos = ROLES_GESTION
@@ -63,7 +56,8 @@ class ProductoUpdateView(RoleRequiredMixin, UpdateView):
     success_url = reverse_lazy("catalogo:productos_list")
 
 
-class ProductoDeleteView(RoleRequiredMixin, DeleteView):
+class ProductoDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Producto
     roles_permitidos = ROLES_GESTION
     template_name = "includes/confirm_delete.html"
@@ -72,16 +66,17 @@ class ProductoDeleteView(RoleRequiredMixin, DeleteView):
 
 @require_POST
 def producto_toggle_disponibilidad(request, pk):
-    producto = get_object_or_404(Producto, pk=pk)
     usuario = request.user
     permitido = usuario_tiene_rol(usuario, ROLES_GESTION)
     if permitido:
+        producto = get_object_or_404(filtrar(Producto.objects, request, "sucursal__restaurante"), pk=pk)
         producto.disponible = not producto.disponible
         producto.save(update_fields=["disponible"])
     return redirect("catalogo:productos_list")
 
 
-class CategoriaListView(RoleRequiredMixin, ListView):
+class CategoriaListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "restaurante"
     model = Categoria
     roles_permitidos = ROLES_LECTURA
     template_name = "catalogo/categorias_list.html"
@@ -89,12 +84,13 @@ class CategoriaListView(RoleRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        # Los roles de solo lectura no ven acciones que les darían 403
         contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_GESTION)
         return contexto
 
 
-class CategoriaCreateView(RoleRequiredMixin, CreateView):
+class CategoriaCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "restaurante"
+    asignar_restaurante = True
     model = Categoria
     form_class = CategoriaForm
     roles_permitidos = ROLES_GESTION
@@ -103,7 +99,8 @@ class CategoriaCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("catalogo:categorias_list")
 
 
-class CategoriaUpdateView(RoleRequiredMixin, UpdateView):
+class CategoriaUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "restaurante"
     model = Categoria
     form_class = CategoriaForm
     roles_permitidos = ROLES_GESTION
@@ -112,7 +109,8 @@ class CategoriaUpdateView(RoleRequiredMixin, UpdateView):
     success_url = reverse_lazy("catalogo:categorias_list")
 
 
-class CategoriaDeleteView(RoleRequiredMixin, DeleteView):
+class CategoriaDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
+    ruta_restaurante = "restaurante"
     model = Categoria
     roles_permitidos = ROLES_GESTION
     template_name = "includes/confirm_delete.html"

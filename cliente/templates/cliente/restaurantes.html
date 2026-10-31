@@ -1,0 +1,69 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Restaurantes — Smart Bite{% endblock %}
+{% block extra_head %}
+<style>
+  .directorio-busqueda { display: flex; flex-wrap: wrap; gap: 8px; }
+  .directorio-busqueda input[type=search] { flex: 1 1 220px; min-width: 0; }
+  .directorio-estado { min-height: 20px; margin: 10px 0 4px; color: var(--text-2); font-size: 13px; }
+  .directorio-item { color: inherit; text-decoration: none; }
+  .directorio-item:hover { border-color: var(--accent-line); }
+</style>
+{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>¿Dónde quieres pedir?</h1>
+  <p>Elige un restaurante para ver su menú y hacer tu pedido para llevar o para comer allá.</p>
+</section>
+
+<form method="get" class="directorio-busqueda" id="form-directorio">
+  <input type="search" name="q" value="{{ busqueda }}" placeholder="Buscar restaurante o dirección" aria-label="Buscar restaurante o dirección">
+  <input type="hidden" name="lat" value="{{ request.GET.lat|default:'' }}">
+  <input type="hidden" name="lng" value="{{ request.GET.lng|default:'' }}">
+  <button type="submit" class="btn btn-ghost">Buscar</button>
+  <button type="button" class="btn btn-primary" id="usar-ubicacion"><svg class="ico ico-sm"><use href="#i-store"/></svg><span>{% if con_ubicacion %}Actualizar ubicación{% else %}Ver los más cercanos{% endif %}</span></button>
+</form>
+<p class="directorio-estado" id="estado-ubicacion" aria-live="polite">{% if con_ubicacion %}Ordenados por distancia a tu ubicación.{% endif %}</p>
+
+<div class="menu-list directorio-lista">
+  {% for s in sucursales %}
+    <a class="dish directorio-item{% if s.pk == elegida %} is-selected{% endif %}" href="{% url 'cliente:sucursal' s.pk %}">
+      <div>
+        <h3 class="dish-name">{{ s.restaurante.nombre }} — {{ s.nombre }}</h3>
+        {% if s.direccion %}<p class="dish-desc">{{ s.direccion }}</p>{% endif %}
+      </div>
+      <span class="dish-price">{% if s.distancia_km is not None %}{% if s.distancia_km < 1 %}{% widthratio s.distancia_km 1 1000 %} m{% else %}{{ s.distancia_km|floatformat:1 }} km{% endif %}{% else %}<svg class="ico"><use href="#i-arrow-right"/></svg>{% endif %}</span>
+    </a>
+  {% empty %}
+    <div class="notice">
+      <svg class="ico"><use href="#i-store"/></svg>
+      <span>{% if busqueda %}No encontramos restaurantes con «{{ busqueda }}».{% else %}Todavía no hay restaurantes con menú disponible.{% endif %}</span>
+    </div>
+  {% endfor %}
+</div>
+
+<p class="menu-foot">¿Estás en el restaurante? Escanea el código QR de tu mesa y te llevamos directo a su menú.</p>
+
+<script>
+  (function () {
+    const boton = document.getElementById("usar-ubicacion");
+    const estado = document.getElementById("estado-ubicacion");
+    const form = document.getElementById("form-directorio");
+    boton.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        estado.textContent = "Tu navegador no permite compartir la ubicación.";
+        return;
+      }
+      estado.textContent = "Buscando tu ubicación…";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          form.lat.value = pos.coords.latitude.toFixed(5);
+          form.lng.value = pos.coords.longitude.toFixed(5);
+          form.submit();
+        },
+        () => { estado.textContent = "No pudimos obtener tu ubicación. Puedes buscar por nombre."; },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      );
+    });
+  })();
+</script>
+{% endblock %}

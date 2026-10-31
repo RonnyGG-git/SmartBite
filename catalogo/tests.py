@@ -5,9 +5,6 @@ from core.testing import crear_escenario, crear_usuario
 
 
 class PermisosPlatillosTests(TestCase):
-    """Platillos y categorías: los gestionan Administrador y Chef; el Jefe de
-    Inventario solo los consulta."""
-
     def setUp(self):
         self.d = crear_escenario()
         self.producto = self.d["bandeja"]

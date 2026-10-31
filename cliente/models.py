@@ -4,10 +4,6 @@ from core.models import TimestampedModel
 
 
 class Retroalimentacion(TimestampedModel):
-    """CU-PED-17 Enviar retroalimentación. Sugerencia (CU-PED-18) y denuncia
-    (CU-PED-19) son sus dos especializaciones; el Administrador las revisa
-    en CU-ADM-16."""
-
     SUGERENCIA = "SUGERENCIA"
     DENUNCIA = "DENUNCIA"
     TIPO_CHOICES = [(SUGERENCIA, "Sugerencia"), (DENUNCIA, "Denuncia")]

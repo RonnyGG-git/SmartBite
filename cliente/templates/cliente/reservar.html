@@ -1,0 +1,49 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Reservar mesa · {{ sucursal.restaurante.nombre }} — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Reservar mesa</h1>
+  <p>{{ sucursal.restaurante.nombre }} — {{ sucursal.nombre }}. Te apartamos una mesa y te damos un código para mostrar al llegar.</p>
+</section>
+
+{% if mis_reservas %}
+<div class="notice mb-16">
+  <svg class="ico"><use href="#i-clock"/></svg>
+  <span>Tienes {{ mis_reservas|length }} reserva{{ mis_reservas|length|pluralize }} activa{{ mis_reservas|length|pluralize }}:
+    {% for r in mis_reservas %}<a href="{% url 'cliente:reserva' r.codigo %}" class="mono">{{ r.codigo }}</a> ({{ r.fecha_hora|date:"j M, H:i" }}){% if not forloop.last %}, {% endif %}{% endfor %}
+  </span>
+</div>
+{% endif %}
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+  {% if alternativas %}
+  <div class="mb-16">
+    <p>Horarios libres cercanos:</p>
+    <div class="chips">
+      {% for a in alternativas %}
+        <a class="chip" href="{% url 'cliente:reservar' %}?fecha={{ a|date:'Y-m-d' }}&hora={{ a|date:'H:i' }}&personas={{ personas }}">{{ a|date:"j M · H:i" }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="form-fields">
+    {% for field in form %}
+      <div class="field{% if field.errors %} field--error{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary btn-lg"><svg class="ico"><use href="#i-check"/></svg><span>Reservar</span></button>
+  </div>
+</form>
+
+<p class="menu-foot">Reserva con al menos 1 hora de anticipación. Si llegas más de 15 minutos tarde, la mesa se libera.</p>
+{% endblock %}

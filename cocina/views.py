@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from core.mixins import RoleRequiredMixin, rol_requerido
+from core.tenancy import RestauranteMixin, filtrar
 from operativo.models import Orden
 
 ROLES_COCINA = ["ADMINISTRADOR", "JEFE_COCINA"]
@@ -15,9 +16,6 @@ TIEMPOS_ESTIMADOS = [5, 10, 15, 20, 30, 45, 60]
 
 
 def insumos_faltantes(orden):
-    """CU-PED-22 Verificar disponibilidad de ingredientes: compara lo que pide
-    la receta de cada platillo (× cantidad) con el stock actual. Devuelve los
-    ítems de inventario que no alcanzan (CU-PED-12 lo reporta en el ticket)."""
     requerido = OrderedDict()
     for detalle in orden.detalles.all():
         for ing in detalle.producto.ingredientes.all():
@@ -28,9 +26,8 @@ def insumos_faltantes(orden):
     return [item for item, cantidad in requerido.items() if item.stock_actual < cantidad]
 
 
-class CocinaListView(RoleRequiredMixin, ListView):
-    """CU-PED-09 Consultar pedidos en cola."""
-
+class CocinaListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "sucursal__restaurante"
     roles_permitidos = ROLES_COCINA
     template_name = "cocina/cocina.html"
     context_object_name = "ordenes"
@@ -51,10 +48,7 @@ class CocinaListView(RoleRequiredMixin, ListView):
 @require_POST
 @rol_requerido(*ROLES_COCINA)
 def actualizar_estado(request, pk):
-    """CU-PED-10 Actualizar estado de preparación.
-    - iniciar: PENDIENTE -> EN_PREPARACION, fija el tiempo estimado (CU-PED-23).
-    - listo:   EN_PREPARACION -> LISTA (CU-PED-11 Confirmar pedido listo)."""
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     accion = request.POST.get("accion")
 
     if accion == "iniciar" and orden.estado == Orden.PENDIENTE:
@@ -65,8 +59,6 @@ def actualizar_estado(request, pk):
         if not 1 <= minutos <= 240:
             messages.error(request, "Indica un tiempo estimado de preparación válido.")
             return redirect("cocina:cocina")
-        # El descuento de insumos y la ocupación de mesa los decide el modelo,
-        # no esta vista (ver Orden.cambiar_estado).
         orden.cambiar_estado(
             Orden.EN_PREPARACION,
             tiempo_estimado_min=minutos,
@@ -75,7 +67,8 @@ def actualizar_estado(request, pk):
         messages.success(request, f"Orden #{orden.pk} en preparación ({minutos} min).")
     elif accion == "listo" and orden.estado == Orden.EN_PREPARACION:
         orden.cambiar_estado(Orden.LISTA)
-        messages.success(request, f"Orden #{orden.pk} lista para servir en la mesa {orden.mesa.numero}.")
+        destino = f"servir en la mesa {orden.mesa.numero}" if orden.mesa_id else "entregar al cliente"
+        messages.success(request, f"Orden #{orden.pk} lista para {destino}.")
     else:
         messages.error(request, "Esa acción ya no aplica al estado actual de la orden.")
     return redirect("cocina:cocina")

@@ -15,8 +15,6 @@ from .models import Cliente, DetalleOrden, Mesa, Orden
 
 
 class TestBase(TestCase):
-    """Datos de prueba comunes para todas las suites de operativo."""
-
     def setUp(self):
         self.restaurante = Restaurante.objects.create(
             nombre="Restaurante Test",
@@ -45,8 +43,6 @@ class TestBase(TestCase):
 
 
 class CambiarEstadoOrdenFormTests(TestBase):
-    """Tests para T2: filtrado de choices de estado en CambiarEstadoOrdenForm."""
-
     def _crear_orden(self, estado=Orden.PENDIENTE):
         return Orden.objects.create(mesa=self.mesa, estado=estado)
 
@@ -54,7 +50,6 @@ class CambiarEstadoOrdenFormTests(TestBase):
         form = CambiarEstadoOrdenForm(orden=orden)
         return [val for val, _ in form.fields["estado"].choices]
 
-    # --- PENDIENTE ---
 
     def test_pendiente_muestra_en_preparacion_y_cancelada(self):
         orden = self._crear_orden(Orden.PENDIENTE)
@@ -78,7 +73,6 @@ class CambiarEstadoOrdenFormTests(TestBase):
         estados = self._estados_disponibles(orden)
         self.assertNotIn(Orden.PENDIENTE, estados)
 
-    # --- EN_PREPARACION ---
 
     def test_en_preparacion_muestra_lista_y_cancelada(self):
         orden = self._crear_orden(Orden.EN_PREPARACION)
@@ -97,7 +91,6 @@ class CambiarEstadoOrdenFormTests(TestBase):
         estados = self._estados_disponibles(orden)
         self.assertNotIn(Orden.ENTREGADA, estados)
 
-    # --- LISTA ---
 
     def test_lista_muestra_entregada_y_cancelada(self):
         orden = self._crear_orden(Orden.LISTA)
@@ -116,24 +109,20 @@ class CambiarEstadoOrdenFormTests(TestBase):
         estados = self._estados_disponibles(orden)
         self.assertNotIn(Orden.EN_PREPARACION, estados)
 
-    # --- ENTREGADA (terminal) ---
 
     def test_entregada_no_muestra_ningun_estado(self):
         orden = self._crear_orden(Orden.ENTREGADA)
         estados = self._estados_disponibles(orden)
         self.assertEqual(len(estados), 0)
 
-    # --- CANCELADA (terminal) ---
 
     def test_cancelada_no_muestra_ningun_estado(self):
         orden = self._crear_orden(Orden.CANCELADA)
         estados = self._estados_disponibles(orden)
         self.assertEqual(len(estados), 0)
 
-    # --- Validacion de transicion invalida ---
 
     def test_transicion_invalida_rechazada(self):
-        """Una transicion no permitida (EN_PREPARACION -> PENDIENTE) debe fallar la validacion."""
         orden = self._crear_orden(Orden.EN_PREPARACION)
         form = CambiarEstadoOrdenForm(
             data={"estado": Orden.PENDIENTE},
@@ -142,7 +131,6 @@ class CambiarEstadoOrdenFormTests(TestBase):
         self.assertFalse(form.is_valid())
 
     def test_transicion_valida_aceptada(self):
-        """Una transicion permitida (PENDIENTE -> EN_PREPARACION) debe pasar la validacion."""
         orden = self._crear_orden(Orden.PENDIENTE)
         form = CambiarEstadoOrdenForm(
             data={"estado": Orden.EN_PREPARACION},
@@ -152,10 +140,7 @@ class CambiarEstadoOrdenFormTests(TestBase):
 
 
 class ClienteUnicidadTest(TestCase):
-    """Tests para T1.2: unique_together en Cliente (H10)."""
-
     def test_clientes_misma_combinacion_lanza_integrity_error(self):
-        """Crear dos Clientes con mismo nombre, telefono y email lanza IntegrityError."""
         Cliente.objects.create(
             nombre="Juan Perez",
             telefono="3001234567",
@@ -169,7 +154,6 @@ class ClienteUnicidadTest(TestCase):
             )
 
     def test_clientes_mismo_nombre_distinto_telefono_no_error(self):
-        """Dos Clientes con mismo nombre pero distinto telefono no deben fallar."""
         Cliente.objects.create(
             nombre="Juan Perez",
             telefono="3001234567",
@@ -183,7 +167,6 @@ class ClienteUnicidadTest(TestCase):
         self.assertIsNotNone(cliente2.pk)
 
     def test_clientes_mismo_nombre_distinto_email_no_error(self):
-        """Dos Clientes con mismo nombre pero distinto email no deben fallar."""
         Cliente.objects.create(
             nombre="Maria Lopez",
             telefono="3001234567",
@@ -198,8 +181,6 @@ class ClienteUnicidadTest(TestCase):
 
 
 class DetalleOrdenTimestampedTest(TestCase):
-    """Tests para T1.3: DetalleOrden hereda de TimestampedModel (G10)."""
-
     def setUp(self):
         self.restaurante = Restaurante.objects.create(
             nombre="Restaurante Test",
@@ -228,7 +209,6 @@ class DetalleOrdenTimestampedTest(TestCase):
         )
 
     def test_detalle_tiene_campo_creado_en(self):
-        """DetalleOrden debe tener campo creado_en (auto_now_add)."""
         detalle = DetalleOrden.objects.create(
             orden=self.orden,
             producto=self.producto,
@@ -238,7 +218,6 @@ class DetalleOrdenTimestampedTest(TestCase):
         self.assertIsNotNone(detalle.creado_en)
 
     def test_detalle_tiene_campo_actualizado_en(self):
-        """DetalleOrden debe tener campo actualizado_en (auto_now)."""
         detalle = DetalleOrden.objects.create(
             orden=self.orden,
             producto=self.producto,
@@ -248,7 +227,6 @@ class DetalleOrdenTimestampedTest(TestCase):
         self.assertIsNotNone(detalle.actualizado_en)
 
     def test_actualizado_en_se_actualiza_al_guardar(self):
-        """actualizado_en debe cambiar al modificar el registro."""
         detalle = DetalleOrden.objects.create(
             orden=self.orden,
             producto=self.producto,
@@ -256,10 +234,6 @@ class DetalleOrdenTimestampedTest(TestCase):
             precio_unitario=self.producto.precio,
         )
         original = detalle.actualizado_en
-        # Pausa para garantizar una diferencia de tiempo real entre create() y
-        # save(): en Windows la resolucion del reloj (~1 ms) puede hacer que
-        # ambos guardados caigan en el mismo milisegundo y auto_now repita el
-        # mismo valor de actualizado_en.
         time.sleep(0.05)
         detalle.cantidad = 3
         detalle.save()
@@ -267,7 +241,6 @@ class DetalleOrdenTimestampedTest(TestCase):
         self.assertGreater(detalle.actualizado_en, original)
 
     def test_creado_en_no_cambia_al_guardar(self):
-        """creado_en no debe cambiar al modificar el registro."""
         detalle = DetalleOrden.objects.create(
             orden=self.orden,
             producto=self.producto,
@@ -282,8 +255,6 @@ class DetalleOrdenTimestampedTest(TestCase):
 
 
 class GenerarQrAuthTest(TestBase):
-    """Tests para T3.1: proteger generar_qr con autenticacion (RF-009, H3)."""
-
     def setUp(self):
         super().setUp()
         self.client = Client()
@@ -296,10 +267,10 @@ class GenerarQrAuthTest(TestBase):
             nombre=nombre,
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
 
     def test_generar_qr_sin_autenticacion_redirige_a_login(self):
-        """Un usuario sin sesion que accede a generar_qr es redirigido al login."""
         respuesta = self.client.get(self.url_qr)
         self.assertRedirects(
             respuesta,
@@ -308,21 +279,18 @@ class GenerarQrAuthTest(TestBase):
         )
 
     def test_generar_qr_rol_no_autorizado_recibe_403(self):
-        """Un usuario autenticado con rol no permitido (CAJERO) recibe 403."""
         self._crear_usuario("cajero.qr@test.com", "Cajero Test", "CAJERO")
         self.client.login(email="cajero.qr@test.com", password="testpass123")
         respuesta = self.client.get(self.url_qr)
         self.assertEqual(respuesta.status_code, 403)
 
     def test_generar_qr_mesero_accede(self):
-        """Un MESERO autenticado puede acceder a generar_qr."""
         self._crear_usuario("mesero.qr@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.qr@test.com", password="testpass123")
         respuesta = self.client.get(self.url_qr)
         self.assertEqual(respuesta.status_code, 200)
 
     def test_generar_qr_administrador_accede(self):
-        """Un ADMINISTRADOR autenticado puede acceder a generar_qr."""
         self._crear_usuario("admin.qr@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.qr@test.com", password="testpass123")
         respuesta = self.client.get(self.url_qr)
@@ -330,8 +298,6 @@ class GenerarQrAuthTest(TestBase):
 
 
 class CrearClienteRapidoAuthTest(TestBase):
-    """Tests para T3.2: proteger crear_cliente_rapido (RF-009, H4)."""
-
     def setUp(self):
         super().setUp()
         self.client = Client()
@@ -349,10 +315,10 @@ class CrearClienteRapidoAuthTest(TestBase):
             nombre=nombre,
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
 
     def test_crear_cliente_rapido_sin_autenticacion_redirige_a_login(self):
-        """Un usuario sin sesion que hace POST recibe 302 al login y no crea el cliente."""
         respuesta = self.client.post(self.url, self.datos_cliente)
         self.assertRedirects(
             respuesta,
@@ -362,7 +328,6 @@ class CrearClienteRapidoAuthTest(TestBase):
         self.assertFalse(Cliente.objects.filter(nombre="Cliente Rapido").exists())
 
     def test_crear_cliente_rapido_rol_no_autorizado_recibe_403(self):
-        """Un usuario autenticado con rol no permitido (CAJERO) recibe 403."""
         self._crear_usuario("cajero.cliente@test.com", "Cajero Test", "CAJERO")
         self.client.login(email="cajero.cliente@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_cliente)
@@ -370,7 +335,6 @@ class CrearClienteRapidoAuthTest(TestBase):
         self.assertFalse(Cliente.objects.filter(nombre="Cliente Rapido").exists())
 
     def test_crear_cliente_rapido_mesero_crea_cliente_y_redirige(self):
-        """Un MESERO autenticado crea el cliente y es redirigido a crear_orden."""
         self._crear_usuario("mesero.cliente@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.cliente@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_cliente)
@@ -382,7 +346,6 @@ class CrearClienteRapidoAuthTest(TestBase):
         self.assertTrue(Cliente.objects.filter(nombre="Cliente Rapido").exists())
 
     def test_crear_cliente_rapido_administrador_accede(self):
-        """Un ADMINISTRADOR autenticado crea el cliente y es redirigido a crear_orden."""
         self._crear_usuario("admin.cliente@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.cliente@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_cliente)
@@ -394,7 +357,6 @@ class CrearClienteRapidoAuthTest(TestBase):
         self.assertTrue(Cliente.objects.filter(nombre="Cliente Rapido").exists())
 
     def test_crear_cliente_rapido_redirect_ignora_http_referer(self):
-        """El redirect posterior al POST siempre apunta a crear_orden, sin usar HTTP_REFERER."""
         self._crear_usuario("mesero.referer@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.referer@test.com", password="testpass123")
         respuesta = self.client.post(
@@ -407,8 +369,6 @@ class CrearClienteRapidoAuthTest(TestBase):
 
 
 class AgregarProductoAuthTest(TestBase):
-    """Tests para T3.3: proteger agregar_producto con autenticacion (RF-009)."""
-
     def setUp(self):
         super().setUp()
         self.client = Client()
@@ -423,10 +383,10 @@ class AgregarProductoAuthTest(TestBase):
             nombre=nombre,
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
 
     def test_agregar_producto_sin_autenticacion_redirige_a_login(self):
-        """Un usuario sin sesion que hace POST recibe 302 al login y no agrega el producto."""
         respuesta = self.client.post(self.url, self.datos_producto)
         self.assertRedirects(
             respuesta,
@@ -436,7 +396,6 @@ class AgregarProductoAuthTest(TestBase):
         self.assertEqual(DetalleOrden.objects.count(), 0)
 
     def test_agregar_producto_rol_no_autorizado_recibe_403(self):
-        """Un usuario autenticado con rol no permitido (CAJERO) recibe 403."""
         self._crear_usuario("cajero.producto@test.com", "Cajero Test", "CAJERO")
         self.client.login(email="cajero.producto@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_producto)
@@ -444,7 +403,6 @@ class AgregarProductoAuthTest(TestBase):
         self.assertEqual(DetalleOrden.objects.count(), 0)
 
     def test_agregar_producto_mesero_agrega_producto(self):
-        """Un MESERO autenticado agrega el producto y es redirigido al detalle."""
         self._crear_usuario("mesero.producto@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.producto@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_producto)
@@ -460,7 +418,6 @@ class AgregarProductoAuthTest(TestBase):
         self.assertEqual(detalle.cantidad, 2)
 
     def test_agregar_producto_administrador_agrega_producto(self):
-        """Un ADMINISTRADOR autenticado agrega el producto y es redirigido al detalle."""
         self._crear_usuario("admin.producto@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.producto@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_producto)
@@ -473,8 +430,6 @@ class AgregarProductoAuthTest(TestBase):
 
 
 class CambiarEstadoOrdenAuthTest(TestBase):
-    """Tests para T3.4: proteger cambiar_estado_orden con autenticacion (RF-009)."""
-
     def setUp(self):
         super().setUp()
         self.client = Client()
@@ -489,10 +444,10 @@ class CambiarEstadoOrdenAuthTest(TestBase):
             nombre=nombre,
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
 
     def test_cambiar_estado_sin_autenticacion_redirige_a_login(self):
-        """Un usuario sin sesion que hace POST recibe 302 al login y el estado no cambia."""
         respuesta = self.client.post(self.url, self.datos_estado)
         self.assertRedirects(
             respuesta,
@@ -503,7 +458,6 @@ class CambiarEstadoOrdenAuthTest(TestBase):
         self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
     def test_cambiar_estado_rol_no_autorizado_recibe_403(self):
-        """Un usuario autenticado con rol no permitido (CAJERO) recibe 403."""
         self._crear_usuario("cajero.estado@test.com", "Cajero Test", "CAJERO")
         self.client.login(email="cajero.estado@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_estado)
@@ -511,8 +465,7 @@ class CambiarEstadoOrdenAuthTest(TestBase):
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
-    def test_cambiar_estado_mesero_cambia_estado(self):
-        """Un MESERO autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
+    def test_cambiar_estado_mesero_no_puede_iniciar_preparacion(self):
         self._crear_usuario("mesero.estado@test.com", "Mesero Test", "MESERO")
         self.client.login(email="mesero.estado@test.com", password="testpass123")
         respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
@@ -524,10 +477,21 @@ class CambiarEstadoOrdenAuthTest(TestBase):
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, Orden.CANCELADA)
 
-    def test_cambiar_estado_administrador_cambia_estado(self):
-        """Un ADMINISTRADOR autenticado cancela una orden PENDIENTE y es redirigido al detalle."""
+    def test_cambiar_estado_administrador_tampoco_inicia_preparacion(self):
         self._crear_usuario("admin.estado@test.com", "Admin Test", "ADMINISTRADOR")
         self.client.login(email="admin.estado@test.com", password="testpass123")
+        respuesta = self.client.post(self.url, self.datos_estado)
+        self.assertRedirects(
+            respuesta,
+            reverse("operativo:detalle_orden", kwargs={"pk": self.orden.pk}),
+            fetch_redirect_response=False,
+        )
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.PENDIENTE)
+
+    def test_cambiar_estado_mesero_si_puede_cancelar(self):
+        self._crear_usuario("mesero.cancelar@test.com", "Mesero Test", "MESERO")
+        self.client.login(email="mesero.cancelar@test.com", password="testpass123")
         respuesta = self.client.post(self.url, {"estado": Orden.CANCELADA})
         self.assertRedirects(
             respuesta,
@@ -539,8 +503,6 @@ class CambiarEstadoOrdenAuthTest(TestBase):
 
 
 class CrearOrdenTest(TestBase):
-    """Tests para T4.1: proteger creacion de orden contra concurrencia (RF-001, RF-010, H5)."""
-
     def setUp(self):
         super().setUp()
         self.url = reverse("operativo:crear_orden")
@@ -550,11 +512,11 @@ class CrearOrdenTest(TestBase):
             nombre="Mesero Test",
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
         self.datos_orden = {"mesa": self.mesa.pk}
 
     def test_crear_orden_mesa_disponible_funciona(self):
-        """(a) Crear una orden para una mesa DISPONIBLE sigue funcionando: PENDIENTE + mesa OCUPADA."""
         self.client.login(email="mesero.orden@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_orden)
         self.assertEqual(respuesta.status_code, 302)
@@ -570,12 +532,6 @@ class CrearOrdenTest(TestBase):
         self.assertEqual(self.mesa.estado, Mesa.OCUPADA)
 
     def test_crear_orden_mesa_con_orden_activa_rechazada(self):
-        """(b) Si la mesa ya tiene una orden activa, la segunda creacion se rechaza con error.
-
-        Se crea la orden activa directamente con la mesa en DISPONIBLE para
-        recrear exactamente el estado que la guarda `orden_activa` debe
-        detectar (estado de carrera de dos solicitudes simultaneas).
-        """
         Orden.objects.create(mesa=self.mesa, estado=Orden.PENDIENTE)
         self.client.login(email="mesero.orden@test.com", password="testpass123")
         respuesta = self.client.post(self.url, self.datos_orden)
@@ -587,44 +543,6 @@ class CrearOrdenTest(TestBase):
 
 
 class CrearOrdenConcurrenciaTest(TransactionTestCase):
-    """Tests para T4.1: concurrencia real en la creacion de orden (RF-010, H5).
-
-    Se usa TransactionTestCase (y no TestCase) porque TestCase envuelve cada
-    test en una transaccion y oculta los bloqueos reales de la base de datos;
-    aqui los datos de setUp quedan commiteados y dos hilos compiten de verdad.
-
-    Patron de concurrencia:
-    - Dos hilos con threading.Barrier para sincronizar el POST simultaneo.
-    - Cada hilo crea su propio Client (ya logueado desde el hilo principal,
-      para no escribir sesiones en paralelo).
-    - Cada hilo cierra sus conexiones de BD al terminar con
-      connections.close_all(), porque cada hilo crea su propia conexion.
-
-    Los Client se crean con raise_request_exception=False. Motivo: la senal
-    global got_request_exception se dispara en el hilo que falla y ejecuta el
-    store_exc_info de TODOS los Client conectados a la vez, por lo que el
-    Client del hilo ganador almacenaria la excepcion del perdedor y su
-    check_exception la relanzaria sobre un POST que ya hizo commit y devolvio
-    302, clasificandolo incorrectamente como error. Con la bandera en False
-    cada respuesta se clasifica solo por su status code, que si es confiable:
-      302 -> creo la orden (redirect a detalle).
-      200 -> rechazada (mesa ya con orden activa, o invalida si la mesa
-             quedo OCUPADA por el ganador antes de validar el form).
-      500 -> fallo de base de datos durante la peticion (bloqueo de SQLite).
-
-    Limitacion conocida: SQLite ignora select_for_update() (es un no-op) y,
-    en el modo cache compartido en memoria de los tests, usa bloqueo a nivel
-    de tabla: dos hilos que escriben la misma tabla a la vez reciben
-    'database table is locked' (el busy-handler no se invoca para
-    SQLITE_LOCKED). Por eso el test es de doble camino: (1) si al menos un
-    hilo tuvo exito (302), exige el criterio completo — exactamente una orden
-    creada, la otra solicitud rechazada (200) o con error de BD (500); (2)
-    si ambos recibieron el bloqueo de SQLite (500), exige la invariante
-    RF-010 — nunca mas de una orden, ningun estado parcial — y deja el
-    resultado documentado. El caso funcional secuencial esta cubierto por
-    CrearOrdenTest.
-    """
-
     def setUp(self):
         self.restaurante = Restaurante.objects.create(
             nombre="Restaurante Test",
@@ -648,12 +566,12 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
             nombre="Mesero Test",
             password="testpass123",
             rol=rol,
+            restaurante=self.restaurante,
         )
         self.url = reverse("operativo:crear_orden")
         self.datos_orden = {"mesa": self.mesa.pk}
 
     def test_dos_solicitudes_simultaneas_solo_crean_una_orden(self):
-        """Dos POST simultaneos para la misma mesa: solo una orden exitosa, la otra recibe error."""
         clientes = []
         for _ in range(2):
             cliente = Client(raise_request_exception=False)
@@ -709,7 +627,6 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
         creados = [r for r in resultados if r[0] == "creado"]
         total_ordenes = Orden.objects.filter(mesa=self.mesa).count()
 
-        # RF-010: invariante absoluta en cualquier entorno: jamas dos ordenes.
         self.assertLessEqual(
             total_ordenes,
             1,
@@ -722,8 +639,6 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
         )
 
         if creados:
-            # Camino con una ganadora: exactamente una orden creada y la otra
-            # solicitud rechazada (200) o con error de bloqueo (500).
             self.assertEqual(
                 len(creados),
                 1,
@@ -748,10 +663,6 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
             self.mesa.refresh_from_db()
             self.assertEqual(self.mesa.estado, Mesa.OCUPADA)
         else:
-            # Camino documentado de SQLite (ver docstring): al escribir a la
-            # vez en la misma tabla del cache compartido, ambos hilos reciben
-            # 'database table is locked' (500) y ninguno crea la orden.
-            # RF-010 se cumple: no hubo ningun duplicado ni estado parcial.
             for tipo, detalle in resultados:
                 self.assertEqual(
                     tipo,
@@ -772,3 +683,53 @@ class CrearOrdenConcurrenciaTest(TransactionTestCase):
                 Mesa.DISPONIBLE,
                 "La mesa no debe quedar OCUPADA si nadie creo la orden",
             )
+
+
+class GestionMesasTest(TestBase):
+    def setUp(self):
+        super().setUp()
+        for email, rol_nombre in (("admin.mesas@test.com", "ADMINISTRADOR"), ("mesero.mesas@test.com", "MESERO")):
+            rol, _ = Rol.objects.get_or_create(nombre=rol_nombre)
+            Usuario.objects.create_user(
+                email=email, nombre=rol_nombre, password="testpass123", rol=rol, restaurante=self.restaurante,
+            )
+        self.url_lista = reverse("operativo:mesas_list")
+
+    def test_admin_ve_botones_para_gestionar_mesas(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.get(self.url_lista)
+        self.assertContains(respuesta, reverse("operativo:mesa_crear"))
+        self.assertContains(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertContains(respuesta, reverse("operativo:mesa_eliminar", args=[self.mesa.pk]))
+
+    def test_mesero_ve_mesas_pero_no_botones_de_gestion(self):
+        self.client.login(email="mesero.mesas@test.com", password="testpass123")
+        respuesta = self.client.get(self.url_lista)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(respuesta, reverse("operativo:mesa_crear"))
+        self.assertNotContains(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertEqual(self.client.get(reverse("operativo:mesa_crear")).status_code, 403)
+
+    def test_admin_crea_mesa_en_su_sucursal(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_crear"), {
+            "numero": 5, "capacidad": 6, "sucursal": self.sucursal.pk, "activa": "on",
+        })
+        self.assertRedirects(respuesta, self.url_lista)
+        mesa = Mesa.objects.get(numero=5)
+        self.assertEqual(mesa.sucursal, self.sucursal)
+        self.assertEqual(mesa.estado, Mesa.DISPONIBLE)
+
+    def test_admin_elimina_mesa_sin_ordenes(self):
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_eliminar", args=[self.mesa.pk]))
+        self.assertRedirects(respuesta, self.url_lista)
+        self.assertFalse(Mesa.objects.filter(pk=self.mesa.pk).exists())
+
+    def test_mesa_con_ordenes_no_se_elimina_y_avisa(self):
+        Orden.objects.create(mesa=self.mesa, estado=Orden.ENTREGADA)
+        self.client.login(email="admin.mesas@test.com", password="testpass123")
+        respuesta = self.client.post(reverse("operativo:mesa_eliminar", args=[self.mesa.pk]), follow=True)
+        self.assertRedirects(respuesta, reverse("operativo:mesa_editar", args=[self.mesa.pk]))
+        self.assertContains(respuesta, "tiene órdenes registradas")
+        self.assertTrue(Mesa.objects.filter(pk=self.mesa.pk).exists())

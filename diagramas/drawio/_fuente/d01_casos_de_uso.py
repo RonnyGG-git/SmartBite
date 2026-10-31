@@ -1,12 +1,3 @@
-"""01 — Casos de uso de Inventario según el código de la app Django de Ronny
-(rama smartbite): inventario/views.py, inventario/urls.py, reportes/views.py,
-cocina/views.py y docs/PARIDAD-CASOS-DE-USO.md. UML 2.5.1 cláusula 18.
-
-Solo se dibujan los casos que el código implementa (completos o en parte);
-los que no existen van en una nota. Actores = roles del código:
-JEFE_INVENTARIO, ADMINISTRADOR (puede todo lo del Jefe: ROLES_INVENTARIO lo
-incluye) y JEFE_COCINA (solo lectura de inventario y faltantes en cocina).
-"""
 from rutas import salida
 from drawio_lib import *  # noqa: F401,F403
 
@@ -25,7 +16,6 @@ d.sujeto("Inventario", SUJ_X, SUJ_Y, SUJ_W, SUJ_H, palabra_clave="subsystem")
 jefe = d.actor("Jefe de\nInventario", 170, fila(4) + 20)
 admin = d.actor("Administrador", 60, fila(9) + 20)
 
-# Columna A: casos con actor directo
 A = {}
 for i, (clave, texto) in enumerate([
     ("01", "Registrar producto"), ("03", "Actualizar producto"), ("02", "Consultar inventario"),
@@ -36,7 +26,6 @@ for i, (clave, texto) in enumerate([
 ], start=1):
     A[clave] = d.caso_uso(texto, COL_A, fila(i), W_A, H)
 
-# Columna B: el que usa el Jefe de Cocina y los que se invocan con «include»
 B = {
     "14": d.caso_uso("Consultar stock\ndisponible", COL_B, fila(2), W_B, H),
     "17": d.caso_uso("Registrar movimiento\nde inventario", COL_B, (fila(6) + fila(7)) // 2, W_B, H, VIOLETA),
@@ -46,7 +35,6 @@ B = {
 cocina = d.actor("Jefe de Cocina", 1290, fila(2) + 10)
 compras = d.actor("Módulo de Compras", 1290, fila(5) - 10, tipo="sistema")
 
-# Asociaciones
 for clave in ["01", "03", "02", "07", "05", "06", "08", "10", "04"]:
     d.arista(jefe, A[clave], ASOCIACION + "exitX=1;exitY=0.5;entryX=0;entryY=0.5;")
 d.arista(admin, A["12"], ASOCIACION + "exitX=1;exitY=0.5;entryX=0;entryY=0.5;")
@@ -54,10 +42,8 @@ d.arista(cocina, A["02"], ASOCIACION + "exitX=0;exitY=0.5;entryX=1;entryY=0.5;")
 d.arista(cocina, B["14"], ASOCIACION + "exitX=0;exitY=0.4;entryX=1;entryY=0.5;")
 d.arista(compras, A["05"], ASOCIACION + "exitX=0;exitY=0.4;entryX=1;entryY=0.35;")
 
-# El Administrador puede hacer todo lo del Jefe de Inventario (generalización entre actores)
 d.arista(admin, jefe, GENERALIZACION + "exitX=0.5;exitY=0;entryX=0;entryY=0.45;")
 
-# «include»: del caso base al incluido
 d.arista(A["05"], B["17"], INCLUDE + "exitX=0.95;exitY=0.75;entryX=0.25;entryY=0.05;", "«include»")
 d.arista(A["06"], B["17"], INCLUDE + "exitX=1;exitY=0.5;entryX=0;entryY=0.35;", "«include»")
 d.arista(A["08"], B["17"], INCLUDE + "exitX=1;exitY=0.5;entryX=0;entryY=0.65;", "«include»")
@@ -66,7 +52,6 @@ d.arista(A["04"], B["11"], INCLUDE + "exitX=1;exitY=0.5;entryX=0;entryY=0.5;", "
 d.arista(A["12"], A["04"], INCLUDE + "exitX=0.5;exitY=0;entryX=0.5;entryY=1;labelPosition=right;align=left;"
          "spacingLeft=6;", "«include»")
 
-# Comentarios
 y_n = SUJ_Y + SUJ_H + 25
 d.nota("Entrada, salida, ajuste y pérdida usan el mismo formulario de ajuste (item_ajustar_stock, tipo ENTRADA o "
        "SALIDA), que suma o resta stock_actual y crea el MovimientoInventario. La recepción de una compra también "

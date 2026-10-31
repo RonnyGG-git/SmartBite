@@ -29,8 +29,6 @@ def _crear_insumo_y_categoria(cursor, categoria_nombre="Lácteos", **overrides):
 
 
 def test_kardex_registra_fecha_usuario_insumo_tipo_y_cantidad(cursor):
-    # RF-18: cada movimiento queda trazable con estos 5 datos juntos — no
-    # alcanza con que la fila se inserte, hay que leerlos de vuelta.
     insumo_id = _crear_insumo_y_categoria(cursor)
     mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", usuario_id=7,
                                 cantidad_movimiento=4)
@@ -57,8 +55,6 @@ def test_insertar_entrada_valida(cursor):
 
 def test_insertar_salida_valida(cursor):
     insumo_id = _crear_insumo_y_categoria(cursor)
-    # Stock real primero (T7 calcula stock_anterior/stock_nuevo de verdad,
-    # ya no se puede simular con valores sueltos como en T6).
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
     mov_id = _crear_movimiento(cursor, insumo_id, "SALIDA", cantidad_movimiento=3)
     assert mov_id is not None
@@ -104,8 +100,6 @@ def test_consultar_movimientos_filtrando_por_insumo_tipo_y_fecha(cursor):
     otro_insumo_id = _crear_insumo_y_categoria(cursor, categoria_nombre="Cárnicos",
                                                 nombre="Otro insumo")
 
-    # El primer movimiento se inserta ya con fecha de hace 10 días para poder
-    # filtrar por rango (el kardex no admite UPDATE para retroceder la fecha).
     hace_10_dias = datetime.now(timezone.utc) - timedelta(days=10)
     _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=5,
                       creado_en=hace_10_dias)
@@ -124,11 +118,7 @@ def test_consultar_movimientos_filtrando_por_insumo_tipo_y_fecha(cursor):
     assert [r[0] for r in cursor.fetchall()] == [reciente_id]
 
 
-# --- Verificación posterior (2026-09-23): el kardex es de solo agregar ---
-
 def test_kardex_no_permite_editar_un_movimiento(cursor):
-    # Editar la cantidad de un movimiento ya aplicado dejaba el stock sin
-    # ningún movimiento que lo explique (rompe la trazabilidad de RF-18).
     insumo_id = _crear_insumo_y_categoria(cursor)
     mov_id = _crear_movimiento(cursor, insumo_id, "ENTRADA", cantidad_movimiento=10)
     with pytest.raises(psycopg2.errors.RaiseException):

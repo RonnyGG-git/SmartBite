@@ -2,7 +2,9 @@ import base64
 from io import BytesIO
 
 import qrcode
+from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import ProtectedError
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -12,9 +14,11 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 
 from catalogo.models import Producto
 from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
+from core.tenancy import RestauranteMixin, filtrar, limitar_opciones, restaurante_actual
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
-from .models import Cliente, DetalleOrden, Mesa, Orden, TransicionOrdenInvalida
+from .models import Cliente, DetalleOrden, Mesa, Orden, Reserva, TransicionOrdenInvalida
+from .services import cancelar_reserva as cancelar_reserva_servicio, confirmar_llegada, sincronizar_reservas
 
 ROLES_ADMIN = ["ADMINISTRADOR"]
 ROLES_MESERO = ["ADMINISTRADOR", "MESERO"]
@@ -22,15 +26,41 @@ ROLES_ORDEN = ["ADMINISTRADOR", "MESERO", "CAJERO"]
 ROLES_CAJA = ["ADMINISTRADOR", "CAJERO"]
 
 
-class MesaListView(RoleRequiredMixin, ListView):
+class MesaListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Mesa
     roles_permitidos = ROLES_MESERO
     template_name = "operativo/mesas_list.html"
     context_object_name = "mesas"
     queryset = Mesa.objects.select_related("sucursal").prefetch_related("ordenes")
 
+    def _reservas(self):
+        return filtrar(Reserva.objects, self.request, "mesa__sucursal__restaurante")
 
-class MesaCreateView(RoleRequiredMixin, CreateView):
+    def get_queryset(self):
+        sincronizar_reservas(self._reservas())
+        return super().get_queryset()
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["reservas_proximas"] = (
+            self._reservas()
+            .filter(estado=Reserva.CONFIRMADA, fecha_hora__gte=timezone.now() - Reserva.TOLERANCIA)
+            .select_related("mesa")[:20]
+        )
+        contexto["pedidos_sin_mesa"] = (
+            filtrar(Orden.objects, self.request, "sucursal__restaurante")
+            .filter(mesa__isnull=True)
+            .exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA])
+            .select_related("cliente", "sucursal")
+            .order_by("creado_en")
+        )
+        contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_ADMIN)
+        return contexto
+
+
+class MesaCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Mesa
     form_class = MesaForm
     roles_permitidos = ROLES_ADMIN
@@ -39,7 +69,8 @@ class MesaCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("operativo:mesas_list")
 
 
-class MesaUpdateView(RoleRequiredMixin, UpdateView):
+class MesaUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Mesa
     form_class = MesaForm
     roles_permitidos = ROLES_ADMIN
@@ -48,11 +79,22 @@ class MesaUpdateView(RoleRequiredMixin, UpdateView):
     success_url = reverse_lazy("operativo:mesas_list")
 
 
-class MesaDeleteView(RoleRequiredMixin, DeleteView):
+class MesaDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Mesa
     roles_permitidos = ROLES_ADMIN
     template_name = "includes/confirm_delete.html"
     success_url = reverse_lazy("operativo:mesas_list")
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                f"La mesa {self.object.numero} tiene órdenes registradas y no se puede eliminar. Desactívala en su lugar.",
+            )
+            return redirect("operativo:mesa_editar", pk=self.object.pk)
 
 
 def crear_orden(request):
@@ -63,10 +105,8 @@ def crear_orden(request):
     cliente_form = ClienteRapidoForm()
 
     if request.method == "POST":
-        form = CrearOrdenForm(request.POST)
+        form = limitar_opciones(CrearOrdenForm(request.POST), request)
         if form.is_valid():
-            # RF-010: transaccion atomica con bloqueo selectivo de la fila de
-            # la mesa y verificacion de orden activa antes de crear.
             with transaction.atomic():
                 mesa_bloqueada = Mesa.objects.select_for_update().get(
                     pk=form.cleaned_data["mesa"].pk
@@ -82,7 +122,7 @@ def crear_orden(request):
                     return redirect("operativo:detalle_orden", pk=orden.pk)
     else:
         initial = {"mesa": mesa_id} if mesa_id else {}
-        form = CrearOrdenForm(initial=initial)
+        form = limitar_opciones(CrearOrdenForm(initial=initial), request)
 
     return render(
         request,
@@ -96,11 +136,14 @@ def crear_orden(request):
 def crear_cliente_rapido(request):
     form = ClienteRapidoForm(request.POST)
     if form.is_valid():
-        form.save()
-    return redirect(request.META.get("HTTP_REFERER", reverse("operativo:crear_orden")))
+        cliente = form.save(commit=False)
+        cliente.restaurante = restaurante_actual(request)
+        cliente.save()
+    return redirect("operativo:crear_orden")
 
 
-class DetalleOrdenView(RoleRequiredMixin, DetailView):
+class DetalleOrdenView(RestauranteMixin, RoleRequiredMixin, DetailView):
+    ruta_restaurante = "sucursal__restaurante"
     model = Orden
     roles_permitidos = ROLES_ORDEN
     template_name = "operativo/detalle_orden.html"
@@ -108,24 +151,75 @@ class DetalleOrdenView(RoleRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        productos_qs = Producto.objects.filter(disponible=True, sucursal=self.object.mesa.sucursal)
+        productos_qs = Producto.objects.filter(disponible=True, sucursal=self.object.sucursal)
         contexto["agregar_form"] = AgregarProductoForm(productos_qs=productos_qs)
-        # Qué acciones ve cada rol (las vistas POST vuelven a validarlo)
         contexto["puede_operar"] = usuario_tiene_rol(self.request.user, ROLES_MESERO)
         contexto["puede_cobrar"] = usuario_tiene_rol(self.request.user, ROLES_CAJA)
+        if self.object.mesa_id is None and not self.object.es_final:
+            contexto["mesas_libres"] = Mesa.objects.filter(
+                sucursal=self.object.sucursal, activa=True, estado=Mesa.DISPONIBLE
+            )
         return contexto
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def asignar_mesa(request, pk):
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
+    if orden.mesa_id or orden.es_final:
+        messages.error(request, "Esta orden ya tiene mesa o ya terminó.")
+        return redirect("operativo:detalle_orden", pk=pk)
+    with transaction.atomic():
+        mesa = (
+            Mesa.objects.select_for_update()
+            .filter(pk=request.POST.get("mesa") or 0, sucursal=orden.sucursal_id, activa=True)
+            .first()
+        )
+        if mesa is None or mesa.estado != Mesa.DISPONIBLE or mesa.orden_activa is not None:
+            messages.error(request, "Esa mesa ya no está disponible.")
+            return redirect("operativo:detalle_orden", pk=pk)
+        Orden.objects.filter(pk=orden.pk, mesa__isnull=True).update(mesa=mesa)
+        mesa.estado = Mesa.OCUPADA
+        mesa.save(update_fields=["estado"])
+    messages.success(request, f"Mesa {mesa.numero} asignada a la orden #{orden.pk}.")
+    return redirect("operativo:detalle_orden", pk=pk)
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def confirmar_reserva(request, pk):
+    reserva = get_object_or_404(filtrar(Reserva.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    try:
+        confirmar_llegada(reserva)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+        return redirect("operativo:mesas_list")
+    messages.success(request, f"Reserva {reserva.codigo} confirmada: mesa {reserva.mesa.numero} ocupada.")
+    return redirect(f"{reverse('operativo:crear_orden')}?mesaId={reserva.mesa_id}")
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def cancelar_reserva(request, pk):
+    reserva = get_object_or_404(filtrar(Reserva.objects, request, "mesa__sucursal__restaurante"), pk=pk)
+    try:
+        cancelar_reserva_servicio(reserva)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+    else:
+        messages.success(request, f"Reserva {reserva.codigo} cancelada.")
+    return redirect("operativo:mesas_list")
 
 
 @rol_requerido(*ROLES_MESERO)
 @require_POST
 @rol_requerido(*ROLES_MESERO)
 def agregar_producto(request, pk):
-    """CU-PED-06 Modificar pedido: solo antes de que cocina empiece a prepararlo."""
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     if orden.estado != Orden.PENDIENTE:
         messages.error(request, "La orden ya está en cocina; no se pueden agregar productos.")
         return redirect("operativo:detalle_orden", pk=pk)
-    productos_qs = Producto.objects.filter(disponible=True, sucursal=orden.mesa.sucursal)
+    productos_qs = Producto.objects.filter(disponible=True, sucursal=orden.sucursal)
     form = AgregarProductoForm(request.POST, productos_qs=productos_qs)
     if form.is_valid():
         producto = form.cleaned_data["producto"]
@@ -138,26 +232,22 @@ def agregar_producto(request, pk):
     return redirect("operativo:detalle_orden", pk=pk)
 
 
-# Transiciones que el Mesero puede hacer desde el detalle de la orden. Las de
-# preparación (PENDIENTE -> EN_PREPARACION -> LISTA) son del Chef, en cocina, y
-# el cierre (ENTREGADA) lo hace caja al cobrar, para que no haya ventas sin pago.
 TRANSICIONES_MESERO = {
-    Orden.CANCELADA: {Orden.PENDIENTE},  # CU-PED-07: antes de que se prepare
+    Orden.CANCELADA: {Orden.PENDIENTE},
 }
 
 
 @require_POST
 @rol_requerido(*ROLES_MESERO)
 def solicitar_cuenta(request, pk):
-    """CU-PED-14 Solicitar cuenta (incluye CU-PED-15 Enviar total del pedido):
-    la orden pasa a la lista "Por cobrar" de caja."""
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     if orden.estado != Orden.LISTA:
         messages.error(request, "Solo se puede pedir la cuenta de una orden lista y servida.")
     elif orden.cuenta_solicitada_en is None:
         orden.cuenta_solicitada_en = timezone.now()
         orden.save(update_fields=["cuenta_solicitada_en", "actualizado_en"])
-        messages.success(request, f"Cuenta de la mesa {orden.mesa.numero} enviada a caja.")
+        destino = f"la mesa {orden.mesa.numero}" if orden.mesa_id else f"la orden #{orden.pk}"
+        messages.success(request, f"Cuenta de {destino} enviada a caja.")
     return redirect("operativo:detalle_orden", pk=pk)
 
 
@@ -165,17 +255,14 @@ def solicitar_cuenta(request, pk):
 @require_POST
 @rol_requerido(*ROLES_MESERO)
 def cambiar_estado_orden(request, pk):
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     form = CambiarEstadoOrdenForm(request.POST)
     if form.is_valid():
         nuevo = form.cleaned_data["estado"]
-        # Autorización por rol: qué transiciones puede pedir este rol.
         if orden.estado not in TRANSICIONES_MESERO.get(nuevo, set()):
             messages.error(request, "Ese cambio de estado no está permitido para esta orden.")
             return redirect("operativo:detalle_orden", pk=pk)
         try:
-            # Validez de la transición y efecto sobre mesa e inventario: los
-            # decide el dominio (Orden.cambiar_estado), no la vista.
             orden.cambiar_estado(nuevo)
         except TransicionOrdenInvalida as error:
             messages.error(request, error.messages[0])
@@ -185,7 +272,7 @@ def cambiar_estado_orden(request, pk):
 
 @rol_requerido(*ROLES_MESERO)
 def generar_qr(request, mesa_id):
-    mesa = get_object_or_404(Mesa, pk=mesa_id)
+    mesa = get_object_or_404(filtrar(Mesa.objects, request, "sucursal__restaurante"), pk=mesa_id)
     url_menu = request.build_absolute_uri(reverse("cliente:mesa", args=[mesa.id]))
 
     imagen = qrcode.make(url_menu)

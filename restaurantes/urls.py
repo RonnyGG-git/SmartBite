@@ -10,6 +10,8 @@ urlpatterns = [
     path("<int:pk>/editar/", views.RestauranteUpdateView.as_view(), name="restaurante_editar"),
     path("<int:pk>/eliminar/", views.RestauranteDeleteView.as_view(), name="restaurante_eliminar"),
 
+    path("<int:pk>/codigo/", views.regenerar_codigo, name="regenerar_codigo"),
+    path("<int:pk>/seleccionar/", views.seleccionar_restaurante, name="seleccionar_restaurante"),
     path("sucursales/", views.SucursalListView.as_view(), name="sucursales_list"),
     path("sucursales/nueva/", views.SucursalCreateView.as_view(), name="sucursal_crear"),
     path("sucursales/<int:pk>/editar/", views.SucursalUpdateView.as_view(), name="sucursal_editar"),

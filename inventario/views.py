@@ -5,6 +5,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from core.mixins import RoleRequiredMixin, usuario_tiene_rol
+from core.tenancy import RestauranteMixin, filtrar, limitar_opciones
 
 from .forms import AjusteStockForm, CompraForm, DetalleCompraFormSet, ItemInventarioForm, ProveedorForm
 from .models import Compra, ItemInventario, MovimientoInventario, Proveedor
@@ -13,7 +14,8 @@ ROLES_INVENTARIO = ["ADMINISTRADOR", "JEFE_INVENTARIO"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_INVENTARIO", "JEFE_COCINA"]
 
 
-class ItemInventarioListView(RoleRequiredMixin, ListView):
+class ItemInventarioListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "sucursal__restaurante"
     model = ItemInventario
     roles_permitidos = ROLES_LECTURA
     template_name = "inventario/inventario_list.html"
@@ -22,12 +24,12 @@ class ItemInventarioListView(RoleRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        # Los roles de solo lectura no ven acciones que les darían 403
         contexto["puede_gestionar"] = usuario_tiene_rol(self.request.user, ROLES_INVENTARIO)
         return contexto
 
 
-class ItemInventarioCreateView(RoleRequiredMixin, CreateView):
+class ItemInventarioCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = ItemInventario
     form_class = ItemInventarioForm
     roles_permitidos = ROLES_INVENTARIO
@@ -36,7 +38,8 @@ class ItemInventarioCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("inventario:inventario_list")
 
 
-class ItemInventarioUpdateView(RoleRequiredMixin, UpdateView):
+class ItemInventarioUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "sucursal__restaurante"
     model = ItemInventario
     form_class = ItemInventarioForm
     roles_permitidos = ROLES_INVENTARIO
@@ -46,15 +49,14 @@ class ItemInventarioUpdateView(RoleRequiredMixin, UpdateView):
 
 
 def item_ajustar_stock(request, pk):
-    item = get_object_or_404(ItemInventario, pk=pk)
     usuario = request.user
     if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:inventario_list")
+    item = get_object_or_404(filtrar(ItemInventario.objects, request, "sucursal__restaurante"), pk=pk)
 
     if request.method == "POST":
         form = AjusteStockForm(request.POST)
         if form.is_valid():
-            # Toda la regla de stock vive en ItemInventario.ajustar_stock.
             item.ajustar_stock(
                 form.cleaned_data["tipo"], form.cleaned_data["cantidad"], form.cleaned_data["motivo"]
             )
@@ -64,7 +66,8 @@ def item_ajustar_stock(request, pk):
     return render(request, "inventario/item_ajuste_form.html", {"item": item, "form": form})
 
 
-class MovimientoInventarioListView(RoleRequiredMixin, ListView):
+class MovimientoInventarioListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "item__sucursal__restaurante"
     model = MovimientoInventario
     roles_permitidos = ROLES_INVENTARIO
     template_name = "inventario/movimientos_list.html"
@@ -72,14 +75,17 @@ class MovimientoInventarioListView(RoleRequiredMixin, ListView):
     queryset = MovimientoInventario.objects.select_related("item")
 
 
-class ProveedorListView(RoleRequiredMixin, ListView):
+class ProveedorListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "restaurante"
     model = Proveedor
     roles_permitidos = ROLES_INVENTARIO
     template_name = "inventario/proveedores_list.html"
     context_object_name = "proveedores"
 
 
-class ProveedorCreateView(RoleRequiredMixin, CreateView):
+class ProveedorCreateView(RestauranteMixin, RoleRequiredMixin, CreateView):
+    ruta_restaurante = "restaurante"
+    asignar_restaurante = True
     model = Proveedor
     form_class = ProveedorForm
     roles_permitidos = ROLES_INVENTARIO
@@ -88,7 +94,8 @@ class ProveedorCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy("inventario:proveedores_list")
 
 
-class ProveedorUpdateView(RoleRequiredMixin, UpdateView):
+class ProveedorUpdateView(RestauranteMixin, RoleRequiredMixin, UpdateView):
+    ruta_restaurante = "restaurante"
     model = Proveedor
     form_class = ProveedorForm
     roles_permitidos = ROLES_INVENTARIO
@@ -97,14 +104,16 @@ class ProveedorUpdateView(RoleRequiredMixin, UpdateView):
     success_url = reverse_lazy("inventario:proveedores_list")
 
 
-class ProveedorDeleteView(RoleRequiredMixin, DeleteView):
+class ProveedorDeleteView(RestauranteMixin, RoleRequiredMixin, DeleteView):
+    ruta_restaurante = "restaurante"
     model = Proveedor
     roles_permitidos = ROLES_INVENTARIO
     template_name = "includes/confirm_delete.html"
     success_url = reverse_lazy("inventario:proveedores_list")
 
 
-class CompraListView(RoleRequiredMixin, ListView):
+class CompraListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "proveedor__restaurante"
     model = Compra
     roles_permitidos = ROLES_INVENTARIO
     template_name = "inventario/compras_list.html"
@@ -112,7 +121,8 @@ class CompraListView(RoleRequiredMixin, ListView):
     queryset = Compra.objects.select_related("proveedor").prefetch_related("detalles__item")
 
 
-class CompraDetailView(RoleRequiredMixin, DetailView):
+class CompraDetailView(RestauranteMixin, RoleRequiredMixin, DetailView):
+    ruta_restaurante = "proveedor__restaurante"
     model = Compra
     roles_permitidos = ROLES_INVENTARIO
     template_name = "inventario/compra_detail.html"
@@ -125,8 +135,10 @@ def compra_crear(request):
         return redirect("inventario:compras_list")
 
     if request.method == "POST":
-        form = CompraForm(request.POST)
+        form = limitar_opciones(CompraForm(request.POST), request)
         formset = DetalleCompraFormSet(request.POST)
+        for detalle in formset.forms:
+            limitar_opciones(detalle, request)
         if form.is_valid() and formset.is_valid():
             with transaction.atomic():
                 compra = form.save()
@@ -134,17 +146,19 @@ def compra_crear(request):
                 formset.save()
             return redirect("inventario:compra_detalle", pk=compra.pk)
     else:
-        form = CompraForm()
+        form = limitar_opciones(CompraForm(), request)
         formset = DetalleCompraFormSet()
+        for detalle in formset.forms:
+            limitar_opciones(detalle, request)
     return render(request, "inventario/compra_form.html", {"form": form, "formset": formset})
 
 
 @require_POST
 def compra_recibir(request, pk):
-    compra = get_object_or_404(Compra, pk=pk)
     usuario = request.user
     if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
+    compra = get_object_or_404(filtrar(Compra.objects, request, "proveedor__restaurante"), pk=pk)
     if compra.estado == Compra.PENDIENTE:
         with transaction.atomic():
             for detalle in compra.detalles.select_related("item"):
@@ -163,10 +177,10 @@ def compra_recibir(request, pk):
 
 @require_POST
 def compra_anular(request, pk):
-    compra = get_object_or_404(Compra, pk=pk)
     usuario = request.user
     if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
+    compra = get_object_or_404(filtrar(Compra.objects, request, "proveedor__restaurante"), pk=pk)
     if compra.estado == Compra.PENDIENTE:
         compra.estado = Compra.ANULADA
         compra.save(update_fields=["estado"])

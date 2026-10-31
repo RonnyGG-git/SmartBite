@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 
 from .models import Cliente, DetalleOrden, Mesa, Orden
 
@@ -22,7 +23,13 @@ class CrearOrdenForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["mesa"].queryset = Mesa.objects.filter(estado=Mesa.DISPONIBLE, activa=True)
+        con_orden_activa = Orden.objects.exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA]).filter(
+            mesa__isnull=False
+        ).values("mesa_id")
+        self.fields["mesa"].queryset = Mesa.objects.filter(activa=True).filter(
+            Q(estado=Mesa.DISPONIBLE) | (Q(estado=Mesa.OCUPADA) & ~Q(pk__in=con_orden_activa))
+        )
+        self.fields["mesa"].required = True
         self.fields["cliente"].required = False
 
 

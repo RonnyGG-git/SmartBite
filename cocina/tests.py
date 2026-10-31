@@ -48,4 +48,4 @@ class CocinaTests(TestCase):
         chorizo = ItemInventario.objects.create(nombre="Chorizo", stock_actual=1, sucursal=self.d["centro"])
         ProductoIngrediente.objects.create(producto=self.d["bandeja"], item_inventario=chorizo, cantidad_requerida=1)
         resp = self.client.get(reverse("cocina:cocina"))
-        self.assertContains(resp, "Stock insuficiente: Chorizo")  # pide 2, hay 1
+        self.assertContains(resp, "Stock insuficiente: Chorizo")

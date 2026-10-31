@@ -16,14 +16,11 @@ class RestauranteForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Campos críticos: no pueden llegar vacíos aunque el modelo los permita.
         for campo in ("nombre", "nif", "email", "direccion"):
             self.fields[campo].required = True
 
-    # G8: NIF/RUT con formato válido, no solo "relleno algo".
     nif = forms.CharField(max_length=30, validators=[nif_validator], error_messages={"invalid": nif_validator.message})
 
-    # G8: teléfono con formato válido y opcional (blank=True en el modelo).
     telefono = forms.CharField(
         max_length=30,
         required=False,
@@ -37,7 +34,6 @@ class RestauranteForm(forms.ModelForm):
         error_messages={"invalid": telefono_validator.message},
     )
 
-    # G8: solo URLs públicas http/https.
     logo_url = forms.URLField(
         required=False,
         validators=[url_publica_validator],
@@ -45,7 +41,6 @@ class RestauranteForm(forms.ModelForm):
     )
 
     def clean_nif(self):
-        # Normaliza el NIF quitando espacios y puntos de separacion.
         return self.cleaned_data["nif"].replace(" ", "").upper()
 
     def clean_telefono(self):
@@ -69,8 +64,13 @@ class RestauranteForm(forms.ModelForm):
 class SucursalForm(forms.ModelForm):
     class Meta:
         model = Sucursal
-        fields = ["restaurante", "nombre", "direccion", "telefono", "activo"]
-        widgets = {"telefono": forms.TextInput(attrs={"placeholder": "+57 604 1234567"})}
+        fields = ["restaurante", "nombre", "direccion", "telefono", "latitud", "longitud", "activo"]
+        widgets = {
+            "telefono": forms.TextInput(attrs={"placeholder": "+57 604 1234567"}),
+            "latitud": forms.NumberInput(attrs={"step": "any", "data-mapa": "latitud"}),
+            "longitud": forms.NumberInput(attrs={"step": "any", "data-mapa": "longitud"}),
+        }
+        help_texts = {"latitud": "Marca la sucursal en el mapa; se llena sola."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,3 +86,9 @@ class SucursalForm(forms.ModelForm):
 
     def clean_telefono(self):
         return self.cleaned_data["telefono"].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (cleaned_data.get("latitud") is None) != (cleaned_data.get("longitud") is None):
+            self.add_error("longitud", "Indica latitud y longitud juntas, o deja las dos vacías.")
+        return cleaned_data

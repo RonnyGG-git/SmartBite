@@ -8,7 +8,62 @@
     <h1>Estado de mesas</h1>
     <p>Vista general de las mesas y sus órdenes activas.</p>
   </div>
+  {% if puede_gestionar %}
+  <div class="page-actions">
+    <a href="{% url 'operativo:mesa_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva mesa</span></a>
+  </div>
+  {% endif %}
 </div>
+
+{% if pedidos_sin_mesa %}
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Pedidos sin mesa</h2><span class="badge badge-warning badge-plain mono">{{ pedidos_sin_mesa|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Modalidad</th><th>Estado</th><th class="num">Acción</th></tr></thead>
+      <tbody>
+        {% for o in pedidos_sin_mesa %}
+        <tr>
+          <td class="mono">#{{ o.pk }} · {{ o.get_origen_display }}</td>
+          <td>{{ o.cliente.nombre|default:"—" }}</td>
+          <td>{{ o.get_tipo_consumo_display }}</td>
+          <td>{{ o.get_estado_display }}</td>
+          <td class="actions"><a class="btn btn-sm btn-quiet" href="{% url 'operativo:detalle_orden' o.pk %}">{% if o.tipo_consumo == "EN_RESTAURANTE" %}Asignar mesa{% else %}Ver{% endif %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if reservas_proximas %}
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Próximas reservas</h2><span class="badge badge-warning badge-plain mono">{{ reservas_proximas|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Hora</th><th>Mesa</th><th>Cliente</th><th>Personas</th><th>Código</th><th class="num">Acción</th></tr></thead>
+      <tbody>
+        {% for r in reservas_proximas %}
+        <tr>
+          <td class="mono">{{ r.fecha_hora|date:"d/m H:i" }}</td>
+          <td>Mesa {{ r.mesa.numero }}</td>
+          <td>{{ r.nombre }}{% if r.telefono %} · <span class="subtle">{{ r.telefono }}</span>{% endif %}</td>
+          <td>{{ r.num_personas }}</td>
+          <td class="mono">{{ r.codigo }}</td>
+          <td class="actions">
+            <form method="post" action="{% url 'operativo:cancelar_reserva' r.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-quiet is-danger">Cancelar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 {% if mesas %}
 <div class="chips" role="group" aria-label="Filtrar mesas por estado">
@@ -28,6 +83,7 @@
         {{ mesa.get_estado_display }}
       </span>
     </div>
+    {% if not mesa.activa %}<span class="badge badge-plain">Inactiva</span>{% endif %}
     <div class="tile-meta"><svg class="ico ico-sm"><use href="#i-users"/></svg>{{ mesa.capacidad }} personas</div>
 
     {% with orden=mesa.orden_activa %}
@@ -52,19 +108,40 @@
           <a href="{% url 'operativo:crear_orden' %}?mesaId={{ mesa.id }}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva orden</span></a>
           <a href="{% url 'operativo:generar_qr' mesa.id %}" class="btn btn-ghost" aria-label="Código QR de la mesa {{ mesa.numero }}" title="Código QR"><svg class="ico"><use href="#i-qr"/></svg></a>
         </div>
-      {% else %}
-        <div class="tile-placeholder"><svg class="ico"><use href="#i-clock"/></svg>Mesa reservada</div>
+      {% elif mesa.estado == "RESERVADA" %}
+        {% with reserva=mesa.reserva_en_ventana %}
+        <div class="tile-placeholder"><svg class="ico"><use href="#i-clock"/></svg>{% if reserva %}Reservada {{ reserva.fecha_hora|time:"H:i" }} · {{ reserva.nombre }} ({{ reserva.num_personas }}) · <span class="mono">{{ reserva.codigo }}</span>{% else %}Mesa reservada{% endif %}</div>
         <div class="tile-actions">
-          <a href="{% url 'operativo:generar_qr' mesa.id %}" class="btn btn-ghost"><svg class="ico"><use href="#i-qr"/></svg><span>Código QR</span></a>
+          {% if reserva %}
+          <form method="post" action="{% url 'operativo:confirmar_reserva' reserva.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Confirmar llegada</span></button>
+          </form>
+          {% endif %}
+          <a href="{% url 'operativo:generar_qr' mesa.id %}" class="btn btn-ghost" aria-label="Código QR de la mesa {{ mesa.numero }}" title="Código QR"><svg class="ico"><use href="#i-qr"/></svg></a>
+        </div>
+        {% endwith %}
+      {% else %}
+        <div class="tile-placeholder">Ocupada, todavía sin orden</div>
+        <div class="tile-actions">
+          <a href="{% url 'operativo:crear_orden' %}?mesaId={{ mesa.id }}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva orden</span></a>
+          <a href="{% url 'operativo:generar_qr' mesa.id %}" class="btn btn-ghost" aria-label="Código QR de la mesa {{ mesa.numero }}" title="Código QR"><svg class="ico"><use href="#i-qr"/></svg></a>
         </div>
       {% endif %}
     {% endwith %}
+    {% if puede_gestionar %}
+    <div class="tile-actions">
+      <a href="{% url 'operativo:mesa_editar' mesa.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
+      <a href="{% url 'operativo:mesa_eliminar' mesa.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar mesa {{ mesa.numero }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
+    </div>
+    {% endif %}
   </article>
   {% empty %}
   <div class="empty-state">
     <svg class="ico"><use href="#i-table"/></svg>
     <strong>No hay mesas registradas</strong>
     <span>Cuando se creen mesas para la sucursal aparecerán aquí.</span>
+    {% if puede_gestionar %}<a href="{% url 'operativo:mesa_crear' %}" class="btn btn-primary btn-sm"><svg class="ico"><use href="#i-plus"/></svg><span>Nueva mesa</span></a>{% endif %}
   </div>
   {% endfor %}
 </div>

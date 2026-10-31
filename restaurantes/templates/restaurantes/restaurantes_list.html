@@ -5,7 +5,7 @@
   <div>
     <span class="eyebrow">Administración</span>
     <h1>Restaurantes</h1>
-    <p>{{ restaurantes|length }} restaurante{{ restaurantes|length|pluralize }} registrado{{ restaurantes|length|pluralize }} en el sistema.</p>
+    <p>{{ restaurantes|length }} restaurante{{ restaurantes|length|pluralize }} a tu nombre. Comparte el código de acceso con tus empleados para que entren a su restaurante.</p>
   </div>
   <a href="{% url 'restaurantes:restaurante_crear' %}" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg><span>Nuevo restaurante</span></a>
 </div>
@@ -14,17 +14,23 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Restaurante</th><th>NIF</th><th>Email</th><th>Teléfono</th><th>Estado</th><th class="num">Acciones</th></tr>
+        <tr><th>Restaurante</th><th>NIF</th><th>Código de acceso</th><th>Teléfono</th><th>Estado</th><th class="num">Acciones</th></tr>
       </thead>
       <tbody>
         {% for r in restaurantes %}
         <tr>
           <td>
-            <span class="cell-title">{{ r.nombre }}</span>
+            <span class="cell-title">{{ r.nombre }}{% if restaurante_actual and r.pk == restaurante_actual.pk %} <span class="badge badge-success">Actual</span>{% endif %}</span>
             <span class="cell-sub">{{ r.direccion }}</span>
           </td>
           <td class="mono">{{ r.nif }}</td>
-          <td class="muted">{{ r.email }}</td>
+          <td>
+            <span class="mono">{{ r.codigo_acceso }}</span>
+            <form method="post" action="{% url 'restaurantes:regenerar_codigo' r.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-quiet" title="Generar un código nuevo (el anterior deja de servir)">Regenerar</button>
+            </form>
+          </td>
           <td class="mono muted">{{ r.telefono|default:"—" }}</td>
           <td>
             <span class="badge {% if r.activo %}badge-success{% else %}badge-danger{% endif %}">
@@ -32,6 +38,12 @@
             </span>
           </td>
           <td class="actions">
+            {% if not restaurante_actual or r.pk != restaurante_actual.pk %}
+            <form method="post" action="{% url 'restaurantes:seleccionar_restaurante' r.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-quiet"><span>Trabajar aquí</span></button>
+            </form>
+            {% endif %}
             <a href="{% url 'restaurantes:restaurante_editar' r.pk %}" class="btn btn-sm btn-quiet"><svg class="ico"><use href="#i-pencil"/></svg><span>Editar</span></a>
             <a href="{% url 'restaurantes:restaurante_eliminar' r.pk %}" class="btn btn-sm btn-quiet is-danger" aria-label="Eliminar {{ r.nombre }}" title="Eliminar"><svg class="ico"><use href="#i-trash"/></svg></a>
           </td>

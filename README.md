@@ -228,9 +228,35 @@ pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py seed_datos      # crea los 5 roles del sistema y métodos de pago
+python manage.py cargar_recetas  # carga las recetas del asistente de cocina
 python manage.py createsuperuser
 python manage.py runserver
 ```
+
+### `.env` local (base Neon)
+
+Copia `.env.example` a `.env` (no se sube a Git) y deja, para trabajar en local:
+
+```env
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+SECRET_KEY=<clave larga y aleatoria: python -c "import secrets; print(secrets.token_urlsafe(50))">
+DATABASE_URL=<cadena copiada de Neon>
+```
+
+`DATABASE_URL` se copia en console.neon.tech → proyecto `holy-mouse-44756464` → botón
+**Connect**, eligiendo la rama `test-inventario-jose` (no `production`) y la base
+`smartbite_app`. Sin `DATABASE_URL` la app usa SQLite local. La cadena de conexión no va
+en el repo, ni en capturas ni en diapositivas.
+
+### Recetas del asistente
+
+`python manage.py cargar_recetas` carga la base de conocimiento del asistente
+(`asistente_cocina_recetasugerida`) desde `asistente_cocina/fixtures/recetas.json`. Es
+idempotente: identifica cada receta por su nombre, crea las que faltan y actualiza las
+existentes, así que se puede repetir sin duplicar nada. Con `--archivo ruta.json` carga
+otro archivo con el mismo formato. Ojo: con `DATABASE_URL` apuntando a Neon escribe en la
+base compartida de todo el equipo.
 
 Después de crear el superusuario, asígnale el rol `ADMINISTRADOR` desde `/admin/` (o por
 shell) para que el sidebar y las vistas de gestión se habiliten correctamente:

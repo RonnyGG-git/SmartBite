@@ -1,6 +1,3 @@
-"""Tests de la lógica de dominio centralizada: transiciones de Orden, ajustes de
-inventario (incluido PERDIDA) y descuento de insumos por receta al iniciar la
-preparación."""
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -41,7 +38,6 @@ class TransicionesOrdenTests(TestCase):
         self.assertEqual(self.orden.estado, Orden.PENDIENTE)
 
     def test_transicion_invalida_es_un_validation_error(self):
-        """La API REST la mapea a 400 sin tratamiento especial."""
         with self.assertRaises(ValidationError) as ctx:
             self.orden.cambiar_estado(Orden.ENTREGADA)
         self.assertEqual(ctx.exception.code, "transicion_invalida")
@@ -122,13 +118,11 @@ class DescuentoPorRecetaTests(TestCase):
         )
 
     def test_calcula_requerimiento_agregando_receta_por_cantidad(self):
-        # 0.250 x 3 = 0.75 de frijol, 1.000 x 3 = 3 de arroz
         requerido = calcular_insumos_requeridos(self.orden)
         self.assertEqual(requerido[self.frijol], Decimal("0.750"))
         self.assertEqual(requerido[self.arroz], Decimal("3.000"))
 
     def test_descuenta_con_ceil_al_entrar_en_preparacion(self):
-        # 0.75 -> 1 y 3 -> 3
         self.orden.cambiar_estado(Orden.EN_PREPARACION)
 
         self.frijol.refresh_from_db()
@@ -188,7 +182,6 @@ class DescuentoPorRecetaTests(TestCase):
         self.orden.cambiar_estado(Orden.EN_PREPARACION)
 
         self.frijol.refresh_from_db()
-        # (0.250 x 3) + (0.250 x 1) = 1.0 -> ceil = 1, en un solo movimiento.
         self.assertEqual(self.frijol.stock_actual, 99)
         frijol_movimientos = MovimientoInventario.objects.filter(item=self.frijol)
         self.assertEqual(frijol_movimientos.count(), 1)
@@ -202,7 +195,6 @@ class DescuentoPorRecetaTests(TestCase):
 
         self.frijol.refresh_from_db()
         self.assertEqual(self.frijol.stock_actual, 0)
-        # Se pidió 1 y no había nada.
         self.assertEqual(resultado["faltantes"][self.frijol], 1)
 
     def test_el_faltante_queda_expuesto_en_la_orden(self):
@@ -219,8 +211,6 @@ class DescuentoPorRecetaTests(TestCase):
 
 
 class CocinaDescuentaInventarioTests(TestCase):
-    """La vista de cocina dispara el descuento sin repetir la regla."""
-
     def setUp(self):
         self.d = crear_escenario()
         self.orden = Orden.objects.create(mesa=self.d["mesa"])
@@ -244,7 +234,6 @@ class CocinaDescuentaInventarioTests(TestCase):
         self.item.refresh_from_db()
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, Orden.EN_PREPARACION)
-        # 1.5 x 2 = 3 unidades
         self.assertEqual(self.item.stock_actual, 7)
         self.assertEqual(MovimientoInventario.objects.get().motivo, f"Orden #{self.orden.pk}")
 
@@ -262,7 +251,6 @@ class CocinaDescuentaInventarioTests(TestCase):
         self.assertEqual(MovimientoInventario.objects.count(), 1)
 
     def test_una_accion_invalida_no_descuenta(self):
-        # Marcar "lista" sin haber iniciado no debe tocar el inventario.
         self.client.post(
             reverse("cocina:actualizar_estado", args=[self.orden.pk]), {"accion": "listo"}
         )
