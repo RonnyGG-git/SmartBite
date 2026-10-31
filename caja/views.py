@@ -1,5 +1,5 @@
 from decimal import Decimal
-
+from core.tenancy import RestauranteMixin, filtrar
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseBadRequest
