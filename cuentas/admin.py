@@ -8,11 +8,13 @@ from .models import Permiso, Rol, Usuario
 class UsuarioAdmin(UserAdmin):
     model = Usuario
     ordering = ["email"]
-    list_display = ("email", "nombre", "rol", "sucursal", "is_active", "is_staff")
+    list_display = ("email", "nombre", "rol", "sucursal", "is_active", "email_verificado", "is_staff")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Datos personales", {"fields": ("nombre", "rol", "sucursal")}),
-        ("Permisos", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Permisos", {"fields": (
+            "is_active", "email_verificado", "is_staff", "is_superuser", "groups", "user_permissions",
+        )}),
     )
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nombre", "password1", "password2")}),

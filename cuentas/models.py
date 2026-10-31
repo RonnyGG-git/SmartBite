@@ -68,6 +68,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    email_verificado = models.BooleanField(default=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UsuarioManager()
@@ -85,3 +86,25 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         if self.is_superuser:
             return True
         return self.rol_id and self.rol.permisos.filter(nombre=nombre_permiso, activo=True).exists()
+
+
+class CodigoVerificacion(TimestampedModel):
+    REGISTRO, RECUPERACION = "REGISTRO", "RECUPERACION"
+    PROPOSITOS = [
+        (REGISTRO, "Verificar correo"),
+        (RECUPERACION, "Recuperar contraseña"),
+    ]
+
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="codigos")
+    proposito = models.CharField(max_length=20, choices=PROPOSITOS)
+    huella = models.CharField(max_length=64)
+    expira_en = models.DateTimeField()
+    intentos = models.PositiveSmallIntegerField(default=0)
+    usado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-creado_en", "-pk"]
+        indexes = [models.Index(fields=["usuario", "proposito", "usado"])]
+
+    def __str__(self):
+        return f"{self.get_proposito_display()} — {self.usuario.email}"

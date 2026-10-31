@@ -162,6 +162,12 @@ LOGIN_URL = 'cuentas:login'
 LOGIN_REDIRECT_URL = 'reportes:dashboard'
 LOGOUT_REDIRECT_URL = 'cuentas:login'
 
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Smart Bite <no-reply@smartbite.local>')
+EMAIL_BACKEND = (
+    'core.correo.BrevoBackend' if BREVO_API_KEY else 'django.core.mail.backends.console.EmailBackend'
+)
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',

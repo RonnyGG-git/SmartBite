@@ -15,3 +15,7 @@ services:
         sync: false
       - key: WEB_CONCURRENCY
         value: "2"
+      - key: BREVO_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "Smart Bite <smartbitesoporte@gmail.com>"

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Confirma tu correo — Smart Bite{% endblock %}
+{% block content_publico %}
+<div class="auth">
+  <section class="auth-aside" aria-hidden="true">
+    <span class="sidebar-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </span>
+    <div>
+      <h1>Un paso más <em>y entras.</em></h1>
+      <p>Confirmamos que el correo es tuyo para proteger tu restaurante.</p>
+    </div>
+    <div class="auth-ring"></div>
+  </section>
+
+  <main class="auth-main">
+    <div class="auth-form">
+      <h2>Confirma tu correo</h2>
+      <p>Escribe el código de 4 dígitos que enviamos a <strong>{{ email }}</strong>. Vence en 10 minutos.</p>
+      {% include "cuentas/_codigo_form.html" with texto_boton="Confirmar" %}
+      <p><a href="{% url 'cuentas:login' %}">Volver a iniciar sesión</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}

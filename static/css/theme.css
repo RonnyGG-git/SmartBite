@@ -1226,6 +1226,23 @@ tr.total-row td.money { font-size: 20px; }
 .auth-form > p { color: var(--text-2); margin-bottom: 26px; }
 .auth-form .field + .field { margin-top: 16px; }
 .auth-form .btn { margin-top: 24px; }
+.otp-boxes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.otp-box {
+  height: 58px;
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--accent);
+}
+.otp-box.is-filled { border-color: rgba(232, 132, 63, 0.55); }
+.otp-boxes.is-error .otp-box { border-color: var(--danger); }
+.otp-boxes.is-ok .otp-box { border-color: var(--ok); }
+.otp-reenviar { display: flex; justify-content: center; margin: 10px 0 18px; }
+.auth-form .otp-reenviar .btn { margin-top: 0; }
+.otp-reenviar .btn:disabled { opacity: 0.6; cursor: default; }
 @media (max-width: 860px) {
   .auth { grid-template-columns: minmax(0, 1fr); }
   .auth-aside { min-height: auto; gap: 40px; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 28px 32px; }

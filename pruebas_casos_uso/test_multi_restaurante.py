@@ -1,5 +1,7 @@
+import re
 from decimal import Decimal
 
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
@@ -112,9 +114,14 @@ class CodigoDeAccesoTests(MultiRestauranteTestCase):
         self.b["restaurante"].refresh_from_db()
         self.assertEqual(self.b["restaurante"].codigo_acceso, anterior)
 
+    def confirmar_correo(self):
+        codigo = re.search(r"\b(\d{4})\b", mail.outbox[-1].body).group(1)
+        return self.client.post(reverse("cuentas:verificar"), {"codigo": codigo})
+
     def test_cu_adm_18_ingresar_al_restaurante_con_codigo(self):
         respuesta = self.registrar_empleado(self.a["restaurante"].codigo_acceso.lower())
-        self.assertRedirects(respuesta, reverse("cuentas:pendiente"))
+        self.assertRedirects(respuesta, reverse("cuentas:verificar"))
+        self.assertRedirects(self.confirmar_correo(), reverse("cuentas:pendiente"))
         empleado = Usuario.objects.get(email="nuevo@test.co")
         self.assertEqual((empleado.restaurante, empleado.rol), (self.a["restaurante"], None))
         self.assertEqual(self.client.get(reverse("operativo:mesas_list")).status_code, 403)
@@ -147,7 +154,8 @@ class CodigoDeAccesoTests(MultiRestauranteTestCase):
         respuesta = self.client.post(reverse("cuentas:registro_admin"), {
             "nombre": "Dueña Nueva", "email": "duena@test.co", "password1": CLAVE, "password2": CLAVE,
         })
-        self.assertRedirects(respuesta, reverse("restaurantes:restaurante_crear"))
+        self.assertRedirects(respuesta, reverse("cuentas:verificar"))
+        self.assertRedirects(self.confirmar_correo(), reverse("restaurantes:restaurante_crear"))
         duena = Usuario.objects.get(email="duena@test.co")
         self.assertEqual(duena.rol.nombre, "ADMINISTRADOR")
         self.assertEqual(list(self.client.get(reverse("catalogo:productos_list")).context["productos"]), [])

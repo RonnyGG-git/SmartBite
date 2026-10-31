@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#f4efe9;font-family:Arial,Helvetica,sans-serif;color:#1b1714;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4efe9;padding:32px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:14px;padding:32px;">
+          <tr>
+            <td style="font-size:15px;font-weight:bold;color:#e8843f;">Smart Bite</td>
+          </tr>
+          <tr>
+            <td style="padding-top:20px;font-size:16px;line-height:1.5;">
+              Hola {{ usuario.nombre }},<br>
+              {% if registro %}para activar tu cuenta escribe este código:{% else %}para cambiar tu contraseña escribe este código:{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 0;">
+              <span style="display:inline-block;font-family:'Courier New',monospace;font-size:36px;font-weight:bold;letter-spacing:12px;padding:14px 22px;background:#fbf3ec;border:1px solid #f1d9c5;border-radius:10px;color:#1b1714;">{{ codigo }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;line-height:1.5;color:#6b625b;">
+              Vence en {{ minutos }} minutos. Si no fuiste tú, ignora este correo.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

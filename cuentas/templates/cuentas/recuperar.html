@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Recuperar contraseña — Smart Bite{% endblock %}
+{% block content_publico %}
+<div class="auth">
+  <section class="auth-aside" aria-hidden="true">
+    <span class="sidebar-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </span>
+    <div>
+      <h1>¿Olvidaste tu contraseña? <em>Pasa.</em></h1>
+      <p>Te enviamos un código a tu correo y eliges una nueva.</p>
+    </div>
+    <div class="auth-ring"></div>
+  </section>
+
+  <main class="auth-main">
+    <div class="auth-form">
+      <h2>Recuperar contraseña</h2>
+      <p>Escribe el email con el que entras a Smart Bite.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% include "includes/form_fields.html" with form=form %}
+        <button type="submit" class="btn btn-primary btn-lg btn-block"><span>Enviar código</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+      </form>
+      <p><a href="{% url 'cuentas:login' %}">Volver a iniciar sesión</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}

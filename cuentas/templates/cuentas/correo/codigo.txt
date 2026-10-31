@@ -1,0 +1,9 @@
+Hola {{ usuario.nombre }},
+
+{% if registro %}Para activar tu cuenta de Smart Bite, escribe este código:{% else %}Para cambiar la contraseña de tu cuenta de Smart Bite, escribe este código:{% endif %}
+
+{{ codigo }}
+
+Vence en {{ minutos }} minutos. Si no fuiste tú, ignora este correo.
+
+Smart Bite

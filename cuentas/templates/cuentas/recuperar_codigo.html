@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Nueva contraseña — Smart Bite{% endblock %}
+{% block content_publico %}
+<div class="auth">
+  <section class="auth-aside" aria-hidden="true">
+    <span class="sidebar-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>
+      Smart Bite
+    </span>
+    <div>
+      <h1>Revisa tu correo <em>y vuelve.</em></h1>
+      <p>El código vence en 10 minutos. Si no lo ves, revisa la carpeta de spam.</p>
+    </div>
+    <div class="auth-ring"></div>
+  </section>
+
+  <main class="auth-main">
+    <div class="auth-form">
+      <h2>Elige una contraseña nueva</h2>
+      <p>Escribe el código que enviamos a <strong>{{ email }}</strong> y tu nueva contraseña.</p>
+      {% include "cuentas/_codigo_form.html" with texto_boton="Cambiar contraseña" extra_fields=form.new_password_fields %}
+      <p><a href="{% url 'cuentas:recuperar' %}">Usar otro correo</a></p>
+    </div>
+  </main>
+</div>
+{% endblock %}
