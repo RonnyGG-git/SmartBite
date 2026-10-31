@@ -11,6 +11,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+  <script>
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.add("anim-pendiente");
+      setTimeout(function () { document.documentElement.classList.remove("anim-pendiente"); }, 2500);
+    }
+  </script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -48,6 +54,9 @@
   {% endif %}
   {% endblock %}
 
-  <script src="{% static 'js/app.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js" defer></script>
+  <script src="{% static 'js/animaciones.js' %}" defer></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
 </body>
 </html>

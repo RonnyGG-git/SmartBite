@@ -49,12 +49,17 @@
       var valor = cajas.map(function (c) { return c.value; }).join("");
       original.value = valor;
       cajas.forEach(function (c) { c.classList.toggle("is-filled", c.value !== ""); });
-      if (valor.length === LARGO) {
-        grupo.dispatchEvent(new CustomEvent("otp:completo", { bubbles: true }));
-        if (!otrosCampos.length && !form.dataset.otpEnviado) {
-          form.dataset.otpEnviado = "1";
+      grupo.classList.remove("is-error");
+      if (valor.length !== LARGO) {
+        grupo.classList.remove("is-ok");
+        return;
+      }
+      var espera = window.Animar ? window.Animar.otpCompleto(grupo) : 0;
+      if (!otrosCampos.length && !form.dataset.otpEnviado) {
+        form.dataset.otpEnviado = "1";
+        setTimeout(function () {
           if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
-        }
+        }, espera);
       }
     }
 
@@ -104,7 +109,6 @@
 
     if (conError) {
       grupo.classList.add("is-error");
-      grupo.dispatchEvent(new CustomEvent("otp:error", { bubbles: true }));
     }
 
     var vacia = cajas.find(function (c) { return !c.value; }) || cajas[LARGO - 1];

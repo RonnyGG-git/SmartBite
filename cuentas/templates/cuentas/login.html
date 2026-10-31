@@ -16,7 +16,7 @@
       <span><svg class="ico"><use href="#i-flame"/></svg>Comandas a cocina</span>
       <span><svg class="ico"><use href="#i-box"/></svg>Stock bajo control</span>
     </div>
-    <div class="auth-ring"></div>
+    {% include "cuentas/_escena_ritmo.html" %}
   </section>
 
   <main class="auth-main">
@@ -44,9 +44,12 @@
         <button type="submit" class="btn btn-primary btn-lg btn-block"><span>Entrar</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
       </form>
       <p><a href="{% url 'cuentas:recuperar' %}">¿Olvidaste tu contraseña?</a></p>
-      <p><a href="{% url 'cliente:restaurantes' %}">Soy cliente: quiero pedir en un restaurante</a></p>
-      <p><a href="{% url 'cuentas:registro_empleado' %}">Soy empleado: entrar con el código de mi restaurante</a></p>
-      <p><a href="{% url 'cuentas:registro_admin' %}">Soy administrador: crear mi cuenta</a></p>
+      <nav class="auth-roles" aria-label="Otras formas de entrar">
+        <span class="auth-roles-label">¿No tienes cuenta? Entra como</span>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cliente:restaurantes' %}" title="Pedir en un restaurante">Cliente</a>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:registro_empleado' %}" title="Entrar con el código de tu restaurante">Empleado</a>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:registro_admin' %}" title="Crear tu cuenta de administrador">Administrador</a>
+      </nav>
     </div>
   </main>
 </div>

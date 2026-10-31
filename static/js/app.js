@@ -2,7 +2,10 @@
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  var fx = window.Animar || {
+    salidaToast: function (el, fin) { fin(); },
+    rebote: function () {},
+  };
 
   (function marcarNavActiva() {
     var links = document.querySelectorAll(".sidebar a.sidebar-item");
@@ -57,7 +60,7 @@
         clearTimeout(timer);
         if (toast.classList.contains("is-leaving")) return;
         toast.classList.add("is-leaving");
-        setTimeout(function () { toast.remove(); }, reduceMotion ? 0 : 200);
+        fx.salidaToast(toast, function () { toast.remove(); });
       }
       function correr() {
         inicio = Date.now();
@@ -95,65 +98,6 @@
       if (!e.persisted) return;
       document.querySelectorAll("form[data-enviando]").forEach(function (f) { delete f.dataset.enviando; });
       document.querySelectorAll(".btn.is-loading").forEach(function (b) { b.classList.remove("is-loading"); });
-    });
-  })();
-
-  (function contadores() {
-    var nodos = document.querySelectorAll("[data-countup]");
-    if (!nodos.length || reduceMotion) return;
-
-    function formatear(n, moneda) {
-      var s = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-      return moneda ? "$" + s : s;
-    }
-    nodos.forEach(function (nodo) {
-      var texto = nodo.textContent.trim();
-      var moneda = texto.charAt(0) === "$";
-      var objetivo = parseInt(texto.replace(/[^\d]/g, ""), 10);
-      if (!objetivo) return;
-      var duracion = 900;
-      var t0 = null;
-      nodo.textContent = formatear(0, moneda);
-      function paso(t) {
-        if (t0 === null) t0 = t;
-        var p = Math.min((t - t0) / duracion, 1);
-        var e = 1 - Math.pow(1 - p, 4);
-        nodo.textContent = formatear(objetivo * e, moneda);
-        if (p < 1) requestAnimationFrame(paso);
-        else nodo.textContent = texto;
-      }
-      requestAnimationFrame(paso);
-    });
-  })();
-
-  (function barras() {
-    document.querySelectorAll("[data-bars]").forEach(function (grupo) {
-      var filas = grupo.querySelectorAll("[data-value]");
-      var max = 0;
-      filas.forEach(function (f) { max = Math.max(max, parseFloat(f.dataset.value) || 0); });
-      filas.forEach(function (f) {
-        var v = parseFloat(f.dataset.value) || 0;
-        var meter = f.querySelector(".meter");
-        if (meter) meter.style.setProperty("--p", max ? (v / max) * 100 : 0);
-      });
-    });
-    var idle = document.querySelectorAll(".meter.is-idle");
-    if (!idle.length) return;
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        idle.forEach(function (m) { m.classList.remove("is-idle"); });
-      });
-    });
-  })();
-
-  (function spotlight() {
-    if (!finePointer || reduceMotion) return;
-    document.querySelectorAll(".spotlight").forEach(function (el) {
-      el.addEventListener("pointermove", function (e) {
-        var r = el.getBoundingClientRect();
-        el.style.setProperty("--mx", e.clientX - r.left + "px");
-        el.style.setProperty("--my", e.clientY - r.top + "px");
-      });
     });
   })();
 
@@ -226,11 +170,7 @@
       conteo.textContent = cantidad;
       totalEl.textContent = formatear(total);
       barra.classList.toggle("is-empty", cantidad === 0);
-      if (animar && !reduceMotion) {
-        totalEl.classList.remove("bump");
-        void totalEl.offsetWidth;
-        totalEl.classList.add("bump");
-      }
+      if (animar) fx.rebote(totalEl);
     }
 
     form.addEventListener("click", function (e) {
