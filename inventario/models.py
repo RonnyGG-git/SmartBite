@@ -1,4 +1,5 @@
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 
 from core.models import TimestampedModel
 
@@ -78,33 +79,6 @@ class ItemInventario(TimestampedModel):
     @property
     def stock_bajo(self):
         return self.stock_actual <= self.stock_minimo
-
-    def ajustar_stock(self, tipo, cantidad, motivo):
-        """CU-INV-05/06/08: ajuste manual de stock (entrada o salida).
-
-        La regla única que usan la vista web (item_ajustar_stock) y la API:
-        la ENTRADA suma; la SALIDA resta sin bajar de 0 (una salida mayor que
-        el stock lo deja en 0 y el movimiento guarda la cantidad pedida). El
-        stock y su MovimientoInventario se guardan juntos o no se guarda
-        nada, y la fila del ítem queda bloqueada mientras tanto para que dos
-        ajustes simultáneos no se pisen. Devuelve el movimiento creado.
-        """
-        if tipo not in (MovimientoInventario.ENTRADA, MovimientoInventario.SALIDA):
-            raise ValueError(f"Tipo de movimiento inválido: {tipo!r}")
-        if cantidad < 1:
-            raise ValueError("La cantidad debe ser al menos 1.")
-        with transaction.atomic():
-            item = type(self).objects.select_for_update().get(pk=self.pk)
-            if tipo == MovimientoInventario.ENTRADA:
-                item.stock_actual += cantidad
-            else:
-                item.stock_actual = max(0, item.stock_actual - cantidad)
-            item.save(update_fields=["stock_actual"])
-            movimiento = MovimientoInventario.objects.create(
-                item=item, tipo=tipo, cantidad=cantidad, motivo=motivo
-            )
-        self.stock_actual = item.stock_actual
-        return movimiento
 
 
 class MovimientoInventario(TimestampedModel):

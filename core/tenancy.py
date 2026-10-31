@@ -40,7 +40,7 @@ def restaurante_actual(request):
 
 def filtrar(queryset, request, ruta):
     if request.user.is_superuser:
-        return queryset
+        return queryset.all()
     actual = restaurante_actual(request)
     if actual is None:
         return queryset.none()
