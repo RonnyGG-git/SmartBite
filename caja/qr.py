@@ -2,12 +2,10 @@
 que una pasarela: se crea el pago PENDIENTE y llega un evento firmado que lo aprueba)."""
 from decimal import Decimal
 
-from . import servicios
-from .models import EnlacePago, MetodoPago
-from .pasarelas import SimuladaPasarela
-from .servicios import CobroInvalido
 from . import conf, servicios
+from .models import EnlacePago, MetodoPago
 from .pasarelas import SimuladaPasarela, obtener_pasarela
+from .servicios import CobroInvalido
 
 CERO = Decimal("0")
 METODO_QR = "Pago QR"
@@ -34,6 +32,8 @@ def cobrar_por_qr(enlace, *, monto, propina=CERO, ip=None):
     servicios.procesar_evento(pasarela, pasarela.construir_evento(pago, "APPROVED"), {})
     pago.refresh_from_db()
     return pago
+
+
 def es_simulada():
     return conf.proveedor() == "SIMULADA"
 

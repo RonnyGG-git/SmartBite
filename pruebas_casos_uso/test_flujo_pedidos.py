@@ -87,7 +87,7 @@ class FlujoPedidosTests(CasoDeUsoTestCase):
     def test_paga_al_recoger_cobra_y_entrega_en_un_paso(self):
         orden = self.sin_mesa(estado=Orden.LISTA)
         self.entrar_como("CAJERO")
-        self.assertRedirects(self.cobrar(orden), reverse("caja:ventas_list"))
+        self.assertRedirects(self.cobrar(orden), reverse("caja:factura_detalle", args=[orden.factura.pk]))
         orden.refresh_from_db()
         self.assertEqual(orden.estado, Orden.ENTREGADA)
 

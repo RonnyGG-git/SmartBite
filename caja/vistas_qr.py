@@ -64,6 +64,9 @@ def qr_cobro(request, pk):
     ruta = reverse("caja:pagar_cliente", args=[enlace.token])
     base = conf.base_url()
     url = base.rstrip("/") + ruta if base else request.build_absolute_uri(ruta)
+    # Con la pasarela Wompi, el QR del cliente apunta al enlace de pago de la pasarela.
+    if conf.proveedor() == "WOMPI":
+        url = conf.wompi_link()
     return render(request, "caja/qr_cobro.html", {
         "orden": orden, "url": url, "qr": _qr_base64(url), "saldo": servicios.saldo_pendiente(orden),
         "pagos_iniciales": orden.pagos.filter(estado=Pago.APROBADO).count(),

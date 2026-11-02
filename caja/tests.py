@@ -31,8 +31,8 @@ class BaseCajaTest(TestCase):
         cls.prod = Producto.objects.create(nombre="Bandeja", precio=Decimal("50000"), categoria=cat, sucursal=suc)
         cls.efectivo = MetodoPago.objects.create(nombre="Efectivo")
         cls.tarjeta = MetodoPago.objects.create(nombre="Tarjeta", usa_pasarela=True)
-        cls.cajero = Usuario.objects.create_user("caja@x.co", "Cajero Uno", "pass12345", rol=Rol.objects.create(nombre="CAJERO"))
-        cls.mesero = Usuario.objects.create_user("mesero@x.co", "Mesero", "pass12345", rol=Rol.objects.create(nombre="MESERO"))
+        cls.cajero = Usuario.objects.create_user("caja@x.co", "Cajero Uno", "pass12345", rol=Rol.objects.create(nombre="CAJERO"), sucursal=suc)
+        cls.mesero = Usuario.objects.create_user("mesero@x.co", "Mesero", "pass12345", rol=Rol.objects.create(nombre="MESERO"), sucursal=suc)
 
     def setUp(self):
         self.orden = Orden.objects.create(mesa=self.mesa, estado=Orden.LISTA)

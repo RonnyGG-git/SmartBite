@@ -37,6 +37,12 @@ def wompi_api_url():
     return "https://sandbox.wompi.co/v1" if llave.startswith("pub_test_") else "https://production.wompi.co/v1"
 
 
+def wompi_link():
+    """Enlace de pago de Wompi (payment link) que se codifica en el QR del cliente:
+    con la pasarela real el celular escanea el QR y va directo al checkout."""
+    return wompi().get("WOMPI_LINK") or os.environ.get("WOMPI_LINK", "https://checkout.wompi.co/l/VPOS_YLOFY2")
+
+
 def modo_prueba():
     """True si los pagos NO mueven dinero real (simulada o llaves de sandbox de Wompi)."""
     if proveedor() == "SIMULADA":

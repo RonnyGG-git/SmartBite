@@ -269,6 +269,42 @@ python manage.py shell
 >>> u.save()
 ```
 
+## Pagos con Wompi (pasarela de tarjeta)
+
+El cobro con tarjeta (tanto desde el formulario de caja como por QR del cliente) se
+hace a través de Wompi. El resto de la lógica vive en `caja/pasarelas.py` (interfaz
+`PasarelaPago`) y la configuración en `caja/conf.py`.
+
+### Configuración (`.env`)
+
+```env
+PASARELA_PROVEEDOR=WOMPI            # SIMULADA para pruebas locales / demo
+WOMPI_PUBLIC_KEY=pub_test_...       # sandbox: pub_test_* · producción: pk_live_*
+WOMPI_INTEGRITY_SECRET=...          # secret de integridad (checkout)
+WOMPI_EVENTS_SECRET=...             # secret de eventos (webhook)
+WOMPI_CHECKOUT_URL=https://checkout.wompi.co/p/
+CAJA_BASE_URL=https://tunel-publico  # opcional: base para el redirect-url del checkout
+```
+
+### Cómo funciona
+
+- Al cobrar con tarjeta se crea un `Pago` en estado `PENDIENTE` con referencia
+  `SB-<orden>-<id>` y se redirige al cliente al checkout de Wompi
+  (`amount-in-cents`, `currency=COP`, `reference` y `signature:integrity`
+  = `sha256(f"{referencia}{monto_centavos}COP{integrity_secret}")`).
+- Wompi confirma vía webhook `POST /caja/webhooks/WOMPI/` con firma
+  (`signature.properties` + `checksum` SHA256 sobre `timestamp` y el secret de
+  eventos). El `EventoPasarela` con `uniq (proveedor, evento_id)` garantiza
+  idempotencia.
+- Si el webhook no llega, el cliente vuelve con `?id=<transaccion>` y se consulta
+  la API (`GET /v1/transactions/{id}`) como plan B.
+
+### Modo prueba
+
+Con llaves `pub_test_*` la app opera en sandbox y las pantallas muestran
+"Pago de prueba". Los estados de la pasarela (`APPROVED`, `DECLINED`, `VOIDED`,
+`ERROR`) se mapean a `APROBADO` / `RECHAZADO`.
+
 ## Flujo probado end-to-end
 
 Restaurante → Sucursal → Categoría → Producto → Ítem de inventario → Mesa → Compra a

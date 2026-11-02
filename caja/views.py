@@ -8,8 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
-from core.mixins import RoleRequiredMixin, rol_requerido
-from operativo.models import Orden
+from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
+from core.tenancy import filtrar
+from operativo.models import Orden, TransicionOrdenInvalida
 
 from . import servicios
 from .forms import CobrarOrdenForm
@@ -25,6 +26,10 @@ def _ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
+def _orden_del_restaurante(request, pk):
+    return get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
+
+
 class PagoListView(RoleRequiredMixin, ListView):
     model = Pago
     roles_permitidos = ROLES_CAJA
@@ -35,10 +40,16 @@ class PagoListView(RoleRequiredMixin, ListView):
 
 @rol_requerido(*ROLES_CAJA)
 def cobrar_orden(request, pk):
-    orden = get_object_or_404(Orden, pk=pk)
+    orden = _orden_del_restaurante(request, pk)
     if orden.es_final:
         return redirect("operativo:detalle_orden", pk=pk)
-    orden = _orden_del_restaurante(request, pk)
+
+    if not orden.cobrable:
+        mensajes = "La orden aún no está lista para cobrar." if orden.mesa_id else "Esta orden no está disponible para cobro en este momento."
+        messages.error(request, mensajes)
+        if orden.mesa_id:
+            return redirect("operativo:detalle_orden", pk=orden.pk)
+        return redirect("caja:para_llevar")
 
     if request.method == "POST":
         form = CobrarOrdenForm(request.POST)
@@ -69,8 +80,10 @@ def cobrar_orden(request, pk):
                     factura = Factura.objects.filter(orden=orden).first()
                     if factura:
                         return redirect("caja:factura_detalle", pk=factura.pk)
-                    return redirect("operativo:mesas_list")
+                    return redirect("caja:ventas_list")
                 messages.success(request, f"Pago registrado. Saldo pendiente: ${servicios.saldo_pendiente(orden):,.0f}")
+                if orden.mesa_id is None:
+                    return redirect("caja:para_llevar")
                 return redirect("caja:cobrar_orden", pk=orden.pk)
     else:
         form = CobrarOrdenForm(initial={"monto": max(servicios.saldo_disponible(orden), Decimal("0"))})
@@ -224,4 +237,10 @@ class VentaListView(RestauranteMixin, RoleRequiredMixin, ListView):
     roles_permitidos = ROLES_CAJA
     template_name = "caja/ventas_list.html"
     context_object_name = "ventas"
-    queryset = Orden.objects.filter(estado=Orden.ENTREGADA).select_related("mesa", "cliente").prefetch_related("pagos")
+    queryset = (
+        Orden.objects.filter(pagos__estado=Pago.APROBADO)
+        .distinct()
+        .select_related("mesa", "cliente")
+        .prefetch_related("pagos")
+        .order_by("-actualizado_en")
+    )

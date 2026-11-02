@@ -36,7 +36,7 @@ def emitir_factura(orden):
     base, inc = desglose_inc(total)
     propina = sum((p.propina for p in pagos), CERO)
     cliente = orden.cliente
-    sucursal = orden.mesa.sucursal
+    sucursal = orden.mesa.sucursal if orden.mesa_id is not None else orden.sucursal
     restaurante = sucursal.restaurante
 
     numero = (Factura.objects.aggregate(m=Max("numero"))["m"] or 0) + 1
@@ -44,6 +44,27 @@ def emitir_factura(orden):
     cufe = hashlib.sha384(
         f"{codigo}|{timezone.now().isoformat()}|{base}|{inc}|{total}|{restaurante.nif}".encode()
     ).hexdigest()
+
+    detalle = {
+        "emisor": {
+            "nombre": restaurante.nombre, "nit": restaurante.nif,
+            "direccion": sucursal.direccion or restaurante.direccion,
+            "telefono": sucursal.telefono or restaurante.telefono,
+            "sucursal": sucursal.nombre,
+        },
+        "lineas": [
+            {"nombre": d.producto.nombre, "cantidad": d.cantidad,
+             "precio_unitario": str(d.precio_unitario), "subtotal": str(d.subtotal)}
+            for d in detalles
+        ],
+        "pagos": [
+            {"metodo": p.metodo_pago.nombre, "monto": str(p.monto), "propina": str(p.propina),
+             "referencia": p.referencia_transaccion}
+            for p in pagos
+        ],
+    }
+    if orden.mesa_id is not None:
+        detalle["mesa"] = orden.mesa.numero
 
     return Factura.objects.create(
         orden=orden,
@@ -57,23 +78,5 @@ def emitir_factura(orden):
         propina=propina,
         total_pagado=total + propina,
         cufe=cufe,
-        detalle={
-            "emisor": {
-                "nombre": restaurante.nombre, "nit": restaurante.nif,
-                "direccion": sucursal.direccion or restaurante.direccion,
-                "telefono": sucursal.telefono or restaurante.telefono,
-                "sucursal": sucursal.nombre,
-            },
-            "mesa": orden.mesa.numero,
-            "lineas": [
-                {"nombre": d.producto.nombre, "cantidad": d.cantidad,
-                 "precio_unitario": str(d.precio_unitario), "subtotal": str(d.subtotal)}
-                for d in detalles
-            ],
-            "pagos": [
-                {"metodo": p.metodo_pago.nombre, "monto": str(p.monto), "propina": str(p.propina),
-                 "referencia": p.referencia_transaccion}
-                for p in pagos
-            ],
-        },
+        detalle=detalle,
     )

@@ -59,11 +59,17 @@ def _validar(orden, monto, propina):
 
 def _cerrar_si_pagada(orden):
     if saldo_pendiente(orden) <= 0 and orden.total > 0 and orden.estado != Orden.ENTREGADA:
-        orden.estado = Orden.ENTREGADA
+        if orden.mesa_id is not None or orden.estado == Orden.LISTA:
+            orden.estado = Orden.ENTREGADA
+        elif orden.estado == Orden.POR_CONFIRMAR:
+            orden.estado = Orden.PENDIENTE
+
         orden.save(update_fields=["estado"])
-        orden.mesa.estado = Mesa.DISPONIBLE
-        orden.mesa.save(update_fields=["estado"])
-        emitir_factura(orden)
+        if orden.mesa_id is not None:
+            orden.mesa.estado = Mesa.DISPONIBLE
+            orden.mesa.save(update_fields=["estado"])
+        if orden.estado == Orden.ENTREGADA:
+            emitir_factura(orden)
 
 
 def registrar_pago_manual(orden_id, *, metodo, monto, propina=CERO, referencia="", usuario=None, ip=None):

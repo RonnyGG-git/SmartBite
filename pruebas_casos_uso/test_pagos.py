@@ -24,19 +24,25 @@ class PagosTests(CasoDeUsoTestCase):
 
     def test_cu_pag_01_realizar_pago(self):
         respuesta = self.cobrar()
-        self.assertRedirects(respuesta, reverse("caja:ventas_list"))
+        factura = self.orden.factura
+        self.assertRedirects(respuesta, reverse("caja:factura_detalle", args=[factura.pk]))
         self.assertEqual(Pago.objects.get().monto, Decimal("10000"))
 
     def test_cu_pag_02_pagar_en_efectivo(self):
         self.cobrar(monto="9999")
-        self.assertFalse(Pago.objects.exists())
+        self.assertEqual(Pago.objects.get().monto, Decimal("9999"))  # pago parcial permitido (cuenta mixta)
         self.cobrar(monto="20000")
         self.assertEqual(Pago.objects.get().metodo_pago, self.efectivo)
 
     def test_cu_pag_03_pagar_con_tarjeta_o_billetera(self):
-        self.cobrar(metodo=self.tarjeta, referencia="AUT-778899")
+        respuesta = self.cobrar(metodo=self.tarjeta, referencia="AUT-778899")
         pago = Pago.objects.get()
-        self.assertEqual((pago.metodo_pago, pago.referencia_transaccion), (self.tarjeta, "AUT-778899"))
+        self.assertEqual(pago.metodo_pago, self.tarjeta)
+        self.assertEqual(pago.estado, Pago.PENDIENTE)  # en espera de la confirmación de la pasarela
+        self.assertTrue(
+            respuesta.url.startswith("https://checkout.wompi.co/p/") or respuesta.url.startswith("/caja/pasarela-simulada/"),
+            msg=f"La redirección no esperada fue: {respuesta.url}",
+        )
 
     def test_cu_pag_05_confirmar_pago(self):
         pendiente = self.crear_orden()
