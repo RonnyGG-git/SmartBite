@@ -84,15 +84,20 @@ class Orden(TimestampedModel):
     ORIGEN_MESERO = "MESERO"
     ORIGEN_AUTOPEDIDO = "AUTOPEDIDO"
     ORIGEN_TELEFONO = "AGENTE_TELEFONICO"
+    ORIGEN_APP = "APP_CLIENTE"
     ORIGEN_CHOICES = [
         (ORIGEN_MESERO, "Mesero"),
         (ORIGEN_AUTOPEDIDO, "Autopedido (QR)"),
         (ORIGEN_TELEFONO, "Agente telefónico"),
+        (ORIGEN_APP, "App del cliente"),
     ]
 
     EN_RESTAURANTE = "EN_RESTAURANTE"
     PARA_LLEVAR = "PARA_LLEVAR"
-    TIPO_CONSUMO_CHOICES = [(EN_RESTAURANTE, "Comer en el restaurante"), (PARA_LLEVAR, "Para llevar")]
+    DOMICILIO = "DOMICILIO"
+    TIPO_CONSUMO_CHOICES = [
+        (EN_RESTAURANTE, "Comer en el restaurante"), (PARA_LLEVAR, "Para llevar"), (DOMICILIO, "A domicilio"),
+    ]
 
     mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="ordenes", null=True, blank=True)
     sucursal = models.ForeignKey(
@@ -152,6 +157,10 @@ class Orden(TimestampedModel):
             orden.save(update_fields=["estado", *campos_extra, "actualizado_en"])
 
             self.insumos_faltantes = orden._aplicar_efectos_de_entrada(nuevo_estado)
+
+            from domicilio.services import sincronizar_con_orden
+
+            sincronizar_con_orden(orden)
 
         self.estado = nuevo_estado
         for campo, valor in campos_extra.items():

@@ -2,7 +2,7 @@ from django.urls import path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import SimpleRouter
 
-from . import views, views_cuenta, views_operacion, views_publico
+from . import views, views_cuenta, views_domicilio, views_operacion, views_publico
 
 app_name = "api"
 
@@ -11,9 +11,15 @@ router.register("inventario/items", views.ItemInventarioViewSet, basename="items
 router.register("ordenes", views_operacion.OrdenViewSet, basename="ordenes")
 router.register("reservas", views_operacion.ReservaViewSet, basename="reservas")
 router.register("cocina/ordenes", views_operacion.CocinaViewSet, basename="cocina")
+router.register("cliente/direcciones", views_domicilio.DireccionViewSet, basename="direcciones")
+router.register("cliente/domicilios", views_domicilio.DomicilioClienteViewSet, basename="domicilios-cliente")
+router.register("domiciliario", views_domicilio.DomiciliarioViewSet, basename="domiciliario")
 
 urlpatterns = [
     path("auth/token/", views.TokenView.as_view(), name="token"),
+    path("auth/registro/cliente/", views_domicilio.RegistroClienteView.as_view(), name="registro_cliente"),
+    path("cliente/perfil/", views_domicilio.PerfilClienteView.as_view(), name="perfil_cliente"),
+    path("publico/mesas/<int:pk>/pedido/", views_domicilio.PedidoMesaView.as_view(), name="pedido_mesa"),
     path("auth/login/", views_cuenta.LoginView.as_view(), name="login"),
     path("auth/registro/admin/", views_cuenta.RegistroAdministradorView.as_view(), name="registro_admin"),
     path("auth/registro/empleado/", views_cuenta.RegistroEmpleadoView.as_view(), name="registro_empleado"),

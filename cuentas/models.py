@@ -10,6 +10,8 @@ ROLES_SISTEMA = [
     ("JEFE_COCINA", "Jefe de Cocina"),
     ("MESERO", "Mesero"),
     ("CAJERO", "Cajero"),
+    ("DOMICILIARIO", "Domiciliario"),
+    ("CLIENTE", "Cliente"),
 ]
 
 

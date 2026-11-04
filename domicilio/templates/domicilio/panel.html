@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block title %}Domicilios — Smart Bite{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Domicilios</span>
+    <h1>Pedidos a domicilio</h1>
+    <p>Los clientes registrados piden desde la app. Caja los acepta en «Para llevar y en línea», cocina los prepara y el domiciliario los toma, recoge y entrega con el código del cliente desde la app.</p>
+  </div>
+  {% if activos %}<span class="badge badge-accent badge-lg badge-plain mono">{{ activos|length }} activos</span>{% endif %}
+</div>
+
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Activos</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>Domiciliario</th><th class="num">Total</th><th class="num">Mapa</th></tr></thead>
+      <tbody>
+        {% for d in activos %}
+        <tr>
+          <td class="mono">#{{ d.orden_id }}<br><span class="muted">{{ d.orden.sucursal.nombre }}</span></td>
+          <td>{{ d.cliente.nombre }}{% if d.telefono %}<br><span class="muted mono">{{ d.telefono }}</span>{% endif %}</td>
+          <td class="muted">{{ d.direccion }}{% if d.referencia %}<br>{{ d.referencia }}{% endif %}</td>
+          <td><span class="badge {% if d.estado == 'EN_CAMINO' or d.estado == 'ASIGNADO' %}badge-accent{% elif d.estado == 'LISTO_PARA_RECOGER' %}badge-success{% else %}badge-warning{% endif %}">{{ d.get_estado_display }}</span></td>
+          <td>{{ d.domiciliario.nombre|default:"—" }}</td>
+          <td class="num money">{{ d.orden.total|moneda }}</td>
+          <td class="actions"><a class="btn btn-sm btn-ghost" href="{% url 'domicilio:seguimiento' d.pk %}"><svg class="ico"><use href="#i-eye"/></svg><span>Ver</span></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state"><svg class="ico"><use href="#i-truck"/></svg><strong>No hay domicilios activos</strong><span>Cuando un cliente pida a domicilio desde la app, aparece aquí.</span></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card card-flush">
+  <div class="card-head"><h2>Recientes</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Orden</th><th>Cliente</th><th>Estado</th><th>Domiciliario</th><th>Entregado</th></tr></thead>
+      <tbody>
+        {% for d in recientes %}
+        <tr>
+          <td class="mono">#{{ d.orden_id }}</td>
+          <td>{{ d.cliente.nombre }}</td>
+          <td><span class="badge {% if d.estado == 'ENTREGADO' %}badge-info{% else %}badge-danger{% endif %}">{{ d.get_estado_display }}</span></td>
+          <td>{{ d.domiciliario.nombre|default:"—" }}</td>
+          <td class="mono muted">{{ d.entregado_en|date:"d M H:i"|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">Todavía no hay domicilios terminados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

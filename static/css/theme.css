@@ -1245,7 +1245,9 @@ tr.total-row td.money { font-size: 20px; }
 .escena-reflejo { opacity: 0.5; }
 .escena-vapor { opacity: 0.4; }
 .escena-brasa { fill: currentColor; stroke: none; }
-.auth-main { display: grid; place-items: center; padding: 40px 24px; }
+.auth-main { display: grid; place-items: center; padding: 40px 24px; position: relative; }
+.auth-descarga { position: absolute; top: 20px; right: 20px; }
+.auth-descarga .ico { color: var(--accent); }
 .auth-form { width: 100%; max-width: 360px; }
 .auth-form h2 { font-size: 22px; letter-spacing: -0.03em; margin-bottom: 6px; }
 .auth-form > p { color: var(--text-2); margin-bottom: 26px; }
@@ -1285,6 +1287,8 @@ tr.total-row td.money { font-size: 20px; }
   .auth-aside { min-height: auto; gap: 40px; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 28px 32px; }
   .auth-aside h1 { font-size: 34px; }
   .auth-points, .auth-ring, .auth-escena { display: none; }
+  .auth-main { padding-top: 64px; }
+  .auth-descarga { top: 16px; right: 16px; }
 }
 
 .menu-page { max-width: 760px; margin: 0 auto; padding: 0 20px 64px; }

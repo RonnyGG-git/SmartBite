@@ -41,6 +41,8 @@ INICIO_POR_ROL = {
     "JEFE_COCINA": "cocina:cocina",
     "CAJERO": "caja:por_cobrar",
     "JEFE_INVENTARIO": "inventario:inventario_list",
+    "DOMICILIARIO": "domicilio:panel",
+    "CLIENTE": "cliente:restaurantes",
 }
 
 

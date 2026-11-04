@@ -7,10 +7,11 @@ from restaurantes.models import Restaurante
 from .models import Permiso, Rol, Usuario
 
 ROL_ADMINISTRADOR = "ADMINISTRADOR"
+ROL_CLIENTE = "CLIENTE"
 
 
 def roles_de_empleado():
-    return Rol.objects.exclude(nombre=ROL_ADMINISTRADOR)
+    return Rol.objects.exclude(nombre__in=[ROL_ADMINISTRADOR, ROL_CLIENTE])
 
 
 class UsuarioCreateForm(UserCreationForm):
@@ -119,6 +120,15 @@ class RegistroEmpleadoForm(RegistroAdministradorForm):
     def save(self, commit=True):
         usuario = self.preparar(UserCreationForm.save(self, commit=False))
         usuario.restaurante = self.restaurante
+        if commit:
+            usuario.save()
+        return usuario
+
+
+class RegistroClienteForm(RegistroAdministradorForm):
+    def save(self, commit=True):
+        usuario = self.preparar(UserCreationForm.save(self, commit=False))
+        usuario.rol, _ = Rol.objects.get_or_create(nombre=ROL_CLIENTE)
         if commit:
             usuario.save()
         return usuario
