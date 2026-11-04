@@ -188,3 +188,52 @@ def sincronizar_reservas(reservas=None, ahora=None):
             fecha_hora__lte=ahora + Reserva.VENTANA, fecha_hora__gte=ahora - Reserva.TOLERANCIA
         ).values("mesa_id")
         Mesa.objects.filter(pk__in=en_ventana, estado=Mesa.DISPONIBLE, activa=True).update(estado=Mesa.RESERVADA)
+
+
+def abrir_orden_en_mesa(mesa_id, cliente=None):
+    with transaction.atomic():
+        mesa = Mesa.objects.select_for_update().get(pk=mesa_id)
+        if mesa.orden_activa is not None:
+            raise ValidationError("Esta mesa ya tiene una orden activa.", code="mesa_ocupada")
+        if mesa.estado == Mesa.RESERVADA:
+            raise ValidationError("La mesa está reservada. Confirma la reserva antes de abrir la orden.", code="mesa_reservada")
+        orden = Orden.objects.create(mesa=mesa, cliente=cliente)
+        mesa.estado = Mesa.OCUPADA
+        mesa.save(update_fields=["estado"])
+    return orden
+
+
+def asignar_mesa_a_orden(orden, mesa_id):
+    if orden.mesa_id or orden.es_final:
+        raise ValidationError("Esta orden ya tiene mesa o ya terminó.", code="orden_con_mesa")
+    with transaction.atomic():
+        mesa = (
+            Mesa.objects.select_for_update()
+            .filter(pk=mesa_id or 0, sucursal=orden.sucursal_id, activa=True)
+            .first()
+        )
+        if mesa is None or mesa.estado != Mesa.DISPONIBLE or mesa.orden_activa is not None:
+            raise ValidationError("Esa mesa ya no está disponible.", code="mesa_no_disponible")
+        Orden.objects.filter(pk=orden.pk, mesa__isnull=True).update(mesa=mesa)
+        mesa.estado = Mesa.OCUPADA
+        mesa.save(update_fields=["estado"])
+    orden.mesa = mesa
+    return mesa
+
+
+def agregar_producto_a_orden(orden, producto, cantidad):
+    if orden.estado != Orden.PENDIENTE:
+        raise ValidationError("La orden ya está en cocina; no se pueden agregar productos.", code="orden_en_cocina")
+    return DetalleOrden.objects.create(
+        orden=orden, producto=producto, cantidad=cantidad, precio_unitario=producto.precio
+    )
+
+
+def solicitar_cuenta(orden):
+    if orden.estado != Orden.LISTA:
+        raise ValidationError("Solo se puede pedir la cuenta de una orden lista y servida.", code="orden_no_lista")
+    if orden.cuenta_solicitada_en is not None:
+        return False
+    orden.cuenta_solicitada_en = timezone.now()
+    orden.save(update_fields=["cuenta_solicitada_en", "actualizado_en"])
+    return True

@@ -124,21 +124,26 @@ def _limpiar_pedido(request):
         request.session.pop(clave, None)
 
 
-def restaurantes(request):
+def buscar_sucursales(busqueda, origen):
     sucursales = list(_sucursales_publicas())
-    busqueda = request.GET.get("q", "").strip()[:80]
     if busqueda:
         termino = busqueda.lower()
         sucursales = [
             s for s in sucursales
             if termino in s.nombre.lower() or termino in s.restaurante.nombre.lower() or termino in s.direccion.lower()
         ]
-    origen = leer_coordenadas(request.GET.get("lat"), request.GET.get("lng"))
     for s in sucursales:
         s.distancia_km = (
             distancia_km(origen[0], origen[1], s.latitud, s.longitud) if origen and s.tiene_ubicacion else None
         )
     sucursales.sort(key=lambda s: (s.distancia_km is None, s.distancia_km or 0, s.restaurante.nombre, s.nombre))
+    return sucursales
+
+
+def restaurantes(request):
+    busqueda = request.GET.get("q", "").strip()[:80]
+    origen = leer_coordenadas(request.GET.get("lat"), request.GET.get("lng"))
+    sucursales = buscar_sucursales(busqueda, origen)
     return render(request, "cliente/restaurantes.html", {
         "sucursales": sucursales,
         "busqueda": busqueda,

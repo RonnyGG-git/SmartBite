@@ -2,6 +2,7 @@ from collections import OrderedDict
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -10,6 +11,8 @@ from django.views.generic import ListView
 from core.mixins import RoleRequiredMixin, rol_requerido
 from core.tenancy import RestauranteMixin, filtrar
 from operativo.models import Orden
+
+from .services import iniciar_preparacion, marcar_lista
 
 ROLES_COCINA = ["ADMINISTRADOR", "JEFE_COCINA"]
 TIEMPOS_ESTIMADOS = [5, 10, 15, 20, 30, 45, 60]
@@ -51,24 +54,20 @@ def actualizar_estado(request, pk):
     orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
     accion = request.POST.get("accion")
 
-    if accion == "iniciar" and orden.estado == Orden.PENDIENTE:
-        try:
-            minutos = int(request.POST.get("tiempo_estimado", ""))
-        except ValueError:
-            minutos = 0
-        if not 1 <= minutos <= 240:
-            messages.error(request, "Indica un tiempo estimado de preparación válido.")
-            return redirect("cocina:cocina")
-        orden.cambiar_estado(
-            Orden.EN_PREPARACION,
-            tiempo_estimado_min=minutos,
-            preparacion_iniciada_en=timezone.now(),
-        )
-        messages.success(request, f"Orden #{orden.pk} en preparación ({minutos} min).")
-    elif accion == "listo" and orden.estado == Orden.EN_PREPARACION:
-        orden.cambiar_estado(Orden.LISTA)
-        destino = f"servir en la mesa {orden.mesa.numero}" if orden.mesa_id else "entregar al cliente"
-        messages.success(request, f"Orden #{orden.pk} lista para {destino}.")
-    else:
-        messages.error(request, "Esa acción ya no aplica al estado actual de la orden.")
+    try:
+        if accion == "iniciar":
+            try:
+                minutos = int(request.POST.get("tiempo_estimado", ""))
+            except ValueError:
+                minutos = 0
+            iniciar_preparacion(orden, minutos)
+            messages.success(request, f"Orden #{orden.pk} en preparación ({minutos} min).")
+        elif accion == "listo":
+            marcar_lista(orden)
+            destino = f"servir en la mesa {orden.mesa.numero}" if orden.mesa_id else "entregar al cliente"
+            messages.success(request, f"Orden #{orden.pk} lista para {destino}.")
+        else:
+            messages.error(request, "Esa acción ya no aplica al estado actual de la orden.")
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
     return redirect("cocina:cocina")
