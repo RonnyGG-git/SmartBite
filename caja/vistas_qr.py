@@ -102,8 +102,13 @@ def factura_detalle(request, pk):
 
 # --------------------------- lado del cliente ----------------------------
 
+def _restaurante_de(orden):
+    sucursal = orden.mesa.sucursal if orden.mesa_id is not None else orden.sucursal
+    return sucursal.restaurante
+
+
 def _enlace(token):
-    return get_object_or_404(EnlacePago.objects.select_related("orden__mesa__sucursal__restaurante"), token=token)
+    return get_object_or_404(EnlacePago.objects.select_related("orden__mesa__sucursal__restaurante", "orden__sucursal__restaurante"), token=token)
 
 
 def pagar_cliente(request, token):
@@ -112,7 +117,7 @@ def pagar_cliente(request, token):
     saldo = servicios.saldo_disponible(orden)
     factura = Factura.objects.filter(orden=orden).first()
     ctx = {
-        "enlace": enlace, "orden": orden, "restaurante": orden.mesa.sucursal.restaurante,
+        "enlace": enlace, "orden": orden, "restaurante": _restaurante_de(orden),
         "lineas": orden.detalles.select_related("producto"), "total": orden.total, "saldo": saldo,
         "pagado": orden.total - servicios.saldo_pendiente(orden),
         "propina_sugerida": _entero_o_decimal((max(saldo, CERO) * Decimal("0.10")).quantize(Decimal("1"))),
@@ -170,7 +175,7 @@ def pago_listo(request, token):
     pago = _pago_del_enlace(request, enlace)
     factura = Factura.objects.filter(orden=enlace.orden).first()
     return render(request, "caja/pago_listo.html", {
-        "enlace": enlace, "pago": pago, "orden": enlace.orden, "restaurante": enlace.orden.mesa.sucursal.restaurante,
+        "enlace": enlace, "pago": pago, "orden": enlace.orden, "restaurante": _restaurante_de(enlace.orden),
         "faltante": max(servicios.saldo_pendiente(enlace.orden), CERO),
         "factura_url": reverse("caja:factura_publica", args=[token]) if factura else None,
         "modo_prueba": conf.modo_prueba(),

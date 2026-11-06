@@ -197,3 +197,25 @@ class ComprobanteTests(BaseQRTest):
         r = self.client.get(reverse("caja:factura_detalle", args=[self.orden.factura.pk]))
         self.assertContains(r, "Imp. nacional al consumo 8%")
         self.assertContains(r, "Imprimir")
+
+class PagoQROrdenSinMesaTests(BaseQRTest):
+    def setUp(self):
+        sucursal = self.mesa.sucursal
+        self.orden = Orden.objects.create(sucursal=sucursal, estado=Orden.LISTA, tipo_consumo=Orden.PARA_LLEVAR)
+        DetalleOrden.objects.create(orden=self.orden, producto=self.prod, cantidad=1, precio_unitario=Decimal("50000"))
+        self.enlace = obtener_enlace_pago(self.orden, self.cajero)
+        self.url = reverse("caja:pagar_cliente", args=[self.enlace.token])
+
+    def test_la_pagina_de_pago_funciona_sin_mesa(self):
+        r = self.client.get(self.url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "La Cocina")
+
+    def test_pagar_orden_para_llevar_la_entrega_y_emite_comprobante(self):
+        r = self.client.post(self.url, {"monto": "50000"})
+        self.assertEqual(r.status_code, 302)
+        listo = self.client.get(r["Location"])
+        self.assertEqual(listo.status_code, 200)
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.ENTREGADA)
+        self.assertTrue(Factura.objects.filter(orden=self.orden).exists())
