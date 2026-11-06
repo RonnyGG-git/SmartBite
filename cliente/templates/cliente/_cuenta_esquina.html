@@ -1,0 +1,12 @@
+<div class="cliente-cuenta">
+  {% if user.is_authenticated and user.rol.nombre == "CLIENTE" %}
+    <a class="btn btn-ghost btn-sm" href="{% url 'cliente:cuenta' %}"><svg class="ico ico-sm"><use href="#i-user"/></svg><span>{{ user.nombre|default:"Mi cuenta" }}</span></a>
+    <form method="post" action="{% url 'cuentas:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="ico ico-sm"><use href="#i-logout"/></svg></button>
+    </form>
+  {% elif not user.is_authenticated %}
+    <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:login' %}?next={% url 'cliente:inicio' %}">Iniciar sesión</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'cuentas:registro_cliente' %}">Registrarse</a>
+  {% endif %}
+</div>

@@ -1,0 +1,68 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Escanear QR — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Escanea el QR de tu mesa</h1>
+  <p>Apunta la cámara al código que está en la mesa.</p>
+</section>
+
+<section class="card escaner">
+  <video id="camara" playsinline muted hidden></video>
+  <p id="estado-escaner" class="subtle" aria-live="polite">Preparando la cámara…</p>
+  <button type="button" class="btn btn-primary btn-block" id="activar-camara"><svg class="ico"><use href="#i-qr"/></svg><span>Activar cámara</span></button>
+</section>
+
+<p class="menu-foot">¿No abre la cámara? Usa la app de cámara de tu celular: al leer el código te trae directo al menú de tu mesa.</p>
+
+<script>
+  (function () {
+    const video = document.getElementById("camara");
+    const estado = document.getElementById("estado-escaner");
+    const boton = document.getElementById("activar-camara");
+    const destinoValido = (texto) => {
+      try {
+        const url = new URL(texto, location.href);
+        if (url.origin !== location.origin) return null;
+        if (url.pathname.startsWith("/menu/") && url.searchParams.get("mesa")) return url.href;
+        if (/^\/cliente\/mesa\/\d+\/?$/.test(url.pathname)) return url.href;
+      } catch (e) {}
+      return null;
+    };
+    if (!("BarcodeDetector" in window) || !navigator.mediaDevices) {
+      estado.textContent = "Este navegador no puede leer códigos QR. Usa la cámara de tu celular.";
+      boton.hidden = true;
+      return;
+    }
+    estado.textContent = "Toca «Activar cámara» y permite el acceso.";
+    boton.addEventListener("click", async () => {
+      try {
+        const flujo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = flujo;
+        video.hidden = false;
+        boton.hidden = true;
+        await video.play();
+        const lector = new BarcodeDetector({ formats: ["qr_code"] });
+        estado.textContent = "Buscando el código…";
+        const leer = async () => {
+          const codigos = await lector.detect(video).catch(() => []);
+          for (const c of codigos) {
+            const destino = destinoValido(c.rawValue);
+            if (destino) {
+              flujo.getTracks().forEach((t) => t.stop());
+              estado.textContent = "¡Listo! Abriendo tu mesa…";
+              location.href = destino;
+              return;
+            }
+            estado.textContent = "Ese código no es de una mesa de Smart Bite.";
+          }
+          requestAnimationFrame(leer);
+        };
+        leer();
+      } catch (e) {
+        estado.textContent = "No pudimos usar la cámara. Revisa el permiso del navegador.";
+        boton.hidden = false;
+      }
+    });
+  })();
+</script>
+{% endblock %}

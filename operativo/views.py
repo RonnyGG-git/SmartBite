@@ -18,7 +18,15 @@ from core.tenancy import RestauranteMixin, filtrar, limitar_opciones, restaurant
 
 from .forms import AgregarProductoForm, CambiarEstadoOrdenForm, ClienteRapidoForm, CrearOrdenForm, MesaForm
 from .models import Cliente, DetalleOrden, Mesa, Orden, Reserva, TransicionOrdenInvalida
-from .services import cancelar_reserva as cancelar_reserva_servicio, confirmar_llegada, sincronizar_reservas
+from .services import (
+    abrir_orden_en_mesa,
+    agregar_producto_a_orden,
+    asignar_mesa_a_orden,
+    cancelar_reserva as cancelar_reserva_servicio,
+    confirmar_llegada,
+    sincronizar_reservas,
+    solicitar_cuenta as solicitar_cuenta_servicio,
+)
 
 ROLES_ADMIN = ["ADMINISTRADOR"]
 ROLES_MESERO = ["ADMINISTRADOR", "MESERO"]
@@ -107,19 +115,12 @@ def crear_orden(request):
     if request.method == "POST":
         form = limitar_opciones(CrearOrdenForm(request.POST), request)
         if form.is_valid():
-            with transaction.atomic():
-                mesa_bloqueada = Mesa.objects.select_for_update().get(
-                    pk=form.cleaned_data["mesa"].pk
-                )
-                if mesa_bloqueada.orden_activa is not None:
-                    form.add_error(None, "Esta mesa ya tiene una orden activa.")
-                else:
-                    orden = form.save(commit=False)
-                    orden.mesa = mesa_bloqueada
-                    orden.save()
-                    mesa_bloqueada.estado = Mesa.OCUPADA
-                    mesa_bloqueada.save(update_fields=["estado"])
-                    return redirect("operativo:detalle_orden", pk=orden.pk)
+            try:
+                orden = abrir_orden_en_mesa(form.cleaned_data["mesa"].pk, cliente=form.cleaned_data["cliente"])
+            except ValidationError as error:
+                form.add_error(None, error.messages[0])
+            else:
+                return redirect("operativo:detalle_orden", pk=orden.pk)
     else:
         initial = {"mesa": mesa_id} if mesa_id else {}
         form = limitar_opciones(CrearOrdenForm(initial=initial), request)
@@ -166,21 +167,11 @@ class DetalleOrdenView(RestauranteMixin, RoleRequiredMixin, DetailView):
 @rol_requerido(*ROLES_MESERO)
 def asignar_mesa(request, pk):
     orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
-    if orden.mesa_id or orden.es_final:
-        messages.error(request, "Esta orden ya tiene mesa o ya terminó.")
+    try:
+        mesa = asignar_mesa_a_orden(orden, request.POST.get("mesa"))
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
         return redirect("operativo:detalle_orden", pk=pk)
-    with transaction.atomic():
-        mesa = (
-            Mesa.objects.select_for_update()
-            .filter(pk=request.POST.get("mesa") or 0, sucursal=orden.sucursal_id, activa=True)
-            .first()
-        )
-        if mesa is None or mesa.estado != Mesa.DISPONIBLE or mesa.orden_activa is not None:
-            messages.error(request, "Esa mesa ya no está disponible.")
-            return redirect("operativo:detalle_orden", pk=pk)
-        Orden.objects.filter(pk=orden.pk, mesa__isnull=True).update(mesa=mesa)
-        mesa.estado = Mesa.OCUPADA
-        mesa.save(update_fields=["estado"])
     messages.success(request, f"Mesa {mesa.numero} asignada a la orden #{orden.pk}.")
     return redirect("operativo:detalle_orden", pk=pk)
 
@@ -222,13 +213,7 @@ def agregar_producto(request, pk):
     productos_qs = Producto.objects.filter(disponible=True, sucursal=orden.sucursal)
     form = AgregarProductoForm(request.POST, productos_qs=productos_qs)
     if form.is_valid():
-        producto = form.cleaned_data["producto"]
-        DetalleOrden.objects.create(
-            orden=orden,
-            producto=producto,
-            cantidad=form.cleaned_data["cantidad"],
-            precio_unitario=producto.precio,
-        )
+        agregar_producto_a_orden(orden, form.cleaned_data["producto"], form.cleaned_data["cantidad"])
     return redirect("operativo:detalle_orden", pk=pk)
 
 
@@ -241,11 +226,12 @@ TRANSICIONES_MESERO = {
 @rol_requerido(*ROLES_MESERO)
 def solicitar_cuenta(request, pk):
     orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
-    if orden.estado != Orden.LISTA:
-        messages.error(request, "Solo se puede pedir la cuenta de una orden lista y servida.")
-    elif orden.cuenta_solicitada_en is None:
-        orden.cuenta_solicitada_en = timezone.now()
-        orden.save(update_fields=["cuenta_solicitada_en", "actualizado_en"])
+    try:
+        solicitada = solicitar_cuenta_servicio(orden)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+        solicitada = False
+    if solicitada:
         destino = f"la mesa {orden.mesa.numero}" if orden.mesa_id else f"la orden #{orden.pk}"
         messages.success(request, f"Cuenta de {destino} enviada a caja.")
     return redirect("operativo:detalle_orden", pk=pk)

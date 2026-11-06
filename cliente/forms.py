@@ -56,3 +56,27 @@ class ReservaForm(forms.Form):
         if datos.get("fecha") and datos.get("hora"):
             datos["fecha_hora"] = timezone.make_aware(datetime.combine(datos["fecha"], datos["hora"]))
         return datos
+
+
+class PerfilClienteForm(forms.Form):
+    nombre = forms.CharField(label="Nombre", max_length=150, widget=forms.TextInput(attrs={"autocomplete": "name"}))
+    telefono = forms.CharField(
+        label="Teléfono", max_length=30, required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel"}),
+    )
+    documento = forms.CharField(label="Documento", max_length=30, required=False)
+
+
+class DireccionForm(forms.Form):
+    etiqueta = forms.CharField(label="Nombre de la dirección", max_length=40, initial="Casa")
+    direccion = forms.CharField(label="Dirección", max_length=255, widget=forms.TextInput(attrs={"autocomplete": "street-address"}))
+    referencia = forms.CharField(label="Referencia (opcional)", max_length=255, required=False)
+    latitud = forms.DecimalField(max_digits=9, decimal_places=6, min_value=-90, max_value=90, widget=forms.HiddenInput)
+    longitud = forms.DecimalField(max_digits=9, decimal_places=6, min_value=-180, max_value=180, widget=forms.HiddenInput)
+    principal = forms.BooleanField(label="Usarla como dirección principal", required=False)
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("latitud") is None or datos.get("longitud") is None:
+            raise forms.ValidationError("Marca en el mapa dónde entregamos tu pedido.")
+        return datos

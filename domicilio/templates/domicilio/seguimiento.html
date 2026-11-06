@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% load core_extras %}
+{% block title %}Domicilio #{{ domicilio.orden_id }} — Smart Bite{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+  .mapa-domicilio { height: 420px; border-radius: var(--radius-lg); border: 1px solid var(--line-strong); }
+  .leyenda-mapa { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; color: var(--text-2); font-size: 13px; }
+  .leyenda-mapa i { display: inline-block; width: 10px; height: 10px; border-radius: 99px; margin-right: 6px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <span class="eyebrow">Domicilio</span>
+    <h1>Orden #{{ domicilio.orden_id }}</h1>
+    <p>{{ domicilio.cliente.nombre }} · {{ domicilio.direccion }}{% if domicilio.referencia %} · {{ domicilio.referencia }}{% endif %}</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'domicilio:panel' %}"><svg class="ico"><use href="#i-arrow-left"/></svg><span>Volver</span></a>
+</div>
+
+<div class="grid-2 mb-16">
+  <section class="card">
+    <div id="mapa-domicilio" class="mapa-domicilio"
+         data-sucursal-lat="{{ domicilio.orden.sucursal.latitud|default_if_none:''|unlocalize }}" data-sucursal-lng="{{ domicilio.orden.sucursal.longitud|default_if_none:''|unlocalize }}"
+         data-destino-lat="{{ domicilio.latitud|unlocalize }}" data-destino-lng="{{ domicilio.longitud|unlocalize }}"
+         data-moto-lat="{{ domicilio.lat_actual|default_if_none:''|unlocalize }}" data-moto-lng="{{ domicilio.lng_actual|default_if_none:''|unlocalize }}"></div>
+    <div class="leyenda-mapa">
+      <span><i style="background:#86a8d6"></i>Restaurante</span>
+      <span><i style="background:#62bf83"></i>Destino</span>
+      <span><i style="background:#e8843f"></i>Domiciliario{% if domicilio.ubicacion_en %} (hace {{ domicilio.ubicacion_en|timesince }}){% endif %}</span>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Estado</h2>
+    <p><span class="badge badge-accent">{{ domicilio.get_estado_display }}</span></p>
+    <dl class="dl">
+      <div><dt>Domiciliario</dt><dd>{{ domicilio.domiciliario.nombre|default:"Sin asignar" }}</dd></div>
+      <div><dt>Teléfono del cliente</dt><dd class="mono">{{ domicilio.telefono|default:"—" }}</dd></div>
+      <div><dt>Asignado</dt><dd class="mono">{{ domicilio.asignado_en|date:"H:i"|default:"—" }}</dd></div>
+      <div><dt>Recogido</dt><dd class="mono">{{ domicilio.recogido_en|date:"H:i"|default:"—" }}</dd></div>
+      <div><dt>Entregado</dt><dd class="mono">{{ domicilio.entregado_en|date:"H:i"|default:"—" }}</dd></div>
+      <div><dt>Total</dt><dd class="money">{{ domicilio.orden.total|moneda }}</dd></div>
+    </dl>
+    <p class="muted">El código de entrega solo lo ve el cliente en su app.</p>
+  </section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  (function () {
+    const el = document.getElementById("mapa-domicilio");
+    const punto = (pre) => {
+      const lat = parseFloat(el.dataset[pre + "Lat"]), lng = parseFloat(el.dataset[pre + "Lng"]);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
+    };
+    const mapa = L.map(el);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; colaboradores de OpenStreetMap",
+      referrerPolicy: "strict-origin-when-cross-origin",
+    }).addTo(mapa);
+    const marcas = [];
+    [["sucursal", "#86a8d6"], ["destino", "#62bf83"], ["moto", "#e8843f"]].forEach(([pre, color]) => {
+      const p = punto(pre);
+      if (p) marcas.push(L.circleMarker(p, { radius: 9, color, fillColor: color, fillOpacity: 0.9, weight: 2 }).addTo(mapa));
+    });
+    const destino = punto("destino");
+    if (marcas.length > 1) mapa.fitBounds(L.featureGroup(marcas).getBounds().pad(0.3));
+    else mapa.setView(destino || [4.711, -74.0721], 15);
+  })();
+</script>
+{% endblock %}

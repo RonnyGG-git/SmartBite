@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load core_extras %}
 {% block title %}Iniciar sesión — Smart Bite{% endblock %}
 {% block content_publico %}
 <div class="auth">
@@ -20,6 +21,10 @@
   </section>
 
   <main class="auth-main">
+    <a class="btn btn-secondary btn-sm auth-descarga" href="{% url_app_android %}" download="SmartBite.apk"
+       title="Descarga la app de Smart Bite para Android">
+      <svg class="ico"><use href="#i-download"/></svg><span>Descargar app</span>
+    </a>
     <div class="auth-form">
       <h2>Inicia sesión</h2>
       <p>Usa el email y la contraseña de tu cuenta.</p>
@@ -46,7 +51,7 @@
       <p><a href="{% url 'cuentas:recuperar' %}">¿Olvidaste tu contraseña?</a></p>
       <nav class="auth-roles" aria-label="Otras formas de entrar">
         <span class="auth-roles-label">¿No tienes cuenta? Entra como</span>
-        <a class="btn btn-ghost btn-sm" href="{% url 'cliente:restaurantes' %}" title="Pedir en un restaurante">Cliente</a>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cliente:inicio' %}" title="Pedir en un restaurante o a domicilio">Cliente</a>
         <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:registro_empleado' %}" title="Entrar con el código de tu restaurante">Empleado</a>
         <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:registro_admin' %}" title="Crear tu cuenta de administrador">Administrador</a>
       </nav>

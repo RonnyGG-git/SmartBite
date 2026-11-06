@@ -1,0 +1,58 @@
+{% extends "cliente/base_cliente.html" %}
+{% load l10n %}
+{% block title %}{% if existente %}Editar{% else %}Nueva{% endif %} dirección — Smart Bite{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>{% if existente %}Editar dirección{% else %}Nueva dirección{% endif %}</h1>
+  <p>Escribe la dirección y toca el mapa en el punto exacto de entrega.</p>
+</section>
+
+<form method="post" class="card menu-section">
+  {% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  <div id="mapa-direccion" class="mapa-cliente mt-16"
+       data-lat="{{ form.latitud.value|default_if_none:''|unlocalize }}" data-lng="{{ form.longitud.value|default_if_none:''|unlocalize }}"></div>
+  <div class="mapa-acciones">
+    <button type="button" class="btn btn-ghost btn-sm" id="mi-ubicacion"><svg class="ico ico-sm"><use href="#i-store"/></svg><span>Usar mi ubicación</span></button>
+    <span class="subtle" id="estado-mapa" aria-live="polite"></span>
+  </div>
+  <button type="submit" class="btn btn-primary btn-block mt-16"><svg class="ico"><use href="#i-check"/></svg><span>Guardar dirección</span></button>
+</form>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  (function () {
+    const el = document.getElementById("mapa-direccion");
+    const lat = document.getElementById("id_latitud");
+    const lng = document.getElementById("id_longitud");
+    const estado = document.getElementById("estado-mapa");
+    const inicial = [parseFloat(el.dataset.lat), parseFloat(el.dataset.lng)];
+    const tiene = inicial.every(Number.isFinite);
+    const mapa = L.map(el).setView(tiene ? inicial : [7.1193, -73.1227], tiene ? 17 : 13);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "&copy; colaboradores de OpenStreetMap", referrerPolicy: "strict-origin-when-cross-origin",
+    }).addTo(mapa);
+    let marca = tiene ? L.marker(inicial).addTo(mapa) : null;
+    const fijar = (p) => {
+      const redondo = (n) => Math.round(n * 1e6) / 1e6;
+      lat.value = redondo(p.lat);
+      lng.value = redondo(p.lng);
+      if (marca) marca.setLatLng(p); else marca = L.marker(p).addTo(mapa);
+      estado.textContent = "Punto marcado.";
+    };
+    mapa.on("click", (e) => fijar(e.latlng));
+    document.getElementById("mi-ubicacion").addEventListener("click", () => {
+      if (!navigator.geolocation) { estado.textContent = "Tu navegador no comparte la ubicación."; return; }
+      estado.textContent = "Buscando tu ubicación…";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { const p = L.latLng(pos.coords.latitude, pos.coords.longitude); mapa.setView(p, 17); fijar(p); },
+        () => { estado.textContent = "No pudimos obtener tu ubicación. Toca el mapa."; },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  })();
+</script>
+{% endblock %}

@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/v1/', include('api.urls')),
     path('asistente/', include('asistente_cocina.urls')),
     path('agente/', include('agente_telefonico.urls')),
+    path('domicilios/', include('domicilio.urls')),
     path('', include('reportes.urls')),
 ]
 

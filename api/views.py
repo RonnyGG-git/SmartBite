@@ -12,6 +12,7 @@ from inventario.models import ItemInventario
 from inventario.views import ROLES_INVENTARIO, ROLES_LECTURA
 from operativo.models import Mesa
 
+from .base import ConRestauranteMixin
 from .serializers import (
     AjusteStockRespuestaSerializer,
     AjusteStockSerializer,
@@ -63,7 +64,7 @@ class MenuView(generics.ListAPIView):
 
 
 @extend_schema(tags=["inventario"])
-class ItemInventarioViewSet(viewsets.ReadOnlyModelViewSet):
+class ItemInventarioViewSet(ConRestauranteMixin, viewsets.ReadOnlyModelViewSet):
     queryset = ItemInventario.objects.select_related("sucursal").order_by("nombre")
 
     def get_queryset(self):

@@ -1,0 +1,26 @@
+{% extends "cliente/base_cliente.html" %}
+{% load core_extras %}
+{% block title %}Mis domicilios — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Mis pedidos a domicilio</h1>
+  <p>Toca un pedido para verlo en el mapa.</p>
+</section>
+
+<div class="menu-list">
+  {% for d in domicilios %}
+    <a class="dish directorio-item" href="{% url 'cliente:domicilio' d.pk %}">
+      <div>
+        <h3 class="dish-name">#{{ d.orden_id }} · {{ d.orden.sucursal.restaurante.nombre }}</h3>
+        <p class="dish-desc">{{ d.creado_en|date:"d/m H:i" }} · {{ d.direccion }}</p>
+      </div>
+      <div class="cuenta-acciones">
+        <span class="badge{% if d.estado == 'ENTREGADO' %} badge-success{% elif d.estado == 'CANCELADO' %} badge-danger{% else %} badge-accent{% endif %}">{{ d.get_estado_display }}</span>
+        <span class="dish-price">{{ d.orden.total|moneda }}</span>
+      </div>
+    </a>
+  {% empty %}
+    <p class="subtle">Aún no has pedido a domicilio. <a href="{% url 'cliente:restaurantes' %}">Elige un restaurante</a>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

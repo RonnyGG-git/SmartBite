@@ -37,6 +37,13 @@
       </div>
     {% endif %}
 
+    {% if rol == "ADMINISTRADOR" or rol == "CAJERO" or rol == "DOMICILIARIO" %}
+      <div class="nav-group">
+        <div class="nav-label">Domicilios</div>
+        <a class="sidebar-item" href="{% url 'domicilio:panel' %}" data-match="/domicilios/"><svg class="ico"><use href="#i-truck"/></svg>Pedidos a domicilio</a>
+      </div>
+    {% endif %}
+
     {% if rol == "ADMINISTRADOR" or rol == "JEFE_INVENTARIO" or rol == "JEFE_COCINA" %}
       <div class="nav-group">
         <div class="nav-label">Catálogo e inventario</div>

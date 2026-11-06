@@ -28,6 +28,25 @@
   {% endfor %}
   <input type="hidden" name="nombre" value="{{ nombre }}">
 
+  {% if domicilio %}
+  <section class="card menu-section">
+    <h2>Entrega a domicilio</h2>
+    <fieldset class="direcciones-opciones">
+      <legend class="label">¿A dónde te lo llevamos?</legend>
+      {% for d in direcciones %}
+        <label class="direccion-opcion">
+          <input type="radio" name="direccion" value="{{ d.pk }}"{% if d.principal or forloop.first and not d.principal and direcciones|length == 1 %} checked{% endif %} required>
+          <span><strong>{{ d.etiqueta }}</strong> · {{ d.direccion }}{% if d.referencia %} <span class="subtle">({{ d.referencia }})</span>{% endif %}</span>
+        </label>
+      {% endfor %}
+    </fieldset>
+    <p><a href="{% url 'cliente:direccion_crear' %}?volver={% url 'cliente:compra' %}">+ Agregar otra dirección</a></p>
+    <label class="label" for="telefono">Teléfono de contacto</label>
+    <input id="telefono" name="telefono" value="{{ telefono }}" inputmode="tel" autocomplete="tel" required>
+    <p class="subtle">El pago en línea llega pronto con el módulo de pagos; por ahora el restaurante confirma tu pedido.</p>
+  </section>
+  {% endif %}
+
   <p class="menu-section"><a href="{% url 'cliente:menu' %}" class="btn btn-ghost btn-block"><svg class="ico"><use href="#i-arrow-left"/></svg><span>Seguir eligiendo</span></a></p>
 
   <div class="order-bar">
