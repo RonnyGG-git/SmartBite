@@ -1,0 +1,110 @@
+{% extends "cliente/base_cliente.html" %}
+{% load l10n %}
+{% load core_extras %}
+{% block title %}Domicilio #{{ orden.pk }} — Smart Bite{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <span class="eyebrow">Domicilio #{{ orden.pk }}</span>
+  <h1 id="estado-titulo">{{ domicilio.get_estado_display }}</h1>
+  <p>{{ sucursal.restaurante.nombre }} · {{ sucursal.nombre }} → {{ domicilio.direccion }}</p>
+</section>
+
+{% if pasos %}
+<ol class="stepper stepper-largo" aria-label="Progreso del domicilio">
+  {% for p in pasos %}<li class="step {{ p.clase }}">{{ p.texto }}</li>{% endfor %}
+</ol>
+{% else %}
+<p class="notice">Este pedido fue cancelado.</p>
+{% endif %}
+
+{% if domicilio.estado != "ENTREGADO" and domicilio.estado != "CANCELADO" %}
+<section class="card codigo-entrega">
+  <span class="subtle">Código de entrega</span>
+  <strong class="mono">{{ domicilio.codigo_entrega }}</strong>
+  <span class="subtle">Dáselo al domiciliario solo cuando tengas tu pedido en la mano.</span>
+</section>
+{% endif %}
+
+<section class="card menu-section">
+  <div id="mapa-seguimiento" class="mapa-cliente"
+       data-url="{% url 'cliente:domicilio_estado' domicilio.pk %}"
+       data-sucursal-lat="{{ sucursal.latitud|default_if_none:''|unlocalize }}" data-sucursal-lng="{{ sucursal.longitud|default_if_none:''|unlocalize }}"
+       data-destino-lat="{{ domicilio.latitud|unlocalize }}" data-destino-lng="{{ domicilio.longitud|unlocalize }}"
+       data-moto-lat="{{ domicilio.lat_actual|default_if_none:''|unlocalize }}" data-moto-lng="{{ domicilio.lng_actual|default_if_none:''|unlocalize }}"
+       data-final="{% if domicilio.estado == 'ENTREGADO' or domicilio.estado == 'CANCELADO' %}1{% endif %}"></div>
+  <div class="leyenda-mapa">
+    <span><i style="background:#86a8d6"></i>Restaurante</span>
+    <span><i style="background:#62bf83"></i>Tu dirección</span>
+    <span><i style="background:#e8843f"></i>Domiciliario{% if domicilio.domiciliario %} · {{ domicilio.domiciliario.nombre }}{% endif %}</span>
+  </div>
+</section>
+
+<section class="card card-flush">
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        {% for d in orden.detalles.all %}
+        <tr>
+          <td><span class="cell-title">{{ d.producto.nombre }}</span><span class="cell-sub mono">{{ d.cantidad }} × {{ d.precio_unitario|moneda }}</span></td>
+          <td class="num">{{ d.subtotal|moneda }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row"><td>Total</td><td class="num money">{{ orden.total|moneda }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if puede_cancelar %}
+<form method="post" action="{% url 'cliente:domicilio_cancelar' domicilio.pk %}" class="mt-16" data-confirmar="¿Cancelar el pedido?">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-ghost btn-block"><svg class="ico"><use href="#i-x"/></svg><span>Cancelar pedido</span></button>
+</form>
+{% endif %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  (function () {
+    document.querySelectorAll("form[data-confirmar]").forEach((f) =>
+      f.addEventListener("submit", (e) => { if (!confirm(f.dataset.confirmar)) e.preventDefault(); })
+    );
+    const el = document.getElementById("mapa-seguimiento");
+    const punto = (pre) => {
+      const lat = parseFloat(el.dataset[pre + "Lat"]), lng = parseFloat(el.dataset[pre + "Lng"]);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
+    };
+    const mapa = L.map(el);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "&copy; colaboradores de OpenStreetMap", referrerPolicy: "strict-origin-when-cross-origin",
+    }).addTo(mapa);
+    const circulo = (p, color) => L.circleMarker(p, { radius: 9, color, fillColor: color, fillOpacity: 0.9, weight: 2 }).addTo(mapa);
+    const marcas = [];
+    const suc = punto("sucursal"), dest = punto("destino");
+    if (suc) marcas.push(circulo(suc, "#86a8d6"));
+    if (dest) marcas.push(circulo(dest, "#62bf83"));
+    let moto = punto("moto") ? circulo(punto("moto"), "#e8843f") : null;
+    if (moto) marcas.push(moto);
+    if (marcas.length > 1) mapa.fitBounds(L.featureGroup(marcas).getBounds().pad(0.3));
+    else mapa.setView(dest || [7.1193, -73.1227], 15);
+    if (el.dataset.final) return;
+    const titulo = document.getElementById("estado-titulo");
+    let estadoActual = null;
+    const refrescar = async () => {
+      try {
+        const r = await fetch(el.dataset.url, { headers: { Accept: "application/json" } });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (estadoActual && d.estado !== estadoActual) { location.reload(); return; }
+        estadoActual = d.estado;
+        titulo.textContent = d.estado_texto;
+        if (d.moto) { if (moto) moto.setLatLng(d.moto); else moto = circulo(d.moto, "#e8843f"); }
+        if (!d.final) setTimeout(refrescar, 10000);
+      } catch (e) { setTimeout(refrescar, 15000); }
+    };
+    refrescar();
+  })();
+</script>
+{% endblock %}

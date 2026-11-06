@@ -1599,3 +1599,27 @@ tr.total-row td.money { font-size: 20px; }
 .tipo-opcion-titulo { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
 .tipo-opcion-sub { color: var(--text-2); font-size: 13.5px; }
 .tipo-chip { display: inline-flex; margin-top: 14px; }
+
+.cliente-cuenta { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.cliente-cuenta form { margin: 0; }
+.cliente-acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.cliente-acciones .tipo-opcion { text-decoration: none; color: inherit; }
+.cuenta-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.cuenta-acciones { display: flex; align-items: center; gap: 6px; }
+.cuenta-acciones form { margin: 0; }
+.direcciones-opciones { border: 0; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.direccion-opcion { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); cursor: pointer; }
+.direccion-opcion:has(input:checked) { border-color: var(--accent-line); background: var(--surface-2); }
+.mapa-cliente { height: 320px; border-radius: var(--radius-lg); border: 1px solid var(--line-strong); }
+.mapa-acciones { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.leyenda-mapa { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; color: var(--text-2); font-size: 13px; }
+.leyenda-mapa i { display: inline-block; width: 10px; height: 10px; border-radius: 99px; margin-right: 6px; }
+.codigo-entrega { display: grid; justify-items: center; gap: 6px; margin: 16px 0; text-align: center; }
+.codigo-entrega strong { font-size: 44px; letter-spacing: 0.3em; }
+.stepper-largo { flex-wrap: wrap; row-gap: 14px; }
+.escaner video { width: 100%; border-radius: var(--radius-lg); margin-bottom: 12px; background: #000; }
+.cliente-bar { flex-wrap: wrap; }
+@media (max-width: 560px) {
+  .cliente-cuenta .btn-ghost span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .cliente-bar .menu-table { order: 3; flex-basis: 100%; justify-content: center; }
+}

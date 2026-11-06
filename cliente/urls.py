@@ -1,11 +1,21 @@
 from django.urls import path
 
-from . import views
+from . import views, views_cuenta
 
 app_name = "cliente"
 
 urlpatterns = [
     path("", views.restaurantes, name="restaurantes"),
+    path("inicio/", views_cuenta.inicio, name="inicio"),
+    path("escanear/", views_cuenta.escanear, name="escanear"),
+    path("cuenta/", views_cuenta.cuenta, name="cuenta"),
+    path("cuenta/direcciones/nueva/", views_cuenta.direccion, name="direccion_crear"),
+    path("cuenta/direcciones/<int:pk>/", views_cuenta.direccion, name="direccion_editar"),
+    path("cuenta/direcciones/<int:pk>/eliminar/", views_cuenta.direccion_eliminar, name="direccion_eliminar"),
+    path("domicilios/", views_cuenta.domicilios, name="domicilios"),
+    path("domicilios/<int:pk>/", views_cuenta.domicilio_detalle, name="domicilio"),
+    path("domicilios/<int:pk>/estado/", views_cuenta.domicilio_estado, name="domicilio_estado"),
+    path("domicilios/<int:pk>/cancelar/", views_cuenta.domicilio_cancelar, name="domicilio_cancelar"),
     path("restaurante/<int:sucursal_id>/", views.sucursal, name="sucursal"),
     path("mesa/<int:mesa_id>/", views.mesa, name="mesa"),
     path("tipo/", views.tipo_consumo, name="tipo_consumo"),

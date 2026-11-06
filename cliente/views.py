@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
@@ -23,7 +24,11 @@ from operativo.services import (
 from restaurantes.geo import distancia_km, leer_coordenadas
 from restaurantes.models import Sucursal
 
+from domicilio import services as servicios_domicilio
+from domicilio.models import DireccionCliente
+
 from .forms import MAX_CANTIDAD_POR_PRODUCTO, ReservaForm, RetroalimentacionForm, leer_cantidades
+from .views_cuenta import es_cliente, perfil_de
 from .models import Retroalimentacion
 
 SESION_MESA = "cliente_mesa_id"
@@ -119,6 +124,16 @@ def _agrupar_por_categoria(productos):
     return list(grupos.items())
 
 
+def _tipos_permitidos(request, mesa):
+    puede_domicilio = mesa is None and es_cliente(request.user)
+    return [(v, t) for v, t in Orden.TIPO_CONSUMO_CHOICES if v != Orden.DOMICILIO or puede_domicilio]
+
+
+def _tipo_de_sesion(request, mesa):
+    tipo = request.session.get(SESION_TIPO_CONSUMO)
+    return tipo if tipo in dict(_tipos_permitidos(request, mesa)) else None
+
+
 def _limpiar_pedido(request):
     for clave in (SESION_MESA_ASIGNADA, SESION_TIPO_CONSUMO, SESION_CARRITO, SESION_NOMBRE):
         request.session.pop(clave, None)
@@ -186,17 +201,19 @@ def tipo_consumo(request):
     mesa_obj, sucursal_obj = _contexto(request)
     if not (_mesa_asignada(request, mesa_obj) or (mesa_obj is None and sucursal_obj is not None)):
         return redirect("cliente:menu")
+    tipos = _tipos_permitidos(request, mesa_obj)
     if request.method == "POST":
         tipo = request.POST.get("tipo")
-        if tipo in dict(Orden.TIPO_CONSUMO_CHOICES):
+        if tipo in dict(tipos):
             request.session[SESION_TIPO_CONSUMO] = tipo
             return redirect("cliente:menu")
         messages.error(request, "Elige si tu pedido es para llevar o para comer aquí.")
     return render(request, "cliente/tipo_consumo.html", {
         "mesa": mesa_obj,
         "sucursal": sucursal_obj,
-        "tipos": Orden.TIPO_CONSUMO_CHOICES,
-        "actual": request.session.get(SESION_TIPO_CONSUMO),
+        "tipos": tipos,
+        "actual": _tipo_de_sesion(request, mesa_obj),
+        "invita_registro": mesa_obj is None and not request.user.is_authenticated,
     })
 
 
@@ -208,7 +225,7 @@ def menu(request):
         producto.cantidad_carrito = guardado.get(str(producto.pk), 0)
     en_curso = _pedido_en_curso(request, mesa_obj, sucursal_obj)
     puede_pedir = _puede_pedir(request, mesa_obj, sucursal_obj)
-    tipo = request.session.get(SESION_TIPO_CONSUMO)
+    tipo = _tipo_de_sesion(request, mesa_obj)
     if puede_pedir and not tipo:
         return redirect("cliente:tipo_consumo")
     return render(
@@ -247,8 +264,16 @@ def compra(request):
     if not _puede_pedir(request, mesa_obj, sucursal_obj) or not items:
         return redirect("cliente:menu")
     lineas = [(p, c, p.precio * c) for p, c in items]
-    tipo = request.session.get(SESION_TIPO_CONSUMO, Orden.EN_RESTAURANTE)
+    tipo = _tipo_de_sesion(request, mesa_obj) or Orden.EN_RESTAURANTE
+    extra = {}
+    if tipo == Orden.DOMICILIO:
+        direcciones = DireccionCliente.objects.filter(usuario=request.user)
+        if not direcciones.exists():
+            messages.info(request, "Agrega la dirección donde te llevamos el pedido.")
+            return redirect(f"{reverse('cliente:direccion_crear')}?volver={reverse('cliente:compra')}")
+        extra = {"domicilio": True, "direcciones": direcciones, "telefono": perfil_de(request.user).telefono}
     return render(request, "cliente/compra.html", {
+        **extra,
         "mesa": mesa_obj,
         "sucursal": sucursal_obj,
         "lineas": lineas,
@@ -283,7 +308,10 @@ def autopedido(request):
         return redirect("cliente:menu")
 
     nombre = request.POST.get("nombre", "").strip()[:150]
-    tipo = request.session.get(SESION_TIPO_CONSUMO, Orden.EN_RESTAURANTE)
+    tipo = _tipo_de_sesion(request, mesa_obj) or Orden.EN_RESTAURANTE
+
+    if tipo == Orden.DOMICILIO:
+        return _pedir_a_domicilio(request, sucursal_obj, seleccion)
 
     if mesa_obj is None:
         try:
@@ -317,6 +345,31 @@ def autopedido(request):
         mesa_bloqueada.save(update_fields=["estado"])
 
     return _registrar_pedido(request, orden)
+
+
+def _pedir_a_domicilio(request, sucursal_obj, seleccion):
+    direccion = DireccionCliente.objects.filter(pk=request.POST.get("direccion") or 0, usuario=request.user).first()
+    telefono = request.POST.get("telefono", "").strip()[:30]
+    if direccion is None:
+        messages.error(request, "Elige la dirección de entrega.")
+        return redirect("cliente:compra")
+    if not telefono:
+        messages.error(request, "Escribe un teléfono para que el domiciliario pueda llamarte.")
+        return redirect("cliente:compra")
+    try:
+        domicilio = servicios_domicilio.crear_pedido_domicilio(
+            request.user, sucursal_obj, [(p.pk, c) for p, c in seleccion], direccion, telefono=telefono,
+        )
+    except ValidationError:
+        messages.error(request, "Algún platillo dejó de estar disponible. Revisa tu pedido.")
+        return redirect("cliente:menu")
+    perfil = perfil_de(request.user)
+    if not perfil.telefono:
+        perfil.telefono = telefono
+        perfil.save(update_fields=["telefono", "actualizado_en"])
+    request.session.pop(SESION_CARRITO, None)
+    messages.success(request, "Pedido a domicilio recibido. El restaurante lo confirmará en breve.")
+    return redirect("cliente:domicilio", pk=domicilio.pk)
 
 
 def pedido(request, pk):

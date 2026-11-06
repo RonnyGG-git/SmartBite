@@ -20,6 +20,7 @@ from .forms import (
     LoginForm,
     RecuperarForm,
     RegistroAdministradorForm,
+    RegistroClienteForm,
     RegistroEmpleadoForm,
     RestablecerForm,
     RolForm,
@@ -42,7 +43,7 @@ INICIO_POR_ROL = {
     "CAJERO": "caja:por_cobrar",
     "JEFE_INVENTARIO": "inventario:inventario_list",
     "DOMICILIARIO": "domicilio:panel",
-    "CLIENTE": "cliente:restaurantes",
+    "CLIENTE": "cliente:inicio",
 }
 
 
@@ -139,6 +140,24 @@ class RegistroEmpleadoView(SoloVisitantesMixin, CreateView):
 
     def form_valid(self, form):
         return iniciar_verificacion(self.request, form.save())
+
+
+class RegistroClienteView(SoloVisitantesMixin, CreateView):
+    form_class = RegistroClienteForm
+    template_name = "cuentas/registro.html"
+    extra_context = {
+        "titulo": "Crea tu cuenta de cliente",
+        "subtitulo": "Con tu cuenta pides a domicilio, guardas tus direcciones y sigues tu pedido en el mapa.",
+    }
+
+    def form_valid(self, form):
+        from domicilio.models import PerfilCliente
+
+        usuario = form.save()
+        PerfilCliente.objects.update_or_create(
+            usuario=usuario, defaults={"telefono": form.cleaned_data.get("telefono", "").strip()}
+        )
+        return iniciar_verificacion(self.request, usuario)
 
 
 def verificar_correo(request):

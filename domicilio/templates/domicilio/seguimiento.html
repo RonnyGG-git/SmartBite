@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% load core_extras %}
 {% block title %}Domicilio #{{ domicilio.orden_id }} — Smart Bite{% endblock %}
 {% block extra_head %}
@@ -22,9 +23,9 @@
 <div class="grid-2 mb-16">
   <section class="card">
     <div id="mapa-domicilio" class="mapa-domicilio"
-         data-sucursal-lat="{{ domicilio.orden.sucursal.latitud|default_if_none:'' }}" data-sucursal-lng="{{ domicilio.orden.sucursal.longitud|default_if_none:'' }}"
-         data-destino-lat="{{ domicilio.latitud }}" data-destino-lng="{{ domicilio.longitud }}"
-         data-moto-lat="{{ domicilio.lat_actual|default_if_none:'' }}" data-moto-lng="{{ domicilio.lng_actual|default_if_none:'' }}"></div>
+         data-sucursal-lat="{{ domicilio.orden.sucursal.latitud|default_if_none:''|unlocalize }}" data-sucursal-lng="{{ domicilio.orden.sucursal.longitud|default_if_none:''|unlocalize }}"
+         data-destino-lat="{{ domicilio.latitud|unlocalize }}" data-destino-lng="{{ domicilio.longitud|unlocalize }}"
+         data-moto-lat="{{ domicilio.lat_actual|default_if_none:''|unlocalize }}" data-moto-lng="{{ domicilio.lng_actual|default_if_none:''|unlocalize }}"></div>
     <div class="leyenda-mapa">
       <span><i style="background:#86a8d6"></i>Restaurante</span>
       <span><i style="background:#62bf83"></i>Destino</span>
@@ -58,6 +59,7 @@
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "&copy; colaboradores de OpenStreetMap",
+      referrerPolicy: "strict-origin-when-cross-origin",
     }).addTo(mapa);
     const marcas = [];
     [["sucursal", "#86a8d6"], ["destino", "#62bf83"], ["moto", "#e8843f"]].forEach(([pre, color]) => {

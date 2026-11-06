@@ -126,6 +126,13 @@ class RegistroEmpleadoForm(RegistroAdministradorForm):
 
 
 class RegistroClienteForm(RegistroAdministradorForm):
+    telefono = forms.CharField(
+        label="Teléfono", max_length=30, required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel"}),
+    )
+
+    field_order = ["nombre", "email", "telefono", "password1", "password2"]
+
     def save(self, commit=True):
         usuario = self.preparar(UserCreationForm.save(self, commit=False))
         usuario.rol, _ = Rol.objects.get_or_create(nombre=ROL_CLIENTE)

@@ -222,7 +222,7 @@ class PanelWebTests(DomicilioBase):
         self.client.force_login(crear_usuario("MESERO"))
         self.assertNotEqual(self.client.get(reverse("domicilio:panel")).status_code, 200)
 
-    def test_cliente_web_aterriza_en_restaurantes(self):
+    def test_cliente_web_aterriza_en_su_inicio(self):
         self.client.force_login(self.cliente)
         r = self.client.get(reverse("cuentas:login"))
-        self.assertRedirects(r, reverse("cliente:restaurantes"), fetch_redirect_response=False)
+        self.assertRedirects(r, reverse("cliente:inicio"), fetch_redirect_response=False)

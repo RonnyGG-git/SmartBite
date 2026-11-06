@@ -1,0 +1,25 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Cliente — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>{% if es_cliente %}Hola, {{ user.nombre }}{% else %}Bienvenido{% endif %}</h1>
+  <p>{% if es_cliente %}Pide en la mesa con el QR o pide a domicilio desde cualquier restaurante.{% else %}Sin cuenta puedes pedir desde tu mesa con el QR. Regístrate para pedir a domicilio.{% endif %}</p>
+</section>
+
+<div class="cliente-acciones">
+  <a class="tipo-opcion" href="{% url 'cliente:restaurantes' %}">
+    <svg class="ico"><use href="#i-store"/></svg>
+    <span class="tipo-opcion-titulo">Restaurantes</span>
+    <span class="tipo-opcion-sub">{% if es_cliente %}Elige uno, arma tu carrito y te lo llevamos{% else %}Mira los menús y pide para llevar{% endif %}</span>
+  </a>
+  <a class="tipo-opcion" href="{% url 'cliente:escanear' %}">
+    <svg class="ico"><use href="#i-qr"/></svg>
+    <span class="tipo-opcion-titulo">Escanear QR</span>
+    <span class="tipo-opcion-sub">Apunta al código de tu mesa y pide sin esperar</span>
+  </a>
+</div>
+
+{% if es_cliente %}
+<p class="menu-foot"><a href="{% url 'cliente:domicilios' %}">Ver mis pedidos a domicilio</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Mi cuenta — Smart Bite{% endblock %}
+{% block cliente %}
+<section class="menu-hero">
+  <h1>Mi cuenta</h1>
+  <p>{{ user.email }}</p>
+</section>
+
+<section class="card menu-section">
+  <h2>Datos de contacto</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <button type="submit" class="btn btn-primary mt-16"><svg class="ico"><use href="#i-check"/></svg><span>Guardar</span></button>
+  </form>
+</section>
+
+<section class="card menu-section">
+  <div class="cuenta-cabecera">
+    <h2>Mis direcciones</h2>
+    <a class="btn btn-ghost btn-sm" href="{% url 'cliente:direccion_crear' %}"><svg class="ico ico-sm"><use href="#i-plus"/></svg><span>Agregar</span></a>
+  </div>
+  {% for d in direcciones %}
+    <article class="dish">
+      <div>
+        <h3 class="dish-name">{{ d.etiqueta }}{% if d.principal %} <span class="badge badge-accent">Principal</span>{% endif %}</h3>
+        <p class="dish-desc">{{ d.direccion }}{% if d.referencia %} · {{ d.referencia }}{% endif %}</p>
+      </div>
+      <div class="cuenta-acciones">
+        <a class="btn btn-ghost btn-sm" href="{% url 'cliente:direccion_editar' d.pk %}" aria-label="Editar {{ d.etiqueta }}"><svg class="ico ico-sm"><use href="#i-pencil"/></svg></a>
+        <form method="post" action="{% url 'cliente:direccion_eliminar' d.pk %}" data-confirmar="¿Eliminar esta dirección?">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm" aria-label="Eliminar {{ d.etiqueta }}"><svg class="ico ico-sm"><use href="#i-trash"/></svg></button>
+        </form>
+      </div>
+    </article>
+  {% empty %}
+    <p class="subtle">Todavía no tienes direcciones. Agrega una para pedir a domicilio.</p>
+  {% endfor %}
+</section>
+
+<p class="menu-foot">El pago con tus métodos guardados llega con el módulo de pagos.</p>
+
+<script>
+  document.querySelectorAll("form[data-confirmar]").forEach((f) =>
+    f.addEventListener("submit", (e) => { if (!confirm(f.dataset.confirmar)) e.preventDefault(); })
+  );
+</script>
+{% endblock %}
