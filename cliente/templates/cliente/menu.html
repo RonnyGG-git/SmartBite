@@ -59,8 +59,8 @@
                   </div>
                 {% endif %}
               </div>
-              {% if producto.url_imagen %}
-                <img class="dish-img" src="{{ producto.url_imagen }}" alt="{{ producto.nombre }}" loading="lazy" width="96" height="96">
+              {% if producto.imagen_src %}
+                <img class="dish-img" src="{{ producto.imagen_src }}" alt="{{ producto.nombre }}" loading="lazy" width="96" height="96" onerror="this.remove()">
               {% endif %}
             </article>
           {% endfor %}

@@ -24,8 +24,13 @@
         {% for producto in productos %}
         <tr>
           <td>
-            <span class="cell-title">{{ producto.nombre }}</span>
-            <span class="cell-sub mono">ID #{{ producto.id }}</span>
+            <div class="producto-celda">
+              {% if producto.imagen_src %}<img class="producto-miniatura" src="{{ producto.imagen_src }}" alt="" loading="lazy" width="44" height="44" onerror="this.remove()">{% endif %}
+              <div>
+                <span class="cell-title">{{ producto.nombre }}</span>
+                <span class="cell-sub mono">ID #{{ producto.id }}</span>
+              </div>
+            </div>
           </td>
           <td class="num money">{{ producto.precio|moneda }}</td>
           <td><span class="badge badge-muted badge-plain">{{ producto.categoria.nombre }}</span></td>

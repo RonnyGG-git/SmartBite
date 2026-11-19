@@ -221,6 +221,28 @@ def asignar_mesa_a_orden(orden, mesa_id):
     return mesa
 
 
+def pedidos_por_confirmar(ordenes):
+    return (
+        ordenes.filter(estado=Orden.POR_CONFIRMAR, origen=Orden.ORIGEN_AUTOPEDIDO)
+        .exclude(tipo_consumo=Orden.DOMICILIO)
+        .select_related("mesa", "cliente")
+        .prefetch_related("detalles__producto")
+        .order_by("creado_en")
+    )
+
+
+def confirmar_presencia(orden):
+    if not orden.requiere_confirmacion:
+        raise ValidationError("Este pedido ya no está esperando confirmación.", code="sin_confirmacion")
+    orden.cambiar_estado(Orden.PENDIENTE)
+
+
+def rechazar_presencia(orden):
+    if not orden.requiere_confirmacion:
+        raise ValidationError("Este pedido ya no está esperando confirmación.", code="sin_confirmacion")
+    orden.cambiar_estado(Orden.CANCELADA)
+
+
 def agregar_producto_a_orden(orden, producto, cantidad):
     if orden.estado != Orden.PENDIENTE:
         raise ValidationError("La orden ya está en cocina; no se pueden agregar productos.", code="orden_en_cocina")

@@ -63,15 +63,17 @@ class Domicilio(TimestampedModel):
     MAX_INTENTOS_CODIGO = 5
 
     orden = models.OneToOneField("operativo.Orden", on_delete=models.CASCADE, related_name="domicilio")
-    cliente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="domicilios_pedidos")
+    cliente = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="domicilios_pedidos", null=True, blank=True
+    )
     domiciliario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="domicilios_entregados", null=True, blank=True
     )
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=SOLICITADO)
     direccion = models.CharField(max_length=255)
     referencia = models.CharField(max_length=255, blank=True)
-    latitud = models.DecimalField(max_digits=9, decimal_places=6, validators=LATITUD)
-    longitud = models.DecimalField(max_digits=9, decimal_places=6, validators=LONGITUD)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, validators=LATITUD, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, validators=LONGITUD, null=True, blank=True)
     telefono = models.CharField(max_length=30, blank=True)
     codigo_entrega = models.CharField(max_length=4)
     intentos_codigo = models.PositiveSmallIntegerField(default=0)
@@ -92,6 +94,16 @@ class Domicilio(TimestampedModel):
     @property
     def es_final(self):
         return self.estado in self.FINALES
+
+    @property
+    def nombre_cliente(self):
+        if self.cliente_id:
+            return self.cliente.nombre
+        return self.orden.cliente.nombre if self.orden.cliente_id else "Cliente"
+
+    @property
+    def tiene_ubicacion(self):
+        return self.latitud is not None and self.longitud is not None
 
     @property
     def codigo_bloqueado(self):

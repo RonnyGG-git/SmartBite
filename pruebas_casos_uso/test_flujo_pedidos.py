@@ -106,13 +106,13 @@ class FlujoPedidosTests(CasoDeUsoTestCase):
         self.mesa.refresh_from_db()
         self.assertEqual(self.mesa.estado, Mesa.DISPONIBLE)
 
-    def test_qr_en_mesa_va_directo_a_cocina(self):
+    def test_qr_en_mesa_espera_al_mesero(self):
         self.escanear_qr()
         datos = {f"cant_{self.gaseosa.pk}": 1, "nombre": ""}
         self.client.post(reverse("cliente:carrito"), datos)
         self.client.post(reverse("cliente:autopedido"), datos)
         orden = Orden.objects.get()
-        self.assertEqual(orden.estado, Orden.PENDIENTE)
+        self.assertEqual(orden.estado, Orden.POR_CONFIRMAR)
         self.assertEqual(orden.mesa, self.mesa)
 
     def test_ventas_incluye_prepagos_aun_en_cocina(self):

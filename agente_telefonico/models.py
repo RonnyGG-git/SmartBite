@@ -19,8 +19,8 @@ class LineaTelefonica(TimestampedModel):
 
 
 class Llamada(TimestampedModel):
-    CANAL_TELEFONO, CANAL_DEMO = "TELEFONO", "DEMO"
-    CANAL_CHOICES = [(CANAL_TELEFONO, "Teléfono"), (CANAL_DEMO, "Simulador")]
+    CANAL_TELEFONO, CANAL_WHATSAPP, CANAL_DEMO = "TELEFONO", "WHATSAPP", "DEMO"
+    CANAL_CHOICES = [(CANAL_TELEFONO, "Teléfono"), (CANAL_WHATSAPP, "WhatsApp"), (CANAL_DEMO, "Simulador")]
 
     ACTIVA, FINALIZADA, CORTADA, TRANSFERIDA, FALLIDA = "ACTIVA", "FINALIZADA", "CORTADA", "TRANSFERIDA", "FALLIDA"
     ESTADO_CHOICES = [
@@ -36,7 +36,19 @@ class Llamada(TimestampedModel):
     FASE_NOMBRE = "NOMBRE"
     FASE_TELEFONO = "TELEFONO"
     FASE_MODALIDAD = "MODALIDAD"
+    FASE_DIRECCION = "DIRECCION"
+    FASE_REFERENCIA = "REFERENCIA"
     FASE_CONFIRMACION = "CONFIRMACION"
+    FASE_RESERVA_FECHA = "RESERVA_FECHA"
+    FASE_RESERVA_HORA = "RESERVA_HORA"
+    FASE_RESERVA_PERSONAS = "RESERVA_PERSONAS"
+    FASE_RESERVA_NOMBRE = "RESERVA_NOMBRE"
+    FASE_RESERVA_TELEFONO = "RESERVA_TELEFONO"
+    FASE_RESERVA_CONFIRMACION = "RESERVA_CONFIRMACION"
+    FASES_RESERVA = (
+        FASE_RESERVA_FECHA, FASE_RESERVA_HORA, FASE_RESERVA_PERSONAS, FASE_RESERVA_NOMBRE, FASE_RESERVA_TELEFONO,
+        FASE_RESERVA_CONFIRMACION,
+    )
     FASE_CERRADA = "CERRADA"
     FASE_CHOICES = [
         (FASE_PEDIDO, "Tomando pedido"),
@@ -44,7 +56,15 @@ class Llamada(TimestampedModel):
         (FASE_NOMBRE, "Pidiendo nombre"),
         (FASE_TELEFONO, "Pidiendo teléfono"),
         (FASE_MODALIDAD, "Pidiendo modalidad"),
+        (FASE_DIRECCION, "Pidiendo dirección"),
+        (FASE_REFERENCIA, "Pidiendo referencia"),
         (FASE_CONFIRMACION, "Confirmando pedido"),
+        (FASE_RESERVA_FECHA, "Reserva: fecha"),
+        (FASE_RESERVA_HORA, "Reserva: hora"),
+        (FASE_RESERVA_PERSONAS, "Reserva: personas"),
+        (FASE_RESERVA_NOMBRE, "Reserva: nombre"),
+        (FASE_RESERVA_TELEFONO, "Reserva: teléfono"),
+        (FASE_RESERVA_CONFIRMACION, "Reserva: confirmación"),
         (FASE_CERRADA, "Cerrada"),
     ]
 
@@ -68,6 +88,15 @@ class Llamada(TimestampedModel):
     orden = models.OneToOneField(
         "operativo.Orden", on_delete=models.SET_NULL, null=True, blank=True, related_name="llamada_telefonica"
     )
+    reserva = models.OneToOneField(
+        "operativo.Reserva", on_delete=models.SET_NULL, null=True, blank=True, related_name="llamada_telefonica"
+    )
+    datos = models.JSONField(default=dict, blank=True)
+    direccion = models.CharField(max_length=255, blank=True)
+    referencia = models.CharField(max_length=255, blank=True)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    ultimo_mensaje = models.CharField(max_length=64, blank=True)
     finalizada_en = models.DateTimeField(null=True, blank=True)
     error = models.CharField(max_length=300, blank=True)
 

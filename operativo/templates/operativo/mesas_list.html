@@ -15,6 +15,37 @@
   {% endif %}
 </div>
 
+{% if pedidos_por_confirmar %}
+<section class="card card-flush mb-16">
+  <div class="card-head"><h2>Confirmar que el cliente está aquí</h2><span class="badge badge-warning badge-plain mono">{{ pedidos_por_confirmar|length }}</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Número</th><th>Lugar</th><th>Cliente</th><th>Modalidad</th><th class="num">Acción</th></tr></thead>
+      <tbody>
+        {% for o in pedidos_por_confirmar %}
+        <tr>
+          <td class="mono">#{{ o.pk }}</td>
+          <td>{% if o.mesa %}Mesa {{ o.mesa.numero }}{% else %}Sin mesa{% endif %}</td>
+          <td>{{ o.cliente.nombre|default:"—" }}</td>
+          <td>{{ o.get_tipo_consumo_display }}</td>
+          <td class="actions">
+            <form method="post" action="{% url 'operativo:confirmar_pedido' o.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-check"/></svg><span>Confirmar</span></button>
+            </form>
+            <form method="post" action="{% url 'operativo:rechazar_pedido' o.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-quiet is-danger">Rechazar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 {% if pedidos_sin_mesa %}
 <section class="card card-flush mb-16">
   <div class="card-head"><h2>Pedidos sin mesa</h2><span class="badge badge-warning badge-plain mono">{{ pedidos_sin_mesa|length }}</span></div>

@@ -68,6 +68,18 @@ def crear_pedido_domicilio(usuario, sucursal, lineas, direccion, nombre="", tele
     return domicilio
 
 
+def crear_domicilio_sin_cuenta(orden, direccion, referencia="", telefono="", latitud=None, longitud=None):
+    return Domicilio.objects.create(
+        orden=orden,
+        direccion=direccion[:255],
+        referencia=referencia[:255],
+        latitud=latitud,
+        longitud=longitud,
+        telefono=telefono[:30],
+        codigo_entrega=_nuevo_codigo(),
+    )
+
+
 def _bloquear(domicilio):
     return Domicilio.objects.select_for_update().select_related("orden").get(pk=domicilio.pk)
 

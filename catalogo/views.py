@@ -1,13 +1,15 @@
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.mixins import RoleRequiredMixin, usuario_tiene_rol
 from core.tenancy import RestauranteMixin, filtrar
 
 from .forms import CategoriaForm, ProductoForm
-from .models import Categoria, Producto
+from .models import Categoria, ImagenProducto, Producto
 
 ROLES_GESTION = ["ADMINISTRADOR", "JEFE_COCINA"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_INVENTARIO", "JEFE_COCINA"]
@@ -73,6 +75,13 @@ def producto_toggle_disponibilidad(request, pk):
         producto.disponible = not producto.disponible
         producto.save(update_fields=["disponible"])
     return redirect("catalogo:productos_list")
+
+
+@require_GET
+@cache_control(public=True, max_age=31536000, immutable=True)
+def producto_imagen(request, pk):
+    imagen = get_object_or_404(ImagenProducto, producto_id=pk)
+    return HttpResponse(bytes(imagen.datos), content_type="image/jpeg")
 
 
 class CategoriaListView(RestauranteMixin, RoleRequiredMixin, ListView):

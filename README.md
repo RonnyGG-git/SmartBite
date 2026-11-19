@@ -1,7 +1,8 @@
 # Smart Bite — Django (MVT)
 
-Sistema de gestión para restaurantes (mesas, órdenes, cocina, caja, inventario y
-reportes) construido como un proyecto Django monolítico usando el patrón
+Plataforma integral de gestión para franquicias de restaurantes: cada
+propietario administra uno o varios restaurantes y sus sucursales desde un solo
+sistema. Está construida como un proyecto Django monolítico usando el patrón
 **Model-View-Template (MVT)**.
 
 Es la migración del frontend React de `smartibite-frontend` a Django. El diseño

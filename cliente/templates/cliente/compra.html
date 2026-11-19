@@ -47,6 +47,8 @@
   </section>
   {% endif %}
 
+  {% if not domicilio %}<p class="notice menu-section"><svg class="ico"><use href="#i-info"/></svg><span>Tu mesero confirmará que estás en el restaurante. Después el pedido pasa a cocina y podrás pagarlo.</span></p>{% endif %}
+
   <p class="menu-section"><a href="{% url 'cliente:menu' %}" class="btn btn-ghost btn-block"><svg class="ico"><use href="#i-arrow-left"/></svg><span>Seguir eligiendo</span></a></p>
 
   <div class="order-bar">

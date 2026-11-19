@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from datetime import date, timedelta
 
 NUMEROS = {
     "un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6,
@@ -15,6 +16,109 @@ PALABRAS_VACIAS = {
 }
 
 TARJETA = re.compile(r"(?:\d[ -]?){13,19}")
+
+DIAS_SEMANA = {"lunes": 0, "martes": 1, "miercoles": 2, "jueves": 3, "viernes": 4, "sabado": 5, "domingo": 6}
+MESES = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
+    "septiembre": 9, "setiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12,
+}
+PALABRAS_NUMERO = "|".join(sorted((p for p in NUMEROS if p not in ("par", "docena")), key=len, reverse=True))
+NUMERO = rf"\d{{1,2}}|{PALABRAS_NUMERO}"
+PATRON_MANANA_DIA = re.compile(r"(?<!la )\bmanana\b")
+PATRON_DIA_MES = re.compile(rf"\b({NUMERO})\s+de\s+({'|'.join(MESES)})\b")
+PATRON_EL_DIA = re.compile(r"\bel\s+(\d{1,2})\b(?!\s+personas?)")
+PATRON_HORA = re.compile(rf"\b(?:a\s+las?|las?)\s+({NUMERO})(?:\s+(?:y\s+)?(media|cuarto|\d{{2}}))?\b(?!\s+personas?)")
+PATRON_HORA_AMPM = re.compile(r"\b(\d{1,2})(?:\s+(\d{2}))?\s*(am|pm|a m|p m)\b")
+PATRON_HORA_SUELTA = re.compile(r"^(\d{1,2})(?:\s+(\d{2}))?$")
+PATRON_PERSONAS = re.compile(rf"\b(?:({NUMERO})\s+personas?|somos\s+({NUMERO})|mesa\s+para\s+({NUMERO}))\b")
+TARDE = ("de la tarde", "de la noche", "por la tarde", "por la noche", "en la tarde", "en la noche", "esta tarde", "esta noche")
+MANANA = ("de la manana", "por la manana", "en la manana")
+
+
+def _a_numero(texto):
+    return int(texto) if texto.isdigit() else NUMEROS.get(texto)
+
+
+def _fecha_valida(anio, mes, dia):
+    try:
+        return date(anio, mes, dia)
+    except ValueError:
+        return None
+
+
+def extraer_fecha(texto_normal, hoy):
+    if contiene(texto_normal, "pasado manana"):
+        return hoy + timedelta(days=2)
+    if contiene(texto_normal, "hoy", "esta noche", "esta tarde"):
+        return hoy
+    if PATRON_MANANA_DIA.search(texto_normal):
+        return hoy + timedelta(days=1)
+    for nombre, indice in DIAS_SEMANA.items():
+        if contiene(texto_normal, nombre):
+            return hoy + timedelta(days=(indice - hoy.weekday()) % 7 or 7)
+    coincidencia = PATRON_DIA_MES.search(texto_normal)
+    if coincidencia:
+        dia, mes = _a_numero(coincidencia.group(1)), MESES[coincidencia.group(2)]
+        fecha = _fecha_valida(hoy.year, mes, dia)
+        return fecha if fecha is None or fecha >= hoy else _fecha_valida(hoy.year + 1, mes, dia)
+    coincidencia = PATRON_EL_DIA.search(texto_normal)
+    if coincidencia:
+        dia = int(coincidencia.group(1))
+        fecha = _fecha_valida(hoy.year, hoy.month, dia)
+        if fecha is not None and fecha >= hoy:
+            return fecha
+        siguiente = date(hoy.year + hoy.month // 12, hoy.month % 12 + 1, 1)
+        return _fecha_valida(siguiente.year, siguiente.month, dia)
+    return None
+
+
+def _minutos(texto):
+    if not texto:
+        return 0
+    if texto == "media":
+        return 30
+    if texto == "cuarto":
+        return 15
+    return int(texto)
+
+
+def _a_24_horas(hora, minuto, texto_normal, sufijo=""):
+    if hora is None or hora > 23 or minuto > 59:
+        return None
+    if sufijo.startswith("p") or contiene(texto_normal, *TARDE):
+        hora += 12 if hora < 12 else 0
+    elif sufijo.startswith("a") or contiene(texto_normal, *MANANA):
+        hora = 0 if hora == 12 else hora
+    elif 1 <= hora <= 11:
+        hora += 12
+    return hora, minuto
+
+
+def extraer_hora(texto_normal):
+    if contiene(texto_normal, "mediodia", "medio dia"):
+        return 12, 0
+    coincidencia = PATRON_HORA_AMPM.search(texto_normal)
+    if coincidencia:
+        return _a_24_horas(int(coincidencia.group(1)), int(coincidencia.group(2) or 0), texto_normal, coincidencia.group(3))
+    coincidencia = PATRON_HORA.search(texto_normal)
+    if coincidencia:
+        return _a_24_horas(_a_numero(coincidencia.group(1)), _minutos(coincidencia.group(2)), texto_normal)
+    return None
+
+
+def extraer_hora_suelta(texto_normal):
+    coincidencia = PATRON_HORA_SUELTA.match(texto_normal)
+    if coincidencia:
+        return _a_24_horas(int(coincidencia.group(1)), int(coincidencia.group(2) or 0), texto_normal)
+    cantidad, _ = extraer_cantidad(texto_normal.split())
+    return _a_24_horas(cantidad, 0, texto_normal) if cantidad else None
+
+
+def extraer_personas(texto_normal):
+    coincidencia = PATRON_PERSONAS.search(texto_normal)
+    if not coincidencia:
+        return None
+    return _a_numero(next(g for g in coincidencia.groups() if g))
 
 
 def normalizar(texto):

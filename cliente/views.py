@@ -288,7 +288,9 @@ def _registrar_pedido(request, orden):
     pedidos = _pedidos_de_sesion(request)
     pedidos.append(orden.pk)
     request.session[SESION_PEDIDOS] = pedidos[-20:]
-    if orden.estado == Orden.POR_CONFIRMAR:
+    if orden.requiere_confirmacion:
+        messages.success(request, "Pedido recibido. Muéstrale el número a tu mesero para que lo confirme.")
+    elif orden.estado == Orden.POR_CONFIRMAR:
         messages.success(request, "Pedido recibido. El restaurante lo confirmará en breve.")
     else:
         messages.success(request, "Pedido enviado a cocina.")
@@ -335,7 +337,7 @@ def autopedido(request):
         restaurante = mesa_bloqueada.sucursal.restaurante
         cliente = obtener_cliente(restaurante, nombre)
         orden = Orden.objects.create(
-            mesa=mesa_bloqueada, cliente=cliente, origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.PENDIENTE,
+            mesa=mesa_bloqueada, cliente=cliente, origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.POR_CONFIRMAR,
             tipo_consumo=tipo,
         )
         DetalleOrden.objects.bulk_create(

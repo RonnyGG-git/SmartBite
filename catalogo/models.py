@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from core.models import TimestampedModel
 
@@ -19,11 +20,17 @@ class Categoria(TimestampedModel):
         return self.nombre
 
 
+class ImagenProducto(models.Model):
+    producto = models.OneToOneField("Producto", on_delete=models.CASCADE, primary_key=True, related_name="imagen")
+    datos = models.BinaryField()
+
+
 class Producto(TimestampedModel):
     nombre = models.CharField(max_length=150)
     descripcion = models.CharField(max_length=255, blank=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
-    url_imagen = models.URLField(blank=True)
+    url_imagen = models.URLField(max_length=1000, blank=True)
+    imagen_version = models.PositiveIntegerField(default=0, editable=False)
     categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name="productos")
     sucursal = models.ForeignKey(
         "restaurantes.Sucursal", on_delete=models.PROTECT, related_name="productos"
@@ -41,3 +48,9 @@ class Producto(TimestampedModel):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def imagen_src(self):
+        if self.imagen_version:
+            return f"{reverse('catalogo:producto_imagen', args=[self.pk])}?v={self.imagen_version}"
+        return self.url_imagen

@@ -1,14 +1,18 @@
 import logging
+from datetime import datetime
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rapidfuzz import fuzz
 
 from catalogo.models import Producto
+from domicilio.models import Domicilio
+from domicilio.services import crear_domicilio_sin_cuenta
 from operativo.models import Cliente, Orden
-from operativo.services import MAX_CANTIDAD_POR_LINEA, crear_orden
+from operativo.services import MAX_CANTIDAD_POR_LINEA, crear_orden, crear_reserva, horarios_alternativos
 
 from .models import Llamada
 from .notificaciones import notificar_cocina
@@ -187,8 +191,42 @@ class Herramientas:
         self.llamada.items = {}
         self.llamada.observaciones = ""
         self.llamada.resumen_leido = False
-        self.llamada.save(update_fields=["items", "observaciones", "resumen_leido", "actualizado_en"])
+        self.llamada.datos = {}
+        self.llamada.direccion = ""
+        self.llamada.referencia = ""
+        self.llamada.tipo_consumo = ""
+        self.llamada.save(update_fields=[
+            "items", "observaciones", "resumen_leido", "datos", "direccion", "referencia", "tipo_consumo", "actualizado_en",
+        ])
         return {"ok": True}
+
+    def confirmar_reserva(self, confirmacion_cliente):
+        if confirmacion_cliente is not True:
+            return {"ok": False, "error": "SIN_CONFIRMACION"}
+        with transaction.atomic():
+            llamada = Llamada.objects.select_for_update().get(pk=self.llamada.pk)
+            self.llamada = llamada
+            if llamada.reserva_id:
+                return {"ok": True, "codigo": llamada.reserva.codigo, "duplicado": True}
+            if not llamada.abierta:
+                return {"ok": False, "error": "LLAMADA_CERRADA"}
+            datos = llamada.datos
+            if not datos.get("resumen_leido"):
+                return {"ok": False, "error": "RESUMEN_NO_LEIDO"}
+            fecha_hora = timezone.make_aware(datetime.fromisoformat(f"{datos['fecha']}T{datos['hora']}"))
+            try:
+                reserva = crear_reserva(
+                    self.sucursal, fecha_hora, datos["personas"], llamada.nombre_cliente, llamada.telefono_contacto
+                )
+            except ValidationError as error:
+                alternativas = (
+                    [timezone.localtime(a) for a in horarios_alternativos(self.sucursal, fecha_hora, datos["personas"])]
+                    if error.code == "sin_mesa" else []
+                )
+                return {"ok": False, "error": error.code, "detalle": error.messages[0], "alternativas": alternativas}
+            llamada.reserva = reserva
+            llamada.save(update_fields=["reserva", "actualizado_en"])
+        return {"ok": True, "codigo": reserva.codigo, "duplicado": False}
 
     def confirmar_pedido(self, confirmacion_cliente):
         if confirmacion_cliente is not True:
@@ -197,7 +235,11 @@ class Herramientas:
             llamada = Llamada.objects.select_for_update().get(pk=self.llamada.pk)
             self.llamada = llamada
             if llamada.orden_id:
-                return {"ok": True, "pedido_id": llamada.orden_id, "duplicado": True, "aviso_cocina": True}
+                domicilio = Domicilio.objects.filter(orden_id=llamada.orden_id).first()
+                return {
+                    "ok": True, "pedido_id": llamada.orden_id, "duplicado": True, "aviso_cocina": True,
+                    "codigo_entrega": domicilio.codigo_entrega if domicilio else "",
+                }
             if not llamada.abierta:
                 return {"ok": False, "error": "LLAMADA_CERRADA"}
             if not llamada.items:
@@ -205,6 +247,8 @@ class Herramientas:
             if not llamada.resumen_leido:
                 return {"ok": False, "error": "RESUMEN_NO_LEIDO"}
             if not llamada.nombre_cliente or llamada.tipo_consumo not in dict(Orden.TIPO_CONSUMO_CHOICES):
+                return {"ok": False, "error": "DATOS_INCOMPLETOS"}
+            if llamada.tipo_consumo == Orden.DOMICILIO and not llamada.direccion:
                 return {"ok": False, "error": "DATOS_INCOMPLETOS"}
             cliente = llamada.cliente or self.crear_cliente(
                 {"nombre": llamada.nombre_cliente, "telefono": llamada.telefono_contacto}
@@ -220,6 +264,11 @@ class Herramientas:
                 )
             except ValidationError as error:
                 return {"ok": False, "error": "PRODUCTO_NO_DISPONIBLE", "detalle": error.messages[0]}
+            codigo_entrega = ""
+            if llamada.tipo_consumo == Orden.DOMICILIO:
+                codigo_entrega = crear_domicilio_sin_cuenta(
+                    orden, llamada.direccion, llamada.referencia, llamada.telefono_contacto, llamada.latitud, llamada.longitud
+                ).codigo_entrega
             llamada.orden = orden
             llamada.cliente = cliente
             llamada.save(update_fields=["orden", "cliente", "actualizado_en"])
@@ -231,7 +280,10 @@ class Herramientas:
             aviso_cocina = False
             llamada.error = f"Orden #{orden.pk} registrada; falló la notificación a cocina."
             llamada.save(update_fields=["error", "actualizado_en"])
-        return {"ok": True, "pedido_id": orden.pk, "duplicado": False, "aviso_cocina": aviso_cocina}
+        return {
+            "ok": True, "pedido_id": orden.pk, "duplicado": False, "aviso_cocina": aviso_cocina,
+            "codigo_entrega": codigo_entrega,
+        }
 
     def consultar_estado_pedido(self, pedido_id):
         telefono = ultimos_digitos(self.llamada.telefono_contacto or self.llamada.telefono_origen)

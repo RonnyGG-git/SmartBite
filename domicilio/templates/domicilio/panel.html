@@ -20,7 +20,7 @@
         {% for d in activos %}
         <tr>
           <td class="mono">#{{ d.orden_id }}<br><span class="muted">{{ d.orden.sucursal.nombre }}</span></td>
-          <td>{{ d.cliente.nombre }}{% if d.telefono %}<br><span class="muted mono">{{ d.telefono }}</span>{% endif %}</td>
+          <td>{{ d.nombre_cliente }}{% if d.telefono %}<br><span class="muted mono">{{ d.telefono }}</span>{% endif %}</td>
           <td class="muted">{{ d.direccion }}{% if d.referencia %}<br>{{ d.referencia }}{% endif %}</td>
           <td><span class="badge {% if d.estado == 'EN_CAMINO' or d.estado == 'ASIGNADO' %}badge-accent{% elif d.estado == 'LISTO_PARA_RECOGER' %}badge-success{% else %}badge-warning{% endif %}">{{ d.get_estado_display }}</span></td>
           <td>{{ d.domiciliario.nombre|default:"—" }}</td>
@@ -44,7 +44,7 @@
         {% for d in recientes %}
         <tr>
           <td class="mono">#{{ d.orden_id }}</td>
-          <td>{{ d.cliente.nombre }}</td>
+          <td>{{ d.nombre_cliente }}</td>
           <td><span class="badge {% if d.estado == 'ENTREGADO' %}badge-info{% else %}badge-danger{% endif %}">{{ d.get_estado_display }}</span></td>
           <td>{{ d.domiciliario.nombre|default:"—" }}</td>
           <td class="mono muted">{{ d.entregado_en|date:"d M H:i"|default:"—" }}</td>

@@ -1,12 +1,13 @@
 {% extends "cliente/base_cliente.html" %}
 {% load core_extras %}
 {% block title %}Pedido #{{ orden.pk }} — Smart Bite{% endblock %}
-{% block extra_head %}{% if not orden.es_final %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
+{% block extra_head %}{% if not orden.es_final %}<meta http-equiv="refresh" content="{% if orden.requiere_confirmacion %}8{% else %}30{% endif %}">{% endif %}{% endblock %}
 {% block cliente %}
 <section class="menu-hero">
   <span class="eyebrow">Pedido #{{ orden.pk }}</span>
   <h1>
-    {% if orden.estado == "POR_CONFIRMAR" %}Esperando confirmación
+    {% if orden.requiere_confirmacion %}Esperando a tu mesero
+    {% elif orden.estado == "POR_CONFIRMAR" %}Esperando confirmación
     {% elif orden.estado == "PENDIENTE" %}Recibido en cocina
     {% elif orden.estado == "EN_PREPARACION" %}En preparación
     {% elif orden.estado == "LISTA" %}Listo para servir
@@ -14,7 +15,8 @@
     {% else %}Pedido cancelado{% endif %}
   </h1>
   <p>
-    {% if orden.estado == "POR_CONFIRMAR" %}El restaurante está confirmando tu pedido; en cuanto lo acepte pasa a cocina.
+    {% if orden.requiere_confirmacion %}Tu mesero ya recibió el aviso. Cuando confirme que estás aquí, el pedido pasa a cocina y podrás pagarlo.
+    {% elif orden.estado == "POR_CONFIRMAR" %}El restaurante está confirmando tu pedido; en cuanto lo acepte pasa a cocina.
     {% elif orden.estado == "PENDIENTE" %}El chef lo tomará en breve.
     {% elif orden.estado == "EN_PREPARACION" %}{% if orden.listo_estimado_en %}Estará listo aproximadamente a las <strong class="mono">{{ orden.listo_estimado_en|time:"H:i" }}</strong> ({{ orden.tiempo_estimado_min }} min).{% else %}Tu pedido se está cocinando.{% endif %}
     {% elif orden.estado == "LISTA" %}{% if orden.cuenta_solicitada_en %}Tu cuenta ya está en caja.{% elif orden.mesa %}Tu mesero lo llevará a la mesa en un momento.{% elif orden.tipo_consumo == "PARA_LLEVAR" %}Ya puedes pasar a recogerlo.{% else %}Pídelo en caja y te asignamos una mesa.{% endif %}
@@ -22,6 +24,13 @@
     {% else %}Si fue un error, habla con tu mesero.{% endif %}
   </p>
 </section>
+
+{% if orden.requiere_confirmacion %}
+<section class="card confirmacion-presencia">
+  <span class="subtle">Muéstrale este número a tu mesero</span>
+  <strong class="mono confirmacion-numero">#{{ orden.pk }}</strong>
+</section>
+{% endif %}
 
 {% with e=orden.estado %}
 <ol class="stepper{% if e == 'CANCELADA' %} is-cancelled{% endif %}" aria-label="Progreso del pedido">
@@ -49,6 +58,6 @@
 </section>
 
 {% if not orden.es_final %}
-  <p class="subtle mt-16">Esta página se actualiza sola cada 30 segundos. Para cambiar o cancelar el pedido, o pedir la cuenta, habla con tu mesero.</p>
+  <p class="subtle mt-16">Esta página se actualiza sola. Para cambiar o cancelar el pedido, o pedir la cuenta, habla con tu mesero.</p>
 {% endif %}
 {% endblock %}

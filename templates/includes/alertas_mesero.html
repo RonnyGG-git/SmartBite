@@ -1,0 +1,2 @@
+{% load static %}<section class="alertas-mesero" data-alertas-mesero data-url="{% url 'operativo:alertas_confirmacion' %}" data-csrf="{{ csrf_token }}" aria-live="assertive" aria-label="Pedidos por confirmar" hidden></section>
+<script src="{% static 'js/alertas_mesero.js' %}" defer></script>

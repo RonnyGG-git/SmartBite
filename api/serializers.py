@@ -13,10 +13,15 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 class ProductoMenuSerializer(serializers.ModelSerializer):
     categoria = CategoriaSerializer(read_only=True)
+    url_imagen = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
         fields = ["id", "nombre", "descripcion", "precio", "url_imagen", "categoria"]
+
+    def get_url_imagen(self, obj) -> str:
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.imagen_src) if request and obj.imagen_src else obj.imagen_src
 
 
 class ItemInventarioSerializer(serializers.ModelSerializer):

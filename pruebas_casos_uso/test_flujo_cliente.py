@@ -74,7 +74,8 @@ class FlujoClienteTests(CasoDeUsoTestCase):
         datos = {f"cant_{self.hamburguesa.pk}": 1, "nombre": ""}
         self.client.post(reverse("cliente:autopedido"), datos)
         orden = Orden.objects.get()
-        self.assertEqual((orden.tipo_consumo, orden.estado), (Orden.PARA_LLEVAR, Orden.PENDIENTE))
+        self.assertEqual((orden.tipo_consumo, orden.estado), (Orden.PARA_LLEVAR, Orden.POR_CONFIRMAR))
         self.assertNotIn(SESION_CARRITO, self.client.session)
+        orden.cambiar_estado(Orden.PENDIENTE)
         self.entrar_como("JEFE_COCINA")
         self.assertContains(self.client.get(reverse("cocina:cocina")), "PARA LLEVAR")

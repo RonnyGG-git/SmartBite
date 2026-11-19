@@ -17,6 +17,6 @@ class TurnoLlamadaInline(admin.TabularInline):
 
 @admin.register(Llamada)
 class LlamadaAdmin(admin.ModelAdmin):
-    list_display = ("identificador", "canal", "sucursal", "estado", "fase", "orden", "creado_en")
+    list_display = ("identificador", "canal", "sucursal", "estado", "fase", "orden", "reserva", "creado_en")
     list_filter = ("canal", "estado")
     inlines = [TurnoLlamadaInline]

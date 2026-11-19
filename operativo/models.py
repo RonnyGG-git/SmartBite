@@ -197,6 +197,14 @@ class Orden(TimestampedModel):
         return self.estado in (self.ENTREGADA, self.CANCELADA)
 
     @property
+    def requiere_confirmacion(self):
+        return (
+            self.estado == self.POR_CONFIRMAR
+            and self.origen == self.ORIGEN_AUTOPEDIDO
+            and self.tipo_consumo != self.DOMICILIO
+        )
+
+    @property
     def total_pagado(self):
         return sum((p.monto for p in self.pagos.all()), 0)
 

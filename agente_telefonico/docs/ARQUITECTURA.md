@@ -1,7 +1,24 @@
-# Agente telefónico — Arquitectura (fases 1–4)
+# Agente telefónico — Arquitectura
 
-Estado: **fases 1 a 4 implementadas** (auditoría, diseño, integración con pedidos, agente + simulador).
-Pendiente: telefonía real (fase 5), aviso en vivo a cocina (6), panel de monitoreo (7), despliegue 24/7 (8).
+Estado: **fases 1 a 5 implementadas en código**. El agente registra pedidos, domicilios y reservas por WhatsApp y por llamada con Twilio.
+Pendiente: aviso en vivo a cocina (6), panel de monitoreo (7), despliegue 24/7 (8).
+
+## Canales (fase 5)
+
+| Canal | Webhook en Twilio | Datos |
+|---|---|---|
+| WhatsApp | `POST /agente/twilio/whatsapp/` | Una sesión por número; se cierra tras `AGENTE_SESION_WHATSAPP_MIN` minutos sin mensajes. `MessageSid` evita procesar dos veces |
+| Llamada, al contestar | `POST /agente/twilio/voz/` | `<Gather input="speech">` |
+| Llamada, cada turno | `POST /agente/twilio/voz/turno/` | Lo indica el TwiML anterior |
+| Llamada, estado | `POST /agente/twilio/voz/estado/` | Cierra la llamada al colgar |
+
+Todos validan `X-Twilio-Signature` con `TWILIO_AUTH_TOKEN` y responden 403 si falta o no coincide.
+El número que recibe (`To`) debe existir en **Líneas telefónicas** del admin; ahí se elige la sucursal.
+
+## Reservas y domicilios
+
+- **Reserva:** fases `RESERVA_*`; usa `operativo.services.crear_reserva` y ofrece `horarios_alternativos` si no hay mesa.
+- **Domicilio:** fases `DIRECCION` y `REFERENCIA`; `Domicilio.cliente`, `latitud` y `longitud` son opcionales. Por WhatsApp se acepta la ubicación compartida. El agente dicta el código de entrega.
 
 ## Decisiones
 
@@ -13,7 +30,7 @@ Pendiente: telefonía real (fase 5), aviso en vivo a cocina (6), panel de monito
 | Borrador | Se guarda en `Llamada` (base de datos), no en memoria | Sobrevive a reintentos y a varios workers de gunicorn |
 | Idempotencia | `Llamada.identificador` único + `Llamada.orden` OneToOne con `select_for_update` | Un webhook repetido devuelve el mismo pedido |
 | Impuestos | No existen en Smart Bite: el total es Σ cantidad × `Producto.precio` | No se inventan reglas comerciales |
-| Modalidades | `PARA_LLEVAR` (recoger) y `EN_RESTAURANTE`; **sin domicilio** | Son las que soporta `Orden.tipo_consumo` |
+| Modalidades | `PARA_LLEVAR` (recoger), `EN_RESTAURANTE` y `DOMICILIO` | Son las que soporta `Orden.tipo_consumo` |
 | Pago | Sin cambios: "no pagado" = la orden no tiene `Pago` | Pago y preparación ya están separados |
 | Stock | El agente rechaza productos cuya receta no tiene insumos (`AGENTE_VALIDAR_STOCK`) | "Agotado" real, desde inventario |
 
@@ -92,6 +109,11 @@ Cambios en código existente: rutas de filtrado `mesa__sucursal__restaurante` �
 | `AGENTE_MAX_TURNOS` | 60 | límite de turnos por llamada |
 | `AGENTE_VALIDAR_STOCK` | true | rechazar productos sin insumos |
 | `AGENTE_RETENCION_DIAS` | 30 | días que se guardan las transcripciones |
+| `AGENTE_SESION_WHATSAPP_MIN` | 30 | minutos sin mensajes para cerrar una sesión de WhatsApp |
+| `AGENTE_VOZ` | Polly.Mia | voz de `<Say>` |
+| `AGENTE_IDIOMA_VOZ` | es-MX | idioma de `<Say>` y `<Gather>` |
+| `TWILIO_AUTH_TOKEN` | vacío | firma de los webhooks; sin él se rechazan |
+| `TWILIO_WEBHOOK_BASE` | vacío | URL pública, si difiere de la que recibe Django |
 
 ## Simulador (modo demostración)
 
@@ -141,7 +163,6 @@ proveedor de IA simulados (no hay red). Cubren los 15 escenarios obligatorios:
 - El intérprete se basa en reglas: entiende bien pedidos, cantidades, precios y confirmaciones, pero frases
   muy libres pueden no entenderse ("No te entendí bien…"). La interfaz de `Agente` permite cambiarlo por un LLM
   más adelante sin tocar las herramientas.
-- La telefonía real **no está implementada ni probada**. Plan de la fase 5: Twilio `<Gather input="speech">` por
-  webhooks HTTP (compatible con gunicorn/WSGI), con validación de firma `X-Twilio-Signature`. Antes hay que
-  verificar disponibilidad y precio de números colombianos.
+- Los webhooks tienen pruebas automáticas con firmas simuladas. Falta probarlos con Twilio real.
+- Render Free se duerme sin tráfico y el webhook puede vencer mientras despierta (fase 8).
 - La pantalla de cocina todavía no se actualiza sola: hay que recargarla (fase 6).

@@ -147,12 +147,12 @@ class PedidoCorrectoTests(AgenteTestCase):
         self.decir(agente, "Lucía", "para llevar", "sí")
         self.assertEqual(Orden.objects.get().cliente.nombre, "Lucía")
 
-    def test_no_ofrece_domicilio(self):
+    def test_acepta_domicilio_y_pide_la_direccion(self):
         agente = self.nueva_llamada(telefono="3001234567")
         self.decir(agente, "una coca cola", "nada más", "Ana")
         respuesta = self.decir(agente, "me lo traen a domicilio")
-        self.assertIn("no tenemos servicio a domicilio", respuesta.texto)
-        self.assertEqual(agente.llamada.fase, Llamada.FASE_MODALIDAD)
+        self.assertIn("dirección de entrega", respuesta.texto)
+        self.assertEqual(agente.llamada.fase, Llamada.FASE_DIRECCION)
 
 
 class ProductosTests(AgenteTestCase):

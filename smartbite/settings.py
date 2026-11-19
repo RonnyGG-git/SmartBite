@@ -234,3 +234,9 @@ AGENTE_MAX_SILENCIOS = int(os.environ.get('AGENTE_MAX_SILENCIOS', '3'))
 AGENTE_MAX_TURNOS = int(os.environ.get('AGENTE_MAX_TURNOS', '60'))
 AGENTE_VALIDAR_STOCK = os.environ.get('AGENTE_VALIDAR_STOCK', 'true').lower() == 'true'
 AGENTE_RETENCION_DIAS = int(os.environ.get('AGENTE_RETENCION_DIAS', '30'))
+AGENTE_SESION_WHATSAPP_MIN = int(os.environ.get('AGENTE_SESION_WHATSAPP_MIN', '30'))
+AGENTE_VOZ = os.environ.get('AGENTE_VOZ', 'Polly.Mia')
+AGENTE_IDIOMA_VOZ = os.environ.get('AGENTE_IDIOMA_VOZ', 'es-MX')
+
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_WEBHOOK_BASE = os.environ.get('TWILIO_WEBHOOK_BASE', '').rstrip('/')

@@ -199,7 +199,7 @@ class PedidoMesaTests(TestCase):
         cuerpo = {"tipo_consumo": "PARA_LLEVAR", "nombre": "Ana", "lineas": [{"producto": self.d["bandeja"].pk, "cantidad": 1}]}
         r = api.post(reverse("api:pedido_mesa", args=[self.d["mesa"].pk]), cuerpo, format="json")
         self.assertEqual(r.status_code, 201, r.content)
-        self.assertEqual(r.json()["orden"]["estado"], Orden.PENDIENTE)
+        self.assertEqual(r.json()["orden"]["estado"], Orden.POR_CONFIRMAR)
         self.assertEqual(Mesa.objects.get(pk=self.d["mesa"].pk).estado, Mesa.OCUPADA)
         r = api.post(reverse("api:pedido_mesa", args=[self.d["mesa"].pk]), cuerpo, format="json")
         self.assertEqual(r.json()["code"], "mesa_ocupada")

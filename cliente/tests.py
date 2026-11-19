@@ -52,11 +52,11 @@ class AutopedidoTests(TestCase):
         datos = {f"cant_{self.d[k].pk}": v for k, v in cantidades.items()}
         return self.client.post(reverse("cliente:autopedido"), datos)
 
-    def test_autopedido_crea_orden_en_cola_de_cocina_y_ocupa_la_mesa(self):
+    def test_autopedido_espera_al_mesero_y_ocupa_la_mesa(self):
         resp = self.pedir(bandeja=2)
         orden = Orden.objects.get()
         self.assertRedirects(resp, reverse("cliente:pedido", args=[orden.pk]))
-        self.assertEqual(orden.estado, Orden.PENDIENTE)
+        self.assertEqual(orden.estado, Orden.POR_CONFIRMAR)
         self.assertEqual(orden.origen, Orden.ORIGEN_AUTOPEDIDO)
         self.assertEqual(orden.total, 64000)
         self.d["mesa"].refresh_from_db()
@@ -85,7 +85,7 @@ class AutopedidoTests(TestCase):
     def test_estado_del_pedido_solo_para_quien_lo_hizo(self):
         self.pedir(bandeja=1)
         orden = Orden.objects.get()
-        self.assertContains(self.client.get(reverse("cliente:pedido", args=[orden.pk])), "Recibido en cocina")
+        self.assertContains(self.client.get(reverse("cliente:pedido", args=[orden.pk])), "Esperando a tu mesero")
         extraño = self.client_class()
         self.assertEqual(extraño.get(reverse("cliente:pedido", args=[orden.pk])).status_code, 404)
 

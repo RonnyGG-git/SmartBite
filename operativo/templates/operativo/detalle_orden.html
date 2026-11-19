@@ -97,8 +97,17 @@
         </form>
       {% endif %}
       {% if orden.estado == "POR_CONFIRMAR" %}
-        <p class="notice notice-accent mt-16"><svg class="ico"><use href="#i-info"/></svg><span>Pedido sin mesa esperando que caja lo acepte. Todavía no está en cocina.</span></p>
-        {% if puede_cobrar %}
+        <p class="notice notice-accent mt-16"><svg class="ico"><use href="#i-info"/></svg><span>{% if orden.requiere_confirmacion %}Comprueba que el cliente está en el restaurante: debe mostrarte el número #{{ orden.pk }} en su celular. Todavía no está en cocina.{% else %}Pedido sin mesa esperando que caja lo acepte. Todavía no está en cocina.{% endif %}</span></p>
+        {% if orden.requiere_confirmacion and puede_operar %}
+          <form method="post" action="{% url 'operativo:confirmar_pedido' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-block"><svg class="ico"><use href="#i-check"/></svg><span>Confirmar y enviar a cocina</span></button>
+          </form>
+          <form method="post" action="{% url 'operativo:rechazar_pedido' orden.pk %}" class="mt-16">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-quiet is-danger btn-block"><svg class="ico"><use href="#i-x"/></svg><span>Rechazar pedido</span></button>
+          </form>
+        {% elif puede_cobrar %}
           <form method="post" action="{% url 'caja:aceptar_orden' orden.pk %}" class="mt-16">
             {% csrf_token %}
             <button type="submit" class="btn btn-secondary btn-block"><svg class="ico"><use href="#i-check"/></svg><span>Aceptar (paga al recoger)</span></button>

@@ -194,7 +194,7 @@ class PedidoMesaView(PublicoMixin, generics.GenericAPIView):
                 cliente = obtener_cliente(mesa.sucursal.restaurante, datos.get("nombre", ""))
                 orden = crear_orden(
                     mesa.sucursal, lineas, Orden.ORIGEN_AUTOPEDIDO, datos["tipo_consumo"],
-                    cliente=cliente, mesa=bloqueada, estado=Orden.PENDIENTE,
+                    cliente=cliente, mesa=bloqueada, estado=Orden.POR_CONFIRMAR,
                 )
             except DjangoValidationError:
                 raise ValidationError("Algún platillo dejó de estar disponible. Revisa tu pedido.", code="no_disponible")

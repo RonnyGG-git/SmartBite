@@ -1,0 +1,23 @@
+{% load static %}<div class="selector-imagen" data-selector-imagen>
+  <div class="selector-imagen-vista">
+    <img data-vista alt="Vista previa del platillo"{% if widget.imagen_actual %} src="{{ widget.imagen_actual }}"{% else %} hidden{% endif %}>
+    <span class="subtle" data-sin-imagen{% if widget.imagen_actual %} hidden{% endif %}>Sin imagen</span>
+  </div>
+  <div class="selector-imagen-controles">
+    <div class="selector-imagen-acciones">
+      <label class="btn btn-ghost btn-sm" for="{{ widget.attrs.id }}"><svg class="ico"><use href="#i-image"/></svg><span>Subir imagen</span></label>
+      <button type="button" class="btn btn-ghost btn-sm" data-abrir-camara><svg class="ico"><use href="#i-camera"/></svg><span>Tomar foto</span></button>
+    </div>
+    <input type="file" name="{{ widget.name }}" class="sr-only" accept="image/*"{% include "django/forms/widgets/attrs.html" %}>
+    <input type="file" class="sr-only" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" data-captura>
+    <div class="selector-imagen-camara" data-panel-camara hidden>
+      <video playsinline muted data-video></video>
+      <div class="selector-imagen-acciones">
+        <button type="button" class="btn btn-primary btn-sm" data-capturar><svg class="ico"><use href="#i-camera"/></svg><span>Capturar</span></button>
+        <button type="button" class="btn btn-ghost btn-sm" data-cerrar-camara>Cancelar</button>
+      </div>
+    </div>
+    <p class="field-help" data-estado aria-live="polite"></p>
+  </div>
+</div>
+<script src="{% static 'js/selector_imagen.js' %}" defer></script>

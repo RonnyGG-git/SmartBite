@@ -15,8 +15,13 @@
       <span class="tipo-opcion-sub">{% if valor == "PARA_LLEVAR" %}Te lo empacamos para llevar{% elif valor == "DOMICILIO" %}Te lo llevamos a tu dirección{% elif mesa %}Te lo servimos en tu mesa{% else %}Al llegar te asignamos una mesa{% endif %}</span>
     </button>
   {% endfor %}
+  <a href="{% url 'cliente:reservar' %}" class="tipo-opcion">
+    <svg class="ico"><use href="#i-calendar"/></svg>
+    <span class="tipo-opcion-titulo">Reservar una mesa</span>
+    <span class="tipo-opcion-sub">Elige fecha y hora para venir después</span>
+  </a>
 </form>
 
 {% if invita_registro %}<p class="menu-foot"><a href="{% url 'cuentas:registro_cliente' %}">Crea tu cuenta</a> o <a href="{% url 'cuentas:login' %}?next={{ request.path|urlencode }}">inicia sesión</a> para pedir a domicilio.</p>{% endif %}
-<p class="menu-foot">En todos los casos verás el menú completo.{% if not mesa %} ¿Prefieres venir otro día? <a href="{% url 'cliente:reservar' %}">Reserva una mesa</a>.{% endif %}</p>
+<p class="menu-foot">En todos los casos verás el menú completo.</p>
 {% endblock %}

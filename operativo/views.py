@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -24,6 +25,9 @@ from .services import (
     asignar_mesa_a_orden,
     cancelar_reserva as cancelar_reserva_servicio,
     confirmar_llegada,
+    confirmar_presencia,
+    pedidos_por_confirmar,
+    rechazar_presencia,
     sincronizar_reservas,
     solicitar_cuenta as solicitar_cuenta_servicio,
 )
@@ -56,10 +60,13 @@ class MesaListView(RestauranteMixin, RoleRequiredMixin, ListView):
             .filter(estado=Reserva.CONFIRMADA, fecha_hora__gte=timezone.now() - Reserva.TOLERANCIA)
             .select_related("mesa")[:20]
         )
+        por_confirmar = list(pedidos_por_confirmar(filtrar(Orden.objects, self.request, "sucursal__restaurante")))
+        contexto["pedidos_por_confirmar"] = por_confirmar
         contexto["pedidos_sin_mesa"] = (
             filtrar(Orden.objects, self.request, "sucursal__restaurante")
             .filter(mesa__isnull=True)
             .exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA])
+            .exclude(pk__in=[orden.pk for orden in por_confirmar])
             .select_related("cliente", "sucursal")
             .order_by("creado_en")
         )
@@ -220,6 +227,56 @@ def agregar_producto(request, pk):
 TRANSICIONES_MESERO = {
     Orden.CANCELADA: {Orden.PENDIENTE},
 }
+
+
+def _lugar_del_pedido(orden):
+    return f"Mesa {orden.mesa.numero}" if orden.mesa_id else orden.get_tipo_consumo_display()
+
+
+@rol_requerido(*ROLES_MESERO)
+def alertas_confirmacion(request):
+    pedidos = pedidos_por_confirmar(filtrar(Orden.objects, request, "sucursal__restaurante"))
+    return JsonResponse({
+        "pedidos": [
+            {
+                "id": orden.pk,
+                "lugar": _lugar_del_pedido(orden),
+                "cliente": orden.cliente.nombre if orden.cliente_id else "",
+                "platillos": [f"{d.cantidad} × {d.producto.nombre}" for d in orden.detalles.all()],
+                "confirmar_url": reverse("operativo:confirmar_pedido", args=[orden.pk]),
+                "rechazar_url": reverse("operativo:rechazar_pedido", args=[orden.pk]),
+            }
+            for orden in pedidos
+        ]
+    })
+
+
+def _resolver_presencia(request, pk, accion, mensaje):
+    orden = get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
+    es_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    try:
+        accion(orden)
+    except ValidationError as error:
+        if es_ajax:
+            return JsonResponse({"error": error.messages[0]}, status=409)
+        messages.error(request, error.messages[0])
+    else:
+        if es_ajax:
+            return JsonResponse({"ok": True})
+        messages.success(request, mensaje.format(orden.pk))
+    return redirect("operativo:mesas_list")
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def confirmar_pedido(request, pk):
+    return _resolver_presencia(request, pk, confirmar_presencia, "Pedido #{} confirmado: pasó a cocina.")
+
+
+@require_POST
+@rol_requerido(*ROLES_MESERO)
+def rechazar_pedido(request, pk):
+    return _resolver_presencia(request, pk, rechazar_presencia, "Pedido #{} rechazado. No llegó a cocina.")
 
 
 @require_POST

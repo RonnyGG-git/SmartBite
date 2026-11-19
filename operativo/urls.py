@@ -13,6 +13,9 @@ urlpatterns = [
     path("reservas/<int:pk>/confirmar/", views.confirmar_reserva, name="confirmar_reserva"),
     path("reservas/<int:pk>/cancelar/", views.cancelar_reserva, name="cancelar_reserva"),
 
+    path("ordenes/por-confirmar/", views.alertas_confirmacion, name="alertas_confirmacion"),
+    path("ordenes/<int:pk>/confirmar/", views.confirmar_pedido, name="confirmar_pedido"),
+    path("ordenes/<int:pk>/rechazar/", views.rechazar_pedido, name="rechazar_pedido"),
     path("ordenes/nueva/", views.crear_orden, name="crear_orden"),
     path("ordenes/clientes/nuevo/", views.crear_cliente_rapido, name="crear_cliente_rapido"),
     path("ordenes/<int:pk>/", views.DetalleOrdenView.as_view(), name="detalle_orden"),

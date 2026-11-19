@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
+from .models import Llamada
 from .texto import (
     PALABRAS_VACIAS,
     contiene,
@@ -43,6 +44,10 @@ EN_LOCAL = (
     "en el sitio", "comerlo alla", "comer en el local", "consumir alla", "consumir en el local",
 )
 DOMICILIO = ("domicilio", "a domicilio", "me lo traen", "envio", "delivery", "a mi casa", "me lo mandan", "me lo envian")
+RESERVAR = (
+    "reserva", "reservar", "reservacion", "reservame", "reservarme", "reservas", "apartar una mesa", "separar una mesa",
+    "una mesa para",
+)
 MANIPULACION = (
     "gratis", "descuento", "rebaja", "regalado", "cobrame", "cobra", "precio es", "cuesta solo", "ignora",
     "instrucciones", "modo desarrollador", "mitad de precio", "sin costo", "no me cobres", "cambia el precio",
@@ -56,7 +61,7 @@ SEPARADORES = re.compile(r"\s*(?:,|\by\b|\bmas\b|\btambien\b|\bademas\b)\s*")
 RUIDO = PALABRAS_VACIAS | {
     palabra
     for frases in (AFIRMATIVAS, NEGATIVAS, QUITAR, MODIFICAR, PRECIO, INGREDIENTES, SUBTOTAL, MENU, PARA_LLEVAR,
-                   EN_LOCAL, ECONOMICOS, CANCELAR, ("cuanto", "cuesta", "vale", "valen", "porfavor", "hola", "buenas",
+                   EN_LOCAL, ECONOMICOS, CANCELAR, DOMICILIO, ("cuanto", "cuesta", "vale", "valen", "porfavor", "hola", "buenas",
                                                   "buenos", "dias", "tardes", "noches", "gracias", "pedido", "orden"))
     for frase in frases
     for palabra in frase.split()
@@ -141,11 +146,15 @@ def interpretar(texto, herramientas):
     if observacion:
         intencion.observacion = observacion.group(1).strip()
 
-    if contiene(normal, *HUMANO):
+    es_tamano_de_grupo = herramientas.llamada.fase in Llamada.FASES_RESERVA and contiene(normal, "una persona", "1 persona")
+    if contiene(normal, *HUMANO) and not es_tamano_de_grupo:
         intencion.tipo = "HUMANO"
         return intencion
     if contiene(normal, *ESTADO) or (intencion.numero and contiene(normal, "pedido", "orden")):
         intencion.tipo = "ESTADO"
+        return intencion
+    if contiene(normal, *RESERVAR):
+        intencion.tipo = "RESERVA"
         return intencion
 
     sin_nombre = PATRON_NOMBRE.sub(" ", normal) if intencion.nombre else normal

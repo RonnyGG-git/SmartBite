@@ -15,7 +15,7 @@
   <div>
     <span class="eyebrow">Domicilio</span>
     <h1>Orden #{{ domicilio.orden_id }}</h1>
-    <p>{{ domicilio.cliente.nombre }} · {{ domicilio.direccion }}{% if domicilio.referencia %} · {{ domicilio.referencia }}{% endif %}</p>
+    <p>{{ domicilio.nombre_cliente }} · {{ domicilio.direccion }}{% if domicilio.referencia %} · {{ domicilio.referencia }}{% endif %}</p>
   </div>
   <a class="btn btn-ghost" href="{% url 'domicilio:panel' %}"><svg class="ico"><use href="#i-arrow-left"/></svg><span>Volver</span></a>
 </div>
@@ -24,7 +24,7 @@
   <section class="card">
     <div id="mapa-domicilio" class="mapa-domicilio"
          data-sucursal-lat="{{ domicilio.orden.sucursal.latitud|default_if_none:''|unlocalize }}" data-sucursal-lng="{{ domicilio.orden.sucursal.longitud|default_if_none:''|unlocalize }}"
-         data-destino-lat="{{ domicilio.latitud|unlocalize }}" data-destino-lng="{{ domicilio.longitud|unlocalize }}"
+         data-destino-lat="{{ domicilio.latitud|default_if_none:''|unlocalize }}" data-destino-lng="{{ domicilio.longitud|default_if_none:''|unlocalize }}"
          data-moto-lat="{{ domicilio.lat_actual|default_if_none:''|unlocalize }}" data-moto-lng="{{ domicilio.lng_actual|default_if_none:''|unlocalize }}"></div>
     <div class="leyenda-mapa">
       <span><i style="background:#86a8d6"></i>Restaurante</span>
@@ -43,7 +43,8 @@
       <div><dt>Entregado</dt><dd class="mono">{{ domicilio.entregado_en|date:"H:i"|default:"—" }}</dd></div>
       <div><dt>Total</dt><dd class="money">{{ domicilio.orden.total|moneda }}</dd></div>
     </dl>
-    <p class="muted">El código de entrega solo lo ve el cliente en su app.</p>
+    {% if not domicilio.tiene_ubicacion %}<p class="muted">El cliente dio su dirección por el agente: no tiene punto en el mapa.</p>{% endif %}
+    <p class="muted">El código de entrega solo lo conoce el cliente.</p>
   </section>
 </div>
 

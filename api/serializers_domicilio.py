@@ -48,7 +48,7 @@ class PedidoMesaSerializer(serializers.Serializer):
 class DomicilioSerializer(serializers.ModelSerializer):
     orden = OrdenSerializer(read_only=True)
     estado_nombre = serializers.CharField(source="get_estado_display", read_only=True)
-    cliente = serializers.CharField(source="cliente.nombre", read_only=True)
+    cliente = serializers.CharField(source="nombre_cliente", read_only=True)
     domiciliario = serializers.CharField(source="domiciliario.nombre", default=None, read_only=True)
     sucursal = serializers.SerializerMethodField()
 

@@ -47,7 +47,7 @@ class PedidosTests(CasoDeUsoTestCase):
         respuesta = self.autopedir((self.gaseosa, 1))
         orden = Orden.objects.get()
         self.assertEqual(orden.origen, Orden.ORIGEN_AUTOPEDIDO)
-        self.assertEqual(orden.estado, Orden.PENDIENTE)
+        self.assertEqual(orden.estado, Orden.POR_CONFIRMAR)
         self.assertIn(orden.pk, self.client.session[SESION_PEDIDOS])
         self.assertRedirects(respuesta, reverse("cliente:pedido", args=[orden.pk]))
 
@@ -157,6 +157,8 @@ class PedidosTests(CasoDeUsoTestCase):
         self.autopedir((self.gaseosa, 1))
         self.client.logout()
         self.entrar_como("JEFE_COCINA")
+        self.assertEqual(list(self.client.get(reverse("cocina:cocina")).context["ordenes"]), [])
+        Orden.objects.get().cambiar_estado(Orden.PENDIENTE)
         cola = self.client.get(reverse("cocina:cocina")).context["ordenes"]
         self.assertIn(Orden.objects.get(), list(cola))
 
