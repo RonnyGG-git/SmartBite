@@ -21,11 +21,6 @@ ESTADO_POR_ORDEN = {
 
 
 def sincronizar_con_orden(orden):
-    """Lleva el estado del domicilio al paso que corresponde según la orden.
-
-    Cuando la orden ya está LISTA y el domicilio va en ruta (ASIGNADO / EN_CAMINO),
-    no se retrocede: esos pasos los marca el domiciliario.
-    """
     domicilio = Domicilio.objects.select_for_update().filter(orden_id=orden.pk).first()
     if domicilio is None:
         return None
@@ -148,7 +143,6 @@ def confirmar_entrega(domicilio, domiciliario, codigo):
             d.orden.cambiar_estado(Orden.ENTREGADA)
             d.refresh_from_db()
         else:
-            # El intento fallido se guarda antes de avisar, para que cuente aunque se lance el error.
             d.intentos_codigo += 1
             d.save(update_fields=["intentos_codigo", "actualizado_en"])
             restantes = d.MAX_INTENTOS_CODIGO - d.intentos_codigo

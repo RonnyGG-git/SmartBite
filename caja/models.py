@@ -26,8 +26,6 @@ class MetodoPago(TimestampedModel):
 
 
 class Pago(TimestampedModel):
-    """Un pago parcial o total de una orden. Una orden puede tener varios (pago mixto)."""
-
     PENDIENTE, APROBADO, RECHAZADO, ANULADO = "PENDIENTE", "APROBADO", "RECHAZADO", "ANULADO"
     ESTADO_CHOICES = [
         (PENDIENTE, "Pendiente"),
@@ -38,7 +36,6 @@ class Pago(TimestampedModel):
 
     orden = models.ForeignKey("operativo.Orden", on_delete=models.PROTECT, related_name="pagos")
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.PROTECT, related_name="pagos")
-    # `monto` abona a la cuenta; la propina va aparte y NO cuenta para el saldo.
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     propina = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0"))
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default=APROBADO)
@@ -47,7 +44,6 @@ class Pago(TimestampedModel):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
 
-    # Datos de la pasarela (vacíos en efectivo/transferencia).
     proveedor = models.CharField(max_length=20, blank=True)
     referencia_pasarela = models.CharField(max_length=100, blank=True)
     id_transaccion_pasarela = models.CharField(max_length=100, blank=True)
@@ -78,9 +74,6 @@ class Pago(TimestampedModel):
 
 
 class EventoPasarela(TimestampedModel):
-    """Cada webhook recibido. La restricción única garantiza la idempotencia:
-    el mismo evento nunca se procesa dos veces."""
-
     proveedor = models.CharField(max_length=20)
     evento_id = models.CharField(max_length=150)
     payload = models.JSONField(default=dict)
@@ -97,8 +90,6 @@ class EventoPasarela(TimestampedModel):
 
 
 class AuditoriaCobro(TimestampedModel):
-    """Bitácora de cobros: quién, cuándo (creado_en) y cuánto. Solo se agregan filas."""
-
     COBRO, PASARELA_INICIADA, PASARELA_APROBADA, PASARELA_RECHAZADA, ALERTA = (
         "COBRO", "PASARELA_INICIADA", "PASARELA_APROBADA", "PASARELA_RECHAZADA", "ALERTA",
     )
@@ -128,13 +119,10 @@ class AuditoriaCobro(TimestampedModel):
         return f"{self.get_accion_display()} — orden #{self.orden_id}"
     
 
-# ---------------------------------------------------------------------------
-# Cobro por QR (celular del cliente) y comprobante de venta
-# ---------------------------------------------------------------------------
-import secrets  # noqa: E402
-from datetime import timedelta  # noqa: E402
+import secrets
+from datetime import timedelta
 
-from django.utils import timezone  # noqa: E402
+from django.utils import timezone
 
 
 def _nuevo_token():
@@ -146,8 +134,6 @@ def _vence_en_dos_horas():
 
 
 class EnlacePago(TimestampedModel):
-    """Enlace secreto que va dentro del QR. Permite al cliente ver y pagar SOLO su cuenta."""
-
     orden = models.ForeignKey("operativo.Orden", on_delete=models.PROTECT, related_name="enlaces_pago")
     token = models.CharField(max_length=64, unique=True, default=_nuevo_token)
     expira_en = models.DateTimeField(default=_vence_en_dos_horas)
@@ -167,9 +153,6 @@ class EnlacePago(TimestampedModel):
 
 
 class Factura(TimestampedModel):
-    """Comprobante de venta SIMULADO (sin validez fiscal). Se emite al quedar pagada la orden.
-    Guarda una copia de los datos para que no cambie aunque luego cambien precios o clientes."""
-
     PREFIJO = "SB"
 
     orden = models.OneToOneField("operativo.Orden", on_delete=models.PROTECT, related_name="factura")

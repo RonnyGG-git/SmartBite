@@ -1,8 +1,3 @@
-"""Emisión del comprobante de venta (SIMULADO: sin validez fiscal ante la DIAN).
-
-Supuesto: los precios del menú YA incluyen el impuesto al consumo (INC) del 8 %, como exige
-la norma para restaurantes; por eso el INC se desglosa del total, no se suma. La propina es
-voluntaria: va aparte y nunca entra en la base del impuesto."""
 import hashlib
 from decimal import Decimal
 
@@ -18,14 +13,12 @@ DOCUMENTO_CONSUMIDOR_FINAL = "222222222222"
 
 
 def desglose_inc(total):
-    """Del total con INC incluido devuelve (base gravable, INC)."""
     total = Decimal(total)
     base = (total / (1 + TASA_INC)).quantize(CENTAVOS)
     return base, total - base
 
 
 def emitir_factura(orden):
-    """Crea (una sola vez) el comprobante de una orden ya pagada."""
     existente = Factura.objects.filter(orden=orden).first()
     if existente:
         return existente

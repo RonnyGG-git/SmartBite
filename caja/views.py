@@ -9,7 +9,6 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from core.mixins import RoleRequiredMixin, rol_requerido, usuario_tiene_rol
-from core.tenancy import filtrar
 from operativo.models import Orden, TransicionOrdenInvalida
 
 from . import servicios
@@ -26,11 +25,16 @@ def _ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
+def _pagos_del_restaurante(request):
+    return filtrar(Pago.objects, request, "orden__sucursal__restaurante")
+
+
 def _orden_del_restaurante(request, pk):
     return get_object_or_404(filtrar(Orden.objects, request, "sucursal__restaurante"), pk=pk)
 
 
-class PagoListView(RoleRequiredMixin, ListView):
+class PagoListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "orden__sucursal__restaurante"
     model = Pago
     roles_permitidos = ROLES_CAJA
     template_name = "caja/pagos_list.html"
@@ -96,15 +100,13 @@ def cobrar_orden(request, pk):
 
 @login_required
 def retorno_pago(request):
-    """A donde vuelve el cliente tras la pasarela. El estado real lo fija el webhook."""
-    pago = get_object_or_404(Pago, referencia_pasarela=request.GET.get("ref", ""))
+    pago = get_object_or_404(_pagos_del_restaurante(request), referencia_pasarela=request.GET.get("ref", ""))
     return render(request, "caja/retorno_pago.html", {"pago": pago})
 
 
 @csrf_exempt
 @require_POST
 def webhook(request, proveedor):
-    """Recibe eventos de la pasarela. Sin CSRF ni login: se autentica con el checksum."""
     try:
         pasarela = obtener_pasarela(proveedor)
     except KeyError:
@@ -113,13 +115,12 @@ def webhook(request, proveedor):
         servicios.procesar_evento(pasarela, request.body, request.headers)
     except FirmaInvalida:
         return HttpResponse(status=400)
-    return HttpResponse(status=200)  # también en duplicados: así la pasarela deja de reintentar
+    return HttpResponse(status=200)
 
 
 @login_required
 def pasarela_simulada(request, referencia):
-    """Pantalla de 'banco' falsa para demos sin internet."""
-    pago = get_object_or_404(Pago, referencia_pasarela=referencia, proveedor="SIMULADA")
+    pago = get_object_or_404(_pagos_del_restaurante(request), referencia_pasarela=referencia, proveedor="SIMULADA")
     if request.method == "POST" and pago.estado == Pago.PENDIENTE:
         pasarela = SimuladaPasarela()
         estado = "APPROVED" if request.POST.get("resultado") == "aprobar" else "DECLINED"
@@ -130,7 +131,9 @@ def pasarela_simulada(request, referencia):
 
 @rol_requerido("ADMINISTRADOR")
 def auditoria_list(request):
-    registros = AuditoriaCobro.objects.select_related("orden", "pago", "usuario")
+    registros = filtrar(AuditoriaCobro.objects, request, "orden__sucursal__restaurante").select_related(
+        "orden", "pago", "usuario"
+    )
     accion, usuario, desde = request.GET.get("accion"), request.GET.get("usuario"), request.GET.get("desde")
     if accion:
         registros = registros.filter(accion=accion)

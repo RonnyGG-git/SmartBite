@@ -5,10 +5,12 @@ from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
+from caja.models import AuditoriaCobro, Factura, MetodoPago, Pago
+from caja.servicios import registrar_pago_manual
 from catalogo.models import Categoria, Producto
 from cuentas.models import Rol, Usuario
 from inventario.models import ItemInventario
-from operativo.models import Mesa, Orden
+from operativo.models import DetalleOrden, Mesa, Orden
 from restaurantes.models import Restaurante, Sucursal
 
 CLAVE = "Clave-Segura-2026!"
@@ -215,3 +217,61 @@ class AislamientoDeDatosTests(MultiRestauranteTestCase):
     def test_roles_y_permisos_globales_solo_para_el_superusuario(self):
         self.client.force_login(self.a["admin"])
         self.assertEqual(self.client.get(reverse("cuentas:roles_list")).status_code, 403)
+
+
+class CajaAisladaTests(MultiRestauranteTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.efectivo = MetodoPago.objects.create(nombre="Efectivo")
+        for negocio in (cls.a, cls.b):
+            orden = Orden.objects.create(mesa=negocio["mesa"], estado=Orden.LISTA)
+            DetalleOrden.objects.create(
+                orden=orden, producto=negocio["producto"], cantidad=2, precio_unitario=negocio["producto"].precio
+            )
+            negocio["orden"] = orden
+            negocio["pago"] = registrar_pago_manual(orden.pk, metodo=cls.efectivo, monto=orden.total)
+            negocio["factura"] = Factura.objects.get(orden=orden)
+        cls.cajero_a = Usuario.objects.create_user(
+            "cajero.a@test.co", "Cajero a", CLAVE, rol=Rol.objects.get(nombre="CAJERO"), restaurante=cls.a["restaurante"]
+        )
+
+    def test_cu_pag_el_cajero_solo_ve_los_pagos_de_su_restaurante(self):
+        self.client.force_login(self.cajero_a)
+        pagos = self.client.get(reverse("caja:pagos_list")).context["pagos"]
+        self.assertEqual(list(pagos), [self.a["pago"]])
+
+    def test_cu_pag_el_cajero_solo_ve_las_facturas_de_su_restaurante(self):
+        self.client.force_login(self.cajero_a)
+        facturas = self.client.get(reverse("caja:facturas_list")).context["facturas"]
+        self.assertEqual(list(facturas), [self.a["factura"]])
+        propia = reverse("caja:factura_detalle", args=[self.a["factura"].pk])
+        ajena = reverse("caja:factura_detalle", args=[self.b["factura"].pk])
+        self.assertEqual(self.client.get(propia).status_code, 200)
+        self.assertEqual(self.client.get(ajena).status_code, 404)
+
+    def test_cu_pag_la_auditoria_solo_muestra_cobros_del_restaurante(self):
+        self.client.force_login(self.a["admin"])
+        registros = self.client.get(reverse("caja:auditoria_list")).context["registros"]
+        self.assertTrue(registros)
+        self.assertEqual({r.orden_id for r in registros}, {self.a["orden"].pk})
+        self.assertTrue(AuditoriaCobro.objects.filter(orden=self.b["orden"]).exists())
+
+    def test_cu_pag_el_retorno_de_pago_ajeno_da_404(self):
+        self.client.force_login(self.cajero_a)
+        Pago.objects.filter(pk=self.b["pago"].pk).update(referencia_pasarela="SB-ajena")
+        respuesta = self.client.get(reverse("caja:retorno_pago"), {"ref": "SB-ajena"})
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_el_dashboard_solo_suma_pagos_aprobados(self):
+        Pago.objects.create(
+            orden=self.a["orden"], metodo_pago=self.efectivo, monto=Decimal("99000"), estado=Pago.PENDIENTE
+        )
+        Pago.objects.create(
+            orden=self.a["orden"], metodo_pago=self.efectivo, monto=Decimal("77000"), estado=Pago.RECHAZADO
+        )
+        self.client.force_login(self.a["admin"])
+        self.assertEqual(self.client.get(reverse("reportes:dashboard")).context["ventas_hoy"], Decimal("10000"))
+        por_metodo = self.client.get(reverse("reportes:reportes")).context["ventas_por_metodo"]
+        self.assertEqual([fila["total"] for fila in por_metodo], [Decimal("10000")])

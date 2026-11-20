@@ -22,7 +22,7 @@ class DashboardView(RoleRequiredMixin, TemplateView):
         hoy = timezone.localdate()
         mesas = filtrar(Mesa.objects, self.request, "sucursal__restaurante")
         ordenes = filtrar(Orden.objects, self.request, "sucursal__restaurante")
-        pagos = filtrar(Pago.objects, self.request, "orden__sucursal__restaurante")
+        pagos = filtrar(Pago.objects, self.request, "orden__sucursal__restaurante").filter(estado=Pago.APROBADO)
         items = filtrar(ItemInventario.objects, self.request, "sucursal__restaurante")
         contexto.update(
             total_usuarios=usuarios_del_restaurante(self.request).filter(is_active=True).count(),
@@ -43,7 +43,7 @@ class ReportesView(RoleRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         ordenes = filtrar(Orden.objects, self.request, "sucursal__restaurante")
-        pagos = filtrar(Pago.objects, self.request, "orden__sucursal__restaurante")
+        pagos = filtrar(Pago.objects, self.request, "orden__sucursal__restaurante").filter(estado=Pago.APROBADO)
         contexto.update(
             ordenes_por_estado={
                 estado: ordenes.filter(estado=estado).count()

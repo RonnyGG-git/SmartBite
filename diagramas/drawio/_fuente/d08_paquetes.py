@@ -1,5 +1,5 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Paquetes - Inventario", 1560, 1020)
 d.titulo("Diagrama de paquetes — Inventario (Smart Bite)",

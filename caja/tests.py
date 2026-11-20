@@ -37,7 +37,6 @@ class BaseCajaTest(TestCase):
     def setUp(self):
         self.orden = Orden.objects.create(mesa=self.mesa, estado=Orden.LISTA)
         DetalleOrden.objects.create(orden=self.orden, producto=self.prod, cantidad=2, precio_unitario=Decimal("50000"))
-        # total = 100.000
 
 
 class PagoMixtoTests(BaseCajaTest):

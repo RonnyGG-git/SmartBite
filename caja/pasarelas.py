@@ -1,16 +1,10 @@
-"""Pasarelas de pago. Todas implementan la misma interfaz (PasarelaPago), así el resto
-de `caja` no depende de un proveedor concreto.
-
-- WompiPasarela: Wompi (Colombia) en sandbox, con Web Checkout + webhook.
-- SimuladaPasarela: simula el checkout localmente (demo y pruebas sin internet).
-"""
 import hashlib
 import hmac
 import json
-import urllib.request          # <- nuevo
+import urllib.request
 from dataclasses import dataclass
 from decimal import Decimal
-from urllib.parse import quote, urlencode   # <- antes solo era urlencode
+from urllib.parse import quote, urlencode
 from django.urls import reverse
 
 from . import conf
@@ -22,10 +16,10 @@ class FirmaInvalida(Exception):
 
 @dataclass
 class EventoPago:
-    evento_id: str          # clave de idempotencia
+    evento_id: str
     id_transaccion: str
-    referencia: str         # la que SmartBite envió al crear el cobro
-    estado: str             # "APROBADO" | "RECHAZADO" | "PENDIENTE"
+    referencia: str
+    estado: str
     monto_centavos: int
 
 
@@ -33,8 +27,6 @@ def a_centavos(valor):
     return int((Decimal(valor) * 100).to_integral_value())
 
 def url_absoluta(request, ruta):
-    """Dirección completa que debe abrir el celular. Usa CAJA_BASE_URL si está definida
-    (túnel o dominio público); si no, la dirección con la que se abrió la página."""
     base = conf.base_url()
     return base.rstrip("/") + ruta if base else request.build_absolute_uri(ruta)
 
@@ -43,21 +35,16 @@ class PasarelaPago:
     nombre = ""
 
     def url_checkout(self, request, pago, retorno=None):
-        """`retorno`: a dónde vuelve el cliente al terminar (por defecto, la pantalla del cajero)."""
         raise NotImplementedError
 
     def consultar_transaccion(self, id_transaccion):
-        """Plan B si el webhook no llega: pregunta a la pasarela. Devuelve EventoPago o None."""
         return None
 
     def leer_evento(self, cuerpo: bytes, cabeceras) -> EventoPago:
-        """Valida la firma y devuelve el evento. Lanza FirmaInvalida si no es auténtico."""
         raise NotImplementedError
 
 
 def _checksum_wompi(evento, propiedades, secreto):
-    """Wompi: concatena los valores de `signature.properties` (ej. 'transaction.id'
-    dentro de `data`), luego `timestamp` y el secreto de eventos; SHA256."""
     texto = ""
     for ruta in propiedades:
         valor = evento["data"]
@@ -74,14 +61,14 @@ ESTADOS_WOMPI = {"APPROVED": "APROBADO", "DECLINED": "RECHAZADO", "VOIDED": "REC
 class WompiPasarela(PasarelaPago):
     nombre = "WOMPI"
 
-    def url_checkout(self, request, pago, retorno=None):      # <- parámetro nuevo
+    def url_checkout(self, request, pago, retorno=None):
         cfg = conf.wompi()
         centavos = a_centavos(pago.total_cobrado)
         moneda = "COP"
         firma = hashlib.sha256(
             f"{pago.referencia_pasarela}{centavos}{moneda}{cfg['INTEGRITY_SECRET']}".encode()
         ).hexdigest()
-        if retorno is None:                                     # <- reemplaza el bloque anterior
+        if retorno is None:
             retorno = (
                 url_absoluta(request, reverse("caja:retorno_pago"))
                 + "?" + urlencode({"ref": pago.referencia_pasarela})
@@ -130,8 +117,6 @@ class WompiPasarela(PasarelaPago):
 
 
 class SimuladaPasarela(PasarelaPago):
-    """Misma forma de evento que Wompi, firmado con un secreto local."""
-
     nombre = "SIMULADA"
 
     def url_checkout(self, request, pago, retorno=None):

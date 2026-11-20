@@ -1,5 +1,5 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Secuencia - Registrar salida", 1540, 1150)
 d.titulo("Diagrama de secuencia — Registrar salida de inventario (CU-INV-06)",

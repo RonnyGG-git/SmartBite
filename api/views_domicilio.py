@@ -41,9 +41,6 @@ DOMICILIOS = Domicilio.objects.select_related(
 ).prefetch_related("orden__detalles__producto", "orden__pagos")
 
 
-# ---------------------------------------------------------------- Cliente: cuenta
-
-
 @extend_schema(tags=["cliente-cuenta"], request=RegistroClienteSerializer)
 class RegistroClienteView(PublicoMixin, generics.GenericAPIView):
     serializer_class = RegistroClienteSerializer
@@ -119,9 +116,6 @@ class DireccionViewSet(viewsets.ModelViewSet):
             self._marcar_principal(serializer.save())
 
 
-# ---------------------------------------------------------------- Cliente: pedidos a domicilio
-
-
 @extend_schema(tags=["cliente-domicilio"])
 class DomicilioClienteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = DomicilioClienteSerializer
@@ -158,9 +152,6 @@ class DomicilioClienteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
         domicilio = self.get_object()
         services.cancelar_por_cliente(domicilio, request.user)
         return Response(DomicilioClienteSerializer(DOMICILIOS.get(pk=domicilio.pk)).data)
-
-
-# ---------------------------------------------------------------- Cliente (con o sin cuenta): QR de la mesa
 
 
 @extend_schema(tags=["cliente"], request=PedidoMesaSerializer, responses={201: PedidoPublicoRespuestaSerializer})
@@ -202,9 +193,6 @@ class PedidoMesaView(PublicoMixin, generics.GenericAPIView):
             bloqueada.save(update_fields=["estado"])
         orden = Orden.objects.select_related("mesa", "cliente").prefetch_related("detalles__producto", "pagos").get(pk=orden.pk)
         return Response({"codigo": codigo_de(orden), "orden": OrdenSerializer(orden).data}, status=status.HTTP_201_CREATED)
-
-
-# ---------------------------------------------------------------- Domiciliario
 
 
 @extend_schema(tags=["domiciliario"])

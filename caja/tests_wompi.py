@@ -1,4 +1,3 @@
-"""Flujo de cobro por QR con Wompi (sandbox): checkout, webhook, plan B por consulta y pantallas del celular."""
 import hashlib
 import json
 from decimal import Decimal
@@ -22,7 +21,6 @@ LLAVES = {
 
 
 def evento_wompi(pago, estado="APPROVED", monto_centavos=None, tx_id="tx-123"):
-    """Construye un webhook como el que enviaría Wompi, con checksum válido."""
     evento = {
         "event": "transaction.updated",
         "data": {"transaction": {
@@ -53,7 +51,7 @@ class CobroQRConWompiTests(BaseQRTest):
         pago = Pago.objects.get(orden=self.orden)
         self.assertEqual((pago.estado, pago.proveedor), (Pago.PENDIENTE, "WOMPI"))
         self.orden.refresh_from_db()
-        self.assertNotEqual(self.orden.estado, "ENTREGADA")  # no se cierra hasta que Wompi confirme
+        self.assertNotEqual(self.orden.estado, "ENTREGADA")
 
     def test_el_checkout_lleva_monto_firma_y_retorno_al_celular(self):
         r = self._iniciar(propina="5000")
@@ -87,7 +85,7 @@ class CobroQRConWompiTests(BaseQRTest):
         pago = Pago.objects.get(orden=self.orden)
         r = self.client.get(reverse("caja:pago_listo", args=[self.enlace.token]), {"ref": pago.referencia_pasarela})
         self.assertContains(r, "Confirmando tu pago")
-        self.assertContains(r, "Pago de prueba")  # llaves pub_test_
+        self.assertContains(r, "Pago de prueba")
 
     def test_webhook_aprobado_cierra_la_cuenta_y_emite_comprobante(self):
         self._iniciar()

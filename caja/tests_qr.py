@@ -27,13 +27,13 @@ class BaseQRTest(TestCase):
         cat = Categoria.objects.create(nombre="Platos")
         cls.prod = Producto.objects.create(nombre="Bandeja", precio=Decimal("50000"), categoria=cat, sucursal=suc)
         cls.efectivo = MetodoPago.objects.create(nombre="Efectivo")
-        cls.cajero = Usuario.objects.create_user("caja@x.co", "Cajero", "pass12345", rol=Rol.objects.create(nombre="CAJERO"))
+        cls.cajero = Usuario.objects.create_user("caja@x.co", "Cajero", "pass12345", rol=Rol.objects.create(nombre="CAJERO"), restaurante=rest)
         cls.mesero = Usuario.objects.create_user("mesero@x.co", "Mesero", "pass12345", rol=Rol.objects.create(nombre="MESERO"))
 
     def setUp(self):
         self.orden = Orden.objects.create(mesa=self.mesa, estado=Orden.LISTA)
         DetalleOrden.objects.create(orden=self.orden, producto=self.prod, cantidad=2, precio_unitario=Decimal("50000"))
-        self.enlace = obtener_enlace_pago(self.orden, self.cajero)  # total = 100.000
+        self.enlace = obtener_enlace_pago(self.orden, self.cajero)
         self.url = reverse("caja:pagar_cliente", args=[self.enlace.token])
 
 
@@ -178,7 +178,7 @@ class ComprobanteTests(BaseQRTest):
 
     def test_pago_mixto_queda_en_un_solo_comprobante(self):
         servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("30000"), usuario=self.cajero)
-        self.assertFalse(Factura.objects.exists())          # aún no está pagada
+        self.assertFalse(Factura.objects.exists())
         servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("70000"), usuario=self.cajero)
         self.assertEqual(Factura.objects.count(), 1)
         self.assertEqual(len(Factura.objects.get().detalle["pagos"]), 2)

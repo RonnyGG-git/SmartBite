@@ -18,7 +18,6 @@ urlpatterns = [
     path("webhooks/<str:proveedor>/", views.webhook, name="webhook"),
     path("pasarela-simulada/<str:referencia>/", views.pasarela_simulada, name="pasarela_simulada"),
 
-    # Cobro por QR (celular del cliente)
     path("ordenes/<int:pk>/qr/", vistas_qr.qr_cobro, name="qr_cobro"),
     path("ordenes/<int:pk>/estado/", vistas_qr.estado_orden, name="estado_orden"),
     path("pagar/<str:token>/", vistas_qr.pagar_cliente, name="pagar_cliente"),
@@ -26,7 +25,6 @@ urlpatterns = [
     path("pagar/<str:token>/estado/", vistas_qr.estado_pago, name="estado_pago"),
     path("pagar/<str:token>/factura/", vistas_qr.factura_publica, name="factura_publica"),
 
-    # Comprobantes
     path("facturas/", vistas_qr.FacturaListView.as_view(), name="facturas_list"),
     path("facturas/<int:pk>/", vistas_qr.factura_detalle, name="factura_detalle"),
 ]

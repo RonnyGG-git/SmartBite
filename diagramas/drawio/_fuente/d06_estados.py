@@ -1,5 +1,5 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Estados - Inventario", 1520, 820)
 d.titulo("Diagrama de estados — Compra y nivel de stock de un ítem (Smart Bite)",

@@ -69,7 +69,5 @@ class DomicilioSerializer(serializers.ModelSerializer):
 
 
 class DomicilioClienteSerializer(DomicilioSerializer):
-    """El cliente ve además su código de entrega: se lo dicta al domiciliario al recibir."""
-
     class Meta(DomicilioSerializer.Meta):
         fields = DomicilioSerializer.Meta.fields + ["codigo_entrega"]

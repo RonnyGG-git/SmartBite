@@ -165,7 +165,6 @@ LOGOUT_REDIRECT_URL = 'cuentas:login'
 
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 
-# Enlace del botón «Descargar app» de la bienvenida. Vacío = el APK servido desde static/descargas/.
 APP_ANDROID_URL = os.environ.get('APP_ANDROID_URL', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Smart Bite <no-reply@smartbite.local>')
 EMAIL_BACKEND = (

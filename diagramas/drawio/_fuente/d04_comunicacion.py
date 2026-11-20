@@ -1,5 +1,5 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Comunicación - Recibir compra", 1720, 1270)
 d.titulo("Diagrama de comunicación — Recibir una compra y registrar las entradas (CU-COM-13, CU-INV-05)",

@@ -1,12 +1,12 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Casos de uso - Inventario", 1560, 1420)
 d.titulo("Diagrama de casos de uso — Inventario (Smart Bite)",
          "Lo que la app Django (rama smartbite) permite hacer hoy en Inventario, según su código")
 
 PASO = 88
-fila = lambda i: 160 + (i - 1) * PASO  # noqa: E731
+fila = lambda i: 160 + (i - 1) * PASO
 COL_A, COL_B, W_A, W_B, H = 330, 820, 260, 290, 62
 
 SUJ_X, SUJ_Y, SUJ_W = 270, 100, 920

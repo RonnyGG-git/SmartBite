@@ -43,7 +43,7 @@
           caja.textContent = "✓ Pago recibido. Falta " + dinero(d.saldo) + " — el QR sigue activo.";
         }
       }
-    } catch (e) { /* sin conexión: reintenta */ }
+    } catch (e) {}
     setTimeout(revisar, 3000);
   }
   revisar();

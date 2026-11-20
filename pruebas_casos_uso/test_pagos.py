@@ -30,7 +30,7 @@ class PagosTests(CasoDeUsoTestCase):
 
     def test_cu_pag_02_pagar_en_efectivo(self):
         self.cobrar(monto="9999")
-        self.assertEqual(Pago.objects.get().monto, Decimal("9999"))  # pago parcial permitido (cuenta mixta)
+        self.assertEqual(Pago.objects.get().monto, Decimal("9999"))
         self.cobrar(monto="20000")
         self.assertEqual(Pago.objects.get().metodo_pago, self.efectivo)
 
@@ -38,7 +38,7 @@ class PagosTests(CasoDeUsoTestCase):
         respuesta = self.cobrar(metodo=self.tarjeta, referencia="AUT-778899")
         pago = Pago.objects.get()
         self.assertEqual(pago.metodo_pago, self.tarjeta)
-        self.assertEqual(pago.estado, Pago.PENDIENTE)  # en espera de la confirmación de la pasarela
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
         self.assertTrue(
             respuesta.url.startswith("https://checkout.wompi.co/p/") or respuesta.url.startswith("/caja/pasarela-simulada/"),
             msg=f"La redirección no esperada fue: {respuesta.url}",

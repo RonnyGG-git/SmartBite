@@ -1,5 +1,5 @@
 from rutas import salida
-from drawio_lib import *  # noqa: F401,F403
+from drawio_lib import *
 
 d = Diagrama("Actividades - Ajustar stock", 1340, 1345)
 d.titulo("Diagrama de actividades — Ajustar el stock de un ítem (entrada o salida)",

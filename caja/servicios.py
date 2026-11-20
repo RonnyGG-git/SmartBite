@@ -1,5 +1,3 @@
-"""Lógica de negocio de cobros. Las vistas solo llaman a estas funciones; si algún día
-`caja` se extrae como servicio aparte, este módulo es la frontera."""
 import json
 import uuid
 from datetime import timedelta
@@ -16,7 +14,7 @@ from .models import AuditoriaCobro, EventoPasarela, Pago
 from .pasarelas import obtener_pasarela
 
 CERO = Decimal("0")
-VENCIMIENTO_PENDIENTE = timedelta(minutes=30)  # un cobro con tarjeta sin respuesta deja de reservar saldo
+VENCIMIENTO_PENDIENTE = timedelta(minutes=30)
 
 
 class CobroInvalido(Exception):
@@ -28,12 +26,10 @@ def _suma(qs, campo="monto"):
 
 
 def saldo_pendiente(orden):
-    """Lo que falta por pagar: total - pagos APROBADOS (la propina no abona)."""
     return orden.total - _suma(orden.pagos.filter(estado=Pago.APROBADO))
 
 
 def saldo_disponible(orden):
-    """Saldo cobrable ahora: descuenta también cobros con tarjeta en curso."""
     vigentes = orden.pagos.filter(estado=Pago.PENDIENTE, creado_en__gte=timezone.now() - VENCIMIENTO_PENDIENTE)
     return saldo_pendiente(orden) - _suma(vigentes)
 
@@ -73,9 +69,8 @@ def _cerrar_si_pagada(orden):
 
 
 def registrar_pago_manual(orden_id, *, metodo, monto, propina=CERO, referencia="", usuario=None, ip=None):
-    """Efectivo, transferencia, etc. Queda APROBADO de inmediato."""
     with transaction.atomic():
-        orden = Orden.objects.select_for_update().get(pk=orden_id)  # evita cobrar dos veces en paralelo
+        orden = Orden.objects.select_for_update().get(pk=orden_id)
         _validar(orden, monto, propina)
         pago = Pago.objects.create(
             orden=orden, metodo_pago=metodo, monto=monto, propina=propina, estado=Pago.APROBADO,
@@ -87,7 +82,6 @@ def registrar_pago_manual(orden_id, *, metodo, monto, propina=CERO, referencia="
 
 
 def iniciar_cobro_tarjeta(orden_id, *, metodo, monto, propina=CERO, usuario=None, ip=None, pasarela=None, origen=""):
-    """Crea un pago PENDIENTE con referencia única; la pasarela lo confirma por webhook."""
     pasarela = pasarela or obtener_pasarela()
     with transaction.atomic():
         orden = Orden.objects.select_for_update().get(pk=orden_id)
@@ -110,17 +104,14 @@ def _payload(cuerpo):
 
 
 def procesar_evento(pasarela, cuerpo, cabeceras):
-    """Procesa un webhook. Idempotente: un mismo evento cambia el estado una sola vez.
-    Lanza FirmaInvalida si el evento no es auténtico."""
     evento = pasarela.leer_evento(cuerpo, cabeceras)
     return aplicar_evento(pasarela, evento, _payload(cuerpo))
 
 
 def aplicar_evento(pasarela, evento, payload):
-    """Aplica un evento YA verificado (llegó firmado por webhook o se consultó a la pasarela)."""
     with transaction.atomic():
         try:
-            with transaction.atomic():  # savepoint: si es duplicado no rompe la transacción externa
+            with transaction.atomic():
                 registro = EventoPasarela.objects.create(
                     proveedor=pasarela.nombre, evento_id=evento.evento_id, payload=payload
                 )
@@ -168,9 +159,6 @@ def aplicar_evento(pasarela, evento, payload):
 
 
 def sincronizar_pago(pago, id_transaccion, pasarela=None):
-    """Plan B si el webhook no llegó (túnel caído, red lenta...): al volver el cliente de la
-    pasarela se le pregunta directamente a ella por la transacción. Solo se acepta si la
-    referencia es la de ESTE pago y el monto coincide (lo valida `aplicar_evento`)."""
     if pago.estado != Pago.PENDIENTE or not id_transaccion or not pago.proveedor:
         return pago
     try:

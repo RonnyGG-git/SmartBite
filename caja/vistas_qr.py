@@ -1,5 +1,3 @@
-"""Vistas del cobro por QR y del comprobante. Las del cliente NO piden login: se protegen con
-el token secreto del QR, que solo permite ver y pagar esa cuenta."""
 import base64
 import io
 import re
@@ -13,6 +11,7 @@ from django.urls import reverse
 from django.views.generic import ListView
 
 from core.mixins import RoleRequiredMixin, rol_requerido
+from core.tenancy import RestauranteMixin, filtrar
 from operativo.models import Orden
 
 from . import conf, servicios
@@ -33,14 +32,12 @@ def _qr_base64(texto):
 
 
 def leer_monto(texto):
-    """Convierte lo que escribe una persona ('50.000', '50000', '50,5', '$ 50.000') en Decimal.
-    Devuelve None si no es un número válido."""
     texto = (texto or "").replace("$", "").replace(" ", "").strip()
     if not texto:
         return None
-    if "," in texto:                              # 50.000,50 -> 50000.50
+    if "," in texto:
         texto = texto.replace(".", "").replace(",", ".")
-    elif re.fullmatch(r"\d{1,3}(\.\d{3})+", texto):  # 50.000 -> 50000
+    elif re.fullmatch(r"\d{1,3}(\.\d{3})+", texto):
         texto = texto.replace(".", "")
     try:
         return Decimal(texto)
@@ -53,8 +50,6 @@ def _entero_o_decimal(valor):
     return str(int(valor)) if valor == valor.to_integral_value() else str(valor)
 
 
-# ---------------------------- lado del cajero ----------------------------
-
 @rol_requerido(*ROLES_CAJA)
 def qr_cobro(request, pk):
     orden = get_object_or_404(Orden, pk=pk)
@@ -64,7 +59,6 @@ def qr_cobro(request, pk):
     ruta = reverse("caja:pagar_cliente", args=[enlace.token])
     base = conf.base_url()
     url = base.rstrip("/") + ruta if base else request.build_absolute_uri(ruta)
-    # Con la pasarela Wompi, el QR del cliente apunta al enlace de pago de la pasarela.
     if conf.proveedor() == "WOMPI":
         url = conf.wompi_link()
     return render(request, "caja/qr_cobro.html", {
@@ -75,7 +69,6 @@ def qr_cobro(request, pk):
 
 @rol_requerido(*ROLES_CAJA)
 def estado_orden(request, pk):
-    """La pantalla del QR la consulta cada pocos segundos para reflejar el pago del celular."""
     orden = get_object_or_404(Orden, pk=pk)
     factura = Factura.objects.filter(orden=orden).first()
     return JsonResponse({
@@ -86,7 +79,8 @@ def estado_orden(request, pk):
     })
 
 
-class FacturaListView(RoleRequiredMixin, ListView):
+class FacturaListView(RestauranteMixin, RoleRequiredMixin, ListView):
+    ruta_restaurante = "orden__sucursal__restaurante"
     model = Factura
     roles_permitidos = ROLES_CAJA
     template_name = "caja/facturas_list.html"
@@ -96,11 +90,9 @@ class FacturaListView(RoleRequiredMixin, ListView):
 
 @rol_requerido(*ROLES_CAJA)
 def factura_detalle(request, pk):
-    factura = get_object_or_404(Factura, pk=pk)
+    factura = get_object_or_404(filtrar(Factura.objects, request, "orden__sucursal__restaurante"), pk=pk)
     return render(request, "caja/factura.html", {"f": factura, "d": factura.detalle, "publico": False})
 
-
-# --------------------------- lado del cliente ----------------------------
 
 def _restaurante_de(orden):
     sucursal = orden.mesa.sucursal if orden.mesa_id is not None else orden.sucursal
@@ -166,7 +158,6 @@ def pagar_cliente(request, token):
 
 def _pago_del_enlace(request, enlace):
     pago = get_object_or_404(Pago, referencia_pasarela=request.GET.get("ref", ""), orden=enlace.orden)
-    # Wompi devuelve al cliente con ?id=<transacción>: si el webhook aún no llegó, se confirma directo.
     return servicios.sincronizar_pago(pago, request.GET.get("id"))
 
 
@@ -186,7 +177,6 @@ def pago_listo(request, token):
 
 
 def estado_pago(request, token):
-    """La pantalla 'esperando confirmación' del celular la consulta hasta que el pago deja de estar PENDIENTE."""
     pago = _pago_del_enlace(request, _enlace(token))
     return JsonResponse({"estado": pago.estado})
 
