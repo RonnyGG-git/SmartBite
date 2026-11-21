@@ -2,6 +2,7 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.contrib.auth.views import LoginView as DjangoLoginView
@@ -109,6 +110,11 @@ class LoginView(DjangoLoginView):
 
 class LogoutView(DjangoLogoutView):
     pass
+
+
+@login_required
+def mi_inicio(request):
+    return redirect(inicio_de(request.user))
 
 
 class SoloVisitantesMixin:

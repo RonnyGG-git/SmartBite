@@ -1,11 +1,15 @@
 <div class="cliente-cuenta">
-  {% if user.is_authenticated and user.rol.nombre == "CLIENTE" %}
-    <a class="btn btn-ghost btn-sm" href="{% url 'cliente:cuenta' %}"><svg class="ico ico-sm"><use href="#i-user"/></svg><span>{{ user.nombre|default:"Mi cuenta" }}</span></a>
+  {% if user.is_authenticated %}
+    {% if user.rol.nombre == "CLIENTE" %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'cliente:cuenta' %}"><svg class="ico ico-sm"><use href="#i-user"/></svg><span>{{ user.nombre|default:"Mi cuenta" }}</span></a>
+    {% else %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:mi_inicio' %}"><svg class="ico ico-sm"><use href="#i-grid"/></svg>Ir a mi panel</a>
+    {% endif %}
     <form method="post" action="{% url 'cuentas:logout' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-ghost btn-sm" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="ico ico-sm"><use href="#i-logout"/></svg></button>
+      <button type="submit" class="btn btn-ghost btn-sm" aria-label="Cerrar sesión"><svg class="ico ico-sm"><use href="#i-logout"/></svg>Salir</button>
     </form>
-  {% elif not user.is_authenticated %}
+  {% else %}
     <a class="btn btn-ghost btn-sm" href="{% url 'cuentas:login' %}?next={% url 'cliente:inicio' %}">Iniciar sesión</a>
     <a class="btn btn-primary btn-sm" href="{% url 'cuentas:registro_cliente' %}">Registrarse</a>
   {% endif %}
