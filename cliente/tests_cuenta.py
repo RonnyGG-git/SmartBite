@@ -21,6 +21,29 @@ class InicioClienteTests(TestCase):
         self.assertContains(r, reverse("cuentas:registro_cliente"))
         self.assertContains(r, "Iniciar sesión")
 
+    def test_cliente_ve_el_boton_salir(self):
+        self.client.force_login(crear_usuario("CLIENTE", email="cli2@test.co"))
+        r = self.client.get(reverse("cliente:inicio"))
+        self.assertContains(r, reverse("cuentas:logout"))
+        self.assertContains(r, "Salir")
+
+    def test_mesero_en_el_inicio_del_cliente_puede_salir_o_volver_a_su_panel(self):
+        crear_escenario()
+        self.client.force_login(crear_usuario("MESERO"))
+        r = self.client.get(reverse("cliente:inicio"))
+        self.assertContains(r, reverse("cuentas:logout"))
+        self.assertContains(r, reverse("cuentas:mi_inicio"))
+        self.assertNotContains(r, reverse("cliente:cuenta"))
+        r = self.client.get(reverse("cuentas:mi_inicio"))
+        self.assertRedirects(r, reverse("operativo:mesas_list"), fetch_redirect_response=False)
+
+    def test_salir_cierra_la_sesion(self):
+        self.client.force_login(crear_usuario("MESERO", email="m2@test.co"))
+        self.client.post(reverse("cuentas:logout"))
+        r = self.client.get(reverse("cuentas:mi_inicio"))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(reverse("cuentas:login"), r["Location"])
+
     def test_inicio_con_cliente_muestra_su_cuenta(self):
         cliente = crear_usuario("CLIENTE", email="cli@test.co")
         self.client.force_login(cliente)
