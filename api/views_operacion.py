@@ -19,7 +19,9 @@ from operativo.services import (
     asignar_mesa_a_orden,
     cancelar_reserva,
     confirmar_llegada,
+    confirmar_presencia,
     obtener_cliente,
+    rechazar_presencia,
     sincronizar_reservas,
     solicitar_cuenta,
 )
@@ -126,6 +128,8 @@ ROLES_POR_ACCION = {
     "asignar_mesa": ROLES_MESERO,
     "solicitar_cuenta": ROLES_MESERO,
     "cancelar": ROLES_MESERO,
+    "confirmar": ROLES_MESERO,
+    "rechazar": ROLES_MESERO,
     "entregar": ROLES_ENTREGA,
 }
 
@@ -212,6 +216,20 @@ class OrdenViewSet(
         if orden.estado not in TRANSICIONES_MESERO[Orden.CANCELADA]:
             raise ValidationError("Solo se pueden cancelar órdenes que todavía no entran a cocina.", code="transicion_invalida")
         orden.cambiar_estado(Orden.CANCELADA)
+        return self._respuesta(orden)
+
+    @extend_schema(request=None)
+    @action(detail=True, methods=["post"])
+    def confirmar(self, request, pk=None):
+        orden = self.get_object()
+        confirmar_presencia(orden)
+        return self._respuesta(orden)
+
+    @extend_schema(request=None)
+    @action(detail=True, methods=["post"])
+    def rechazar(self, request, pk=None):
+        orden = self.get_object()
+        rechazar_presencia(orden)
         return self._respuesta(orden)
 
     @extend_schema(request=None)

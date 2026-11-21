@@ -173,6 +173,25 @@ class MeseroTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIsNotNone(r.json()["cuenta_solicitada_en"])
 
+    def test_confirmar_pedido_por_qr_lo_manda_a_cocina(self):
+        orden = Orden.objects.create(mesa=self.d["mesa"], origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.POR_CONFIRMAR)
+        r = self.api.post(reverse("api:ordenes-confirmar", args=[orden.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["estado"], Orden.PENDIENTE)
+        r = self.api.post(reverse("api:ordenes-confirmar", args=[orden.pk]))
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.json()["code"], "sin_confirmacion")
+
+    def test_rechazar_pedido_por_qr_lo_cancela(self):
+        orden = Orden.objects.create(mesa=self.d["mesa"], origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.POR_CONFIRMAR)
+        r = self.api.post(reverse("api:ordenes-rechazar", args=[orden.pk]))
+        self.assertEqual(r.json()["estado"], Orden.CANCELADA)
+
+    def test_cocina_no_confirma_pedidos(self):
+        orden = Orden.objects.create(mesa=self.d["mesa"], origen=Orden.ORIGEN_AUTOPEDIDO, estado=Orden.POR_CONFIRMAR)
+        cocina = cliente_con_token(crear_usuario("JEFE_COCINA"))
+        self.assertEqual(cocina.post(reverse("api:ordenes-confirmar", args=[orden.pk])).status_code, 403)
+
     def test_mesero_no_entra_a_cocina(self):
         self.assertEqual(self.api.get(reverse("api:cocina-list")).status_code, 403)
 
