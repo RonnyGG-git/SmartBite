@@ -9,6 +9,7 @@ from core.tenancy import RestauranteMixin, filtrar, limitar_opciones
 
 from .forms import AjusteStockForm, CompraForm, DetalleCompraFormSet, ItemInventarioForm, ProveedorForm
 from .models import Compra, ItemInventario, MovimientoInventario, Proveedor
+from .servicios import anular_compra, recibir_compra
 
 ROLES_INVENTARIO = ["ADMINISTRADOR", "JEFE_INVENTARIO"]
 ROLES_LECTURA = ["ADMINISTRADOR", "JEFE_INVENTARIO", "JEFE_COCINA"]
@@ -159,19 +160,7 @@ def compra_recibir(request, pk):
     if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
     compra = get_object_or_404(filtrar(Compra.objects, request, "proveedor__restaurante"), pk=pk)
-    if compra.estado == Compra.PENDIENTE:
-        with transaction.atomic():
-            for detalle in compra.detalles.select_related("item"):
-                detalle.item.stock_actual += detalle.cantidad
-                detalle.item.save(update_fields=["stock_actual"])
-                MovimientoInventario.objects.create(
-                    item=detalle.item,
-                    tipo=MovimientoInventario.ENTRADA,
-                    cantidad=detalle.cantidad,
-                    motivo=f"Recepción compra #{compra.pk}",
-                )
-            compra.estado = Compra.RECIBIDA
-            compra.save(update_fields=["estado"])
+    recibir_compra(compra)
     return redirect("inventario:compra_detalle", pk=compra.pk)
 
 
@@ -181,7 +170,5 @@ def compra_anular(request, pk):
     if not usuario_tiene_rol(usuario, ROLES_INVENTARIO):
         return redirect("inventario:compras_list")
     compra = get_object_or_404(filtrar(Compra.objects, request, "proveedor__restaurante"), pk=pk)
-    if compra.estado == Compra.PENDIENTE:
-        compra.estado = Compra.ANULADA
-        compra.save(update_fields=["estado"])
+    anular_compra(compra)
     return redirect("inventario:compra_detalle", pk=compra.pk)
