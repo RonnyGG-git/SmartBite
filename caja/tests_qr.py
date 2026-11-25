@@ -219,3 +219,44 @@ class PagoQROrdenSinMesaTests(BaseQRTest):
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, Orden.ENTREGADA)
         self.assertTrue(Factura.objects.filter(orden=self.orden).exists())
+
+
+class PagoEnEfectivoTests(BaseQRTest):
+    def test_el_cliente_puede_elegir_pagar_en_efectivo(self):
+        r = self.client.get(self.url)
+        self.assertContains(r, "Pagar en línea")
+        self.assertContains(r, "Pagar en efectivo en caja")
+
+    def test_pedir_efectivo_avisa_a_caja_sin_cobrar(self):
+        r = self.client.post(self.url, {"accion": "efectivo"})
+        self.assertContains(r, "avisamos a caja que pagarás en efectivo")
+        self.assertNotContains(r, "Pagar en efectivo en caja")
+        self.enlace.refresh_from_db()
+        self.orden.refresh_from_db()
+        self.assertIsNotNone(self.enlace.efectivo_solicitado_en)
+        self.assertIsNotNone(self.orden.cuenta_solicitada_en)
+        self.assertFalse(Pago.objects.filter(orden=self.orden).exists())
+        self.assertTrue(AuditoriaCobro.objects.filter(orden=self.orden, accion=AuditoriaCobro.EFECTIVO_SOLICITADO).exists())
+
+    def test_caja_ve_el_aviso_en_por_cobrar_y_en_el_estado(self):
+        self.client.post(self.url, {"accion": "efectivo"})
+        self.client.force_login(self.cajero)
+        self.assertContains(self.client.get(reverse("caja:por_cobrar")), "Pagará en efectivo")
+        self.assertTrue(self.client.get(reverse("caja:estado_orden", args=[self.orden.pk])).json()["efectivo"])
+
+    def test_el_cajero_cobra_el_efectivo_y_cierra_la_cuenta(self):
+        self.client.post(self.url, {"accion": "efectivo"})
+        self.client.force_login(self.cajero)
+        self.client.post(reverse("caja:cobrar_orden", args=[self.orden.pk]), {
+            "metodo_pago": self.efectivo.pk, "monto": "100000", "propina": "0", "efectivo_recibido": "100000",
+        })
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, Orden.ENTREGADA)
+
+    def test_qr_vencido_no_acepta_pedir_efectivo(self):
+        self.enlace.expira_en = self.enlace.creado_en
+        self.enlace.save()
+        r = self.client.post(self.url, {"accion": "efectivo"})
+        self.assertContains(r, "venció")
+        self.enlace.refresh_from_db()
+        self.assertIsNone(self.enlace.efectivo_solicitado_en)

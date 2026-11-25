@@ -93,12 +93,14 @@ class AuditoriaCobro(TimestampedModel):
     COBRO, PASARELA_INICIADA, PASARELA_APROBADA, PASARELA_RECHAZADA, ALERTA = (
         "COBRO", "PASARELA_INICIADA", "PASARELA_APROBADA", "PASARELA_RECHAZADA", "ALERTA",
     )
+    EFECTIVO_SOLICITADO = "EFECTIVO_SOLICITADO"
     ACCION_CHOICES = [
         (COBRO, "Cobro registrado"),
         (PASARELA_INICIADA, "Cobro con tarjeta iniciado"),
         (PASARELA_APROBADA, "Pasarela aprobó el pago"),
         (PASARELA_RECHAZADA, "Pasarela rechazó el pago"),
         (ALERTA, "Alerta (inconsistencia)"),
+        (EFECTIVO_SOLICITADO, "El cliente pagará en efectivo"),
     ]
 
     accion = models.CharField(max_length=20, choices=ACCION_CHOICES)
@@ -140,6 +142,7 @@ class EnlacePago(TimestampedModel):
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    efectivo_solicitado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-creado_en"]

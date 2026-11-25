@@ -74,11 +74,14 @@ class CobroQRConWompiTests(BaseQRTest):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(Pago.objects.filter(orden=self.orden).count(), 1)
 
-    def test_el_qr_del_cajero_apunta_al_enlace_de_pago_de_wompi(self):
+    def test_el_qr_del_cajero_abre_la_pagina_de_pago_con_wompi_y_efectivo(self):
         self.client.force_login(self.cajero)
         r = self.client.get(reverse("caja:qr_cobro", args=[self.orden.pk]))
-        self.assertContains(r, conf.wompi_link())
-        self.assertContains(r, "https://checkout.wompi.co/l/VPOS_YLOFY2")
+        self.assertContains(r, reverse("caja:pagar_cliente", args=[self.enlace.token]))
+        self.assertNotContains(r, "checkout.wompi.co/l/")
+        pagina = self.client.get(self.url)
+        self.assertContains(pagina, "Nequi, PSE, tarjeta o Bancolombia")
+        self.assertContains(pagina, "Pagar en efectivo en caja")
 
     def test_pantalla_del_celular_espera_mientras_esta_pendiente(self):
         self._iniciar()

@@ -2,6 +2,7 @@ from decimal import Decimal
 from core.tenancy import RestauranteMixin, filtrar
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -13,7 +14,7 @@ from operativo.models import Orden, TransicionOrdenInvalida
 
 from . import servicios
 from .forms import CobrarOrdenForm
-from .models import AuditoriaCobro, Factura, Pago
+from .models import AuditoriaCobro, EnlacePago, Factura, Pago
 from .pasarelas import FirmaInvalida, SimuladaPasarela, obtener_pasarela
 from .servicios import CobroInvalido
 
@@ -156,6 +157,7 @@ class CuentasPorCobrarView(RestauranteMixin, RoleRequiredMixin, ListView):
     queryset = (
         Orden.objects.filter(cuenta_solicitada_en__isnull=False)
         .exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA])
+        .annotate(efectivo=Exists(EnlacePago.objects.filter(orden=OuterRef("pk"), efectivo_solicitado_en__isnull=False)))
         .select_related("mesa", "cliente")
         .prefetch_related("detalles")
         .order_by("cuenta_solicitada_en")

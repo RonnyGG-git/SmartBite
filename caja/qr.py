@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from . import conf, servicios
-from .models import EnlacePago, MetodoPago
+from .models import AuditoriaCobro, EnlacePago, MetodoPago
 from .pasarelas import SimuladaPasarela, obtener_pasarela
 from .servicios import CobroInvalido
 
@@ -28,6 +28,23 @@ def cobrar_por_qr(enlace, *, monto, propina=CERO, ip=None):
     servicios.procesar_evento(pasarela, pasarela.construir_evento(pago, "APPROVED"), {})
     pago.refresh_from_db()
     return pago
+
+
+def pedir_pago_en_efectivo(enlace):
+    from django.utils import timezone
+
+    if not enlace.vigente:
+        raise CobroInvalido("Este código QR venció. Pide uno nuevo en caja.")
+    ahora = timezone.now()
+    if enlace.efectivo_solicitado_en is None:
+        enlace.efectivo_solicitado_en = ahora
+        enlace.save(update_fields=["efectivo_solicitado_en", "actualizado_en"])
+    orden = enlace.orden
+    if orden.cuenta_solicitada_en is None:
+        orden.cuenta_solicitada_en = ahora
+        orden.save(update_fields=["cuenta_solicitada_en", "actualizado_en"])
+    servicios.auditar(AuditoriaCobro.EFECTIVO_SOLICITADO, orden, detalle="El cliente pagará en efectivo en caja")
+    return enlace
 
 
 def es_simulada():

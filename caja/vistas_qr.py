@@ -17,7 +17,7 @@ from operativo.models import Orden
 from . import conf, servicios
 from .models import EnlacePago, Factura, Pago
 from .pasarelas import url_absoluta
-from .qr import cobrar_por_qr, es_simulada, iniciar_cobro_qr, obtener_enlace_pago
+from .qr import cobrar_por_qr, es_simulada, iniciar_cobro_qr, obtener_enlace_pago, pedir_pago_en_efectivo
 from .servicios import CobroInvalido
 
 ROLES_CAJA = ["ADMINISTRADOR", "CAJERO"]
@@ -59,8 +59,6 @@ def qr_cobro(request, pk):
     ruta = reverse("caja:pagar_cliente", args=[enlace.token])
     base = conf.base_url()
     url = base.rstrip("/") + ruta if base else request.build_absolute_uri(ruta)
-    if conf.proveedor() == "WOMPI":
-        url = conf.wompi_link()
     return render(request, "caja/qr_cobro.html", {
         "orden": orden, "url": url, "qr": _qr_base64(url), "saldo": servicios.saldo_pendiente(orden),
         "pagos_iniciales": orden.pagos.filter(estado=Pago.APROBADO).count(),
@@ -75,6 +73,7 @@ def estado_orden(request, pk):
         "saldo": float(servicios.saldo_pendiente(orden)),
         "pagada": orden.estado == Orden.ENTREGADA,
         "pagos": orden.pagos.filter(estado=Pago.APROBADO).count(),
+        "efectivo": orden.enlaces_pago.filter(efectivo_solicitado_en__isnull=False).exists(),
         "factura_url": reverse("caja:factura_detalle", args=[factura.pk]) if factura else None,
     })
 
@@ -116,9 +115,19 @@ def pagar_cliente(request, token):
         "monto_valor": _entero_o_decimal(saldo) if saldo > 0 else "", "propina_valor": "",
         "vencido": not enlace.vigente, "pagada": saldo <= 0 and orden.estado == Orden.ENTREGADA,
         "factura_url": reverse("caja:factura_publica", args=[token]) if factura else None,
-        "modo_prueba": conf.modo_prueba(),
+        "modo_prueba": conf.modo_prueba(), "simulada": es_simulada(),
     }
     if ctx["vencido"] or ctx["pagada"] or orden.estado == Orden.CANCELADA:
+        return render(request, "caja/pagar_cliente.html", ctx)
+
+    ctx["efectivo"] = enlace.efectivo_solicitado_en is not None
+    if request.method == "POST" and request.POST.get("accion") == "efectivo":
+        try:
+            pedir_pago_en_efectivo(enlace)
+        except CobroInvalido as error:
+            ctx["error"] = str(error)
+        else:
+            ctx["efectivo"] = True
         return render(request, "caja/pagar_cliente.html", ctx)
 
     if request.method == "POST":

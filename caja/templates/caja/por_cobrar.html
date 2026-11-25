@@ -18,7 +18,7 @@
         <tr>
           <td class="mono">#{{ orden.id }}</td>
           <td>{{ orden.ubicacion }}</td>
-          <td class="muted">{{ orden.cliente.nombre|default:"—" }}</td>
+          <td class="muted">{{ orden.cliente.nombre|default:"—" }}{% if orden.efectivo %} <span class="badge badge-warning">Pagará en efectivo</span>{% endif %}</td>
           <td class="mono muted nowrap">hace {{ orden.cuenta_solicitada_en|timesince }}</td>
           <td class="num money">{{ orden.total|moneda }}</td>
           <td class="actions"><a href="{% url 'caja:cobrar_orden' orden.pk %}" class="btn btn-sm btn-primary"><svg class="ico"><use href="#i-card"/></svg><span>Cobrar</span></a></td>

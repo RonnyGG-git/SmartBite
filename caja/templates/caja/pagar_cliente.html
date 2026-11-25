@@ -56,6 +56,14 @@
 
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
+    {% if efectivo %}
+      <div class="ok">
+        <b>Listo: avisamos a caja que pagarás en efectivo.</b><br>
+        Acércate a la caja o espera a tu mesero con {{ saldo|moneda }}.
+      </div>
+      <p class="sub" style="text-align:center; margin-top:14px;">¿Prefieres pagar desde tu celular?</p>
+    {% endif %}
+
     {% if aviso %}
       <div class="aviso">
         <b>⚠️ El monto es menor al saldo.</b><br>
@@ -82,8 +90,16 @@
           <button type="button" class="chip" data-propina="0">Sin propina</button>
           <button type="button" class="chip" data-propina="{{ propina_sugerida }}">10% sugerida</button>
         </div>
-        <button class="btn" type="submit">Pagar</button>
+        <button class="btn" type="submit">Pagar en línea</button>
+        <p class="nota" style="margin-top:8px;">{% if simulada %}Pasarela simulada{% else %}Nequi, PSE, tarjeta o Bancolombia con Wompi{% endif %}</p>
       </form>
+      {% if not efectivo %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="efectivo">
+          <button class="btn sec" type="submit">Pagar en efectivo en caja</button>
+        </form>
+      {% endif %}
     {% endif %}
   {% endif %}
 

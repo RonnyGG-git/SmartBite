@@ -37,6 +37,10 @@
           setTimeout(() => { window.location = d.factura_url || "{% url 'operativo:mesas_list' %}"; }, 1500);
           return;
         }
+        if (d.efectivo && d.pagos <= pagosVistos) {
+          caja.className = "alert alert-info";
+          caja.innerHTML = "💵 El cliente pagará en efectivo. <a href=\"{% url 'caja:cobrar_orden' orden.pk %}\">Cobrar en efectivo</a>";
+        }
         if (d.pagos > pagosVistos) {
           pagosVistos = d.pagos;
           caja.className = "alert alert-success";

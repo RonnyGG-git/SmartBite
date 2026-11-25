@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from caja import conf, servicios
+from caja import servicios
 from caja.models import Factura, MetodoPago, Pago
 from caja.pasarelas import url_absoluta
 from caja.qr import obtener_enlace_pago
@@ -96,7 +96,7 @@ class QrCobroView(CajaMixin, APIView):
         if orden.es_final:
             raise ValidationError("La orden ya está cerrada.", code="orden_final")
         enlace = obtener_enlace_pago(orden, request.user)
-        url = conf.wompi_link() if conf.proveedor() == "WOMPI" else url_absoluta(request, reverse("caja:pagar_cliente", args=[enlace.token]))
+        url = url_absoluta(request, reverse("caja:pagar_cliente", args=[enlace.token]))
         return Response({
             "url": url, "qr_png_base64": _qr_base64(url), "expira_en": enlace.expira_en,
             "saldo_pendiente": str(servicios.saldo_pendiente(orden)),
