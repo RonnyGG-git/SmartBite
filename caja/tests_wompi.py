@@ -242,9 +242,17 @@ class IntentoAbandonadoTests(BaseQRTest):
         self.assertRedirects(r, reverse("caja:cobrar_orden", args=[self.orden.pk]), fetch_redirect_response=False)
         pago.refresh_from_db()
         self.assertEqual(pago.estado, Pago.ANULADO)
-        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("100000"), usuario=self.cajero)
+        self.client.post(reverse("caja:cobrar_orden", args=[self.orden.pk]), {
+            "metodo_pago": self.efectivo.pk, "monto": "100000", "propina": "0",
+        })
         self.orden.refresh_from_db()
         self.assertEqual(self.orden.estado, "ENTREGADA")
+
+    def test_un_intento_sin_terminar_no_cuenta_como_pagado(self):
+        self._abandonar()
+        self.orden.refresh_from_db()
+        self.assertFalse(self.orden.pagada)
+        self.assertTrue(self.orden.cobrable)
 
     def test_el_mesero_no_puede_anular(self):
         pago = self._abandonar()

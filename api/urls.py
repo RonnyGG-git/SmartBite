@@ -55,6 +55,7 @@ urlpatterns = [
     path("caja/ordenes/<int:pk>/cuenta/", views_caja.CuentaView.as_view(), name="caja_cuenta"),
     path("caja/ordenes/<int:pk>/cobrar/", views_caja.CobrarView.as_view(), name="caja_cobrar"),
     path("caja/ordenes/<int:pk>/qr/", views_caja.QrCobroView.as_view(), name="caja_qr"),
+    path("caja/pagos/<int:pk>/anular/", views_caja.AnularPagoView.as_view(), name="caja_anular_pago"),
     path("caja/ordenes/<int:pk>/aceptar/", views_caja.AceptarParaLlevarView.as_view(), name="caja_aceptar"),
     path("caja/ordenes/<int:pk>/rechazar/", views_caja.RechazarParaLlevarView.as_view(), name="caja_rechazar"),
     path("caja/ventas/", views_caja.VentasView.as_view(), name="caja_ventas"),

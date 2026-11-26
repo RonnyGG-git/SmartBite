@@ -89,6 +89,19 @@ class CobrarView(CajaMixin, APIView):
         return self.cuenta(orden, status.HTTP_201_CREATED, cambio=str(cambio) if cambio is not None else None)
 
 
+@extend_schema(tags=["caja"], request=None, responses=CuentaSerializer)
+class AnularPagoView(CajaMixin, APIView):
+    def post(self, request, pk):
+        pago = get_object_or_404(Pago.objects.filter(orden__in=ordenes_del_restaurante(request)), pk=pk)
+        try:
+            servicios.anular_pago_pendiente(
+                pago.pk, usuario=request.user, ip=_ip(request), detalle="Caja anuló un intento de pago sin terminar (app)"
+            )
+        except CobroInvalido as error:
+            raise ValidationError(str(error), code="no_anulable")
+        return self.cuenta(pago.orden)
+
+
 @extend_schema(tags=["caja"])
 class QrCobroView(CajaMixin, APIView):
     def post(self, request, pk):

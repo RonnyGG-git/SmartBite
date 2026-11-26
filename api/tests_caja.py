@@ -74,6 +74,32 @@ class CajaApiTests(TestCase):
         self.assertTrue(r.json()["checkout"].startswith("http"))
         self.assertEqual(Pago.objects.get().estado, Pago.PENDIENTE)
 
+    def test_anular_un_intento_de_pasarela_libera_el_saldo(self):
+        self.cobrar(metodo=self.tarjeta.pk, monto="64000")
+        pago = Pago.objects.get()
+        cuenta = self.api.get(reverse("api:caja_cuenta", args=[self.orden.pk])).json()
+        self.assertEqual(cuenta["saldo_disponible"], "0.00")
+        self.assertTrue(cuenta["pagos"][0]["anulable"])
+        r = self.api.post(reverse("api:caja_anular_pago", args=[pago.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["saldo_disponible"], "64000.00")
+        self.assertEqual(r.json()["pagos"][0]["estado"], Pago.ANULADO)
+        self.assertFalse(r.json()["pagos"][0]["anulable"])
+        r = self.cobrar(metodo=self.efectivo.pk, monto="64000")
+        self.assertEqual(r.status_code, 201, r.json())
+
+    def test_no_se_anula_un_pago_aprobado_ni_uno_ajeno(self):
+        self.cobrar(metodo=self.efectivo.pk, monto="10000")
+        pago = Pago.objects.get()
+        self.assertFalse(self.api.get(reverse("api:caja_cuenta", args=[self.orden.pk])).json()["pagos"][0]["anulable"])
+        r = self.api.post(reverse("api:caja_anular_pago", args=[pago.pk]))
+        self.assertEqual((r.status_code, r.json()["code"]), (400, "no_anulable"))
+        otro = Restaurante.objects.create(nombre="Otro", nif="8", email="o2@o.co", direccion="x")
+        ajeno = api_de(crear_usuario("CAJERO", email="ajeno2@test.co", restaurante=otro))
+        self.assertEqual(ajeno.post(reverse("api:caja_anular_pago", args=[pago.pk])).status_code, 404)
+        mesero = api_de(crear_usuario("MESERO", email="mes2@test.co"))
+        self.assertEqual(mesero.post(reverse("api:caja_anular_pago", args=[pago.pk])).status_code, 403)
+
     def test_qr_de_cobro_trae_enlace_e_imagen(self):
         r = self.api.post(reverse("api:caja_qr", args=[self.orden.pk]))
         self.assertTrue(r.json()["url"].startswith("http"))

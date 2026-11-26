@@ -20,10 +20,14 @@ class PagoSerializer(serializers.ModelSerializer):
     metodo = serializers.CharField(source="metodo_pago.nombre", read_only=True)
     estado_nombre = serializers.CharField(source="get_estado_display", read_only=True)
     cobrado_por = serializers.CharField(source="cobrado_por.nombre", default=None, read_only=True)
+    anulable = serializers.SerializerMethodField()
 
     class Meta:
         model = Pago
-        fields = ["id", "metodo", "monto", "propina", "estado", "estado_nombre", "referencia_transaccion", "cobrado_por", "creado_en"]
+        fields = ["id", "metodo", "monto", "propina", "estado", "estado_nombre", "referencia_transaccion", "cobrado_por", "creado_en", "anulable"]
+
+    def get_anulable(self, pago) -> bool:
+        return pago.estado == Pago.PENDIENTE and bool(pago.proveedor)
 
 
 class CuentaSerializer(serializers.Serializer):
