@@ -2,12 +2,16 @@ from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from caja import servicios as servicios_caja
+from caja.pasarelas import url_absoluta
+from caja.qr import obtener_enlace_pago, es_simulada
 from cliente.views import _productos_de_sucursal, _sucursales_publicas, buscar_sucursales
 from operativo.models import Orden
 from operativo.services import crear_orden, obtener_cliente
@@ -99,3 +103,26 @@ class PedidoPublicoDetalleView(PublicoMixin, generics.GenericAPIView):
             Orden.objects.select_related("mesa", "cliente").prefetch_related("detalles__producto", "pagos"), pk=pk
         )
         return Response(OrdenSerializer(orden).data)
+
+
+@extend_schema(tags=["cliente"], request=None)
+class PagoPedidoPublicoView(PublicoMixin, generics.GenericAPIView):
+    def post(self, request, codigo):
+        try:
+            pk = signing.loads(codigo, salt=SAL_PEDIDO)
+        except signing.BadSignature:
+            raise NotFound("Pedido no encontrado.")
+        orden = get_object_or_404(Orden.objects.prefetch_related("detalles", "pagos"), pk=pk)
+        if orden.es_final:
+            raise ValidationError("Este pedido ya está cerrado.", code="orden_final")
+        if orden.estado == Orden.POR_CONFIRMAR:
+            raise ValidationError("Podrás pagar cuando el restaurante confirme tu pedido.", code="por_confirmar")
+        if orden.pagada:
+            raise ValidationError("Este pedido ya está pagado.", code="ya_pagada")
+        enlace = obtener_enlace_pago(orden)
+        return Response({
+            "url": url_absoluta(request, reverse("caja:pagar_cliente", args=[enlace.token])),
+            "expira_en": enlace.expira_en,
+            "saldo_pendiente": str(servicios_caja.saldo_pendiente(orden)),
+            "en_linea": "simulada" if es_simulada() else "wompi",
+        })

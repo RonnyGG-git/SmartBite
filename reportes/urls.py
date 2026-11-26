@@ -7,4 +7,5 @@ app_name = "reportes"
 urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("reportes/", views.ReportesView.as_view(), name="reportes"),
+    path("reportes/pdf/", views.ReportePdfView.as_view(), name="reporte_pdf"),
 ]

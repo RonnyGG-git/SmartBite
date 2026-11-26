@@ -10,6 +10,19 @@
   </div>
 </div>
 
+<form method="get" action="{% url 'reportes:reporte_pdf' %}" class="card" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px;">
+  <div class="field">
+    <label for="reporte-desde">Desde</label>
+    <input type="date" id="reporte-desde" name="desde" value="{{ desde|date:'Y-m-d' }}" required>
+  </div>
+  <div class="field">
+    <label for="reporte-hasta">Hasta</label>
+    <input type="date" id="reporte-hasta" name="hasta" value="{{ hasta|date:'Y-m-d' }}" required>
+  </div>
+  <button class="btn btn-primary">Descargar reporte en PDF</button>
+  <span class="field-help" style="flex-basis:100%;">Ventas, propinas, ticket promedio, ventas por método y por día, órdenes por estado, platillos más vendidos y stock bajo.</span>
+</form>
+
 <div class="grid grid-2">
   <section class="card">
     <h2 class="card-title">Órdenes por estado</h2>

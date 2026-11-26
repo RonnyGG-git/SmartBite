@@ -100,6 +100,7 @@ class OrdenSerializer(serializers.ModelSerializer):
     pagada = serializers.BooleanField(read_only=True)
     listo_estimado_en = serializers.DateTimeField(read_only=True)
     detalles = DetalleOrdenSerializer(many=True, read_only=True)
+    pagara_efectivo = serializers.SerializerMethodField()
 
     class Meta:
         model = Orden
@@ -107,7 +108,11 @@ class OrdenSerializer(serializers.ModelSerializer):
             "id", "estado", "estado_nombre", "origen", "origen_nombre", "tipo_consumo", "tipo_consumo_nombre",
             "ubicacion", "mesa", "sucursal", "cliente", "total", "pagada", "tiempo_estimado_min",
             "preparacion_iniciada_en", "listo_estimado_en", "cuenta_solicitada_en", "creado_en", "detalles",
+            "pagara_efectivo",
         ]
+
+    def get_pagara_efectivo(self, orden) -> bool:
+        return bool(getattr(orden, "pagara_efectivo", False))
 
 
 class OrdenCocinaSerializer(OrdenSerializer):

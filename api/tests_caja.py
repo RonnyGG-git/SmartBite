@@ -106,3 +106,51 @@ class CajaApiTests(TestCase):
     def test_el_mesero_no_cobra(self):
         mesero = api_de(crear_usuario("MESERO", email="mes@test.co"))
         self.assertEqual(mesero.post(reverse("api:caja_cobrar", args=[self.orden.pk]), {}, format="json").status_code, 403)
+
+
+class PagoDelClienteDesdeLaAppTests(TestCase):
+    def setUp(self):
+        from api.views_publico import codigo_de
+
+        self.d = crear_escenario()
+        self.orden = Orden.objects.create(mesa=self.d["mesa"], sucursal=self.d["centro"], estado=Orden.LISTA)
+        DetalleOrden.objects.create(orden=self.orden, producto=self.d["bandeja"], cantidad=1, precio_unitario=Decimal("32000"))
+        self.codigo = codigo_de(self.orden)
+        self.api = APIClient()
+
+    def pedir(self, codigo=None):
+        return self.api.post(reverse("api:pedido_publico_pago", args=[codigo or self.codigo]))
+
+    def test_devuelve_la_pagina_de_pago_con_wompi_y_efectivo(self):
+        r = self.pedir()
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("/caja/pagar/", r.json()["url"])
+        self.assertEqual(r.json()["saldo_pendiente"], "32000.00")
+        self.assertEqual(r.json()["en_linea"], "simulada")
+        pagina = self.client.get(r.json()["url"].split("testserver", 1)[1])
+        self.assertContains(pagina, "Pagar en línea")
+        self.assertContains(pagina, "Pagar en efectivo en caja")
+
+    def test_reutiliza_el_enlace_vigente(self):
+        self.assertEqual(self.pedir().json()["url"], self.pedir().json()["url"])
+
+    def test_codigo_falso_no_encuentra_el_pedido(self):
+        self.assertEqual(self.pedir("falso").status_code, 404)
+
+    def test_no_se_paga_un_pedido_por_confirmar_ni_uno_cerrado(self):
+        Orden.objects.filter(pk=self.orden.pk).update(estado=Orden.POR_CONFIRMAR)
+        self.assertEqual(self.pedir().json()["code"], "por_confirmar")
+        Orden.objects.filter(pk=self.orden.pk).update(estado=Orden.ENTREGADA)
+        self.assertEqual(self.pedir().json()["code"], "orden_final")
+
+    def test_por_cobrar_avisa_cuando_el_cliente_pagara_en_efectivo(self):
+        from caja.models import EnlacePago
+        from caja.qr import pedir_pago_en_efectivo
+
+        cajero = api_de(crear_usuario("CAJERO"))
+        Orden.objects.filter(pk=self.orden.pk).update(cuenta_solicitada_en=self.orden.creado_en)
+        self.assertFalse(cajero.get(reverse("api:por_cobrar")).json()[0]["pagara_efectivo"])
+        self.pedir()
+        pedir_pago_en_efectivo(EnlacePago.objects.get(orden=self.orden))
+        self.assertTrue(cajero.get(reverse("api:por_cobrar")).json()[0]["pagara_efectivo"])
+

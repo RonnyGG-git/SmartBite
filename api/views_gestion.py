@@ -2,10 +2,11 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import ProtectedError, Sum
 from django.forms.models import model_to_dict
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -32,6 +33,8 @@ from operativo.forms import MesaForm
 from operativo.models import Mesa, Orden
 from recetas.forms import ProductoIngredienteForm
 from recetas.models import ProductoIngrediente
+from reportes.pdf import generar_pdf
+from reportes.servicios import PeriodoInvalido, datos_reporte, leer_periodo, nombre_archivo
 from recetas.views import ROLES_GESTION as ROLES_RECETAS, ROLES_LECTURA as ROLES_RECETAS_LECTURA
 from restaurantes.forms import RestauranteForm, SucursalForm
 from restaurantes.models import Restaurante, Sucursal
@@ -407,6 +410,24 @@ class DashboardView(ConRestauranteMixin, APIView):
                 for fila in pagos.values("metodo_pago__nombre").annotate(total=Sum("monto")).order_by("-total")
             ],
         })
+
+
+@extend_schema(
+    tags=["gestion"],
+    parameters=[OpenApiParameter("desde", str, required=False), OpenApiParameter("hasta", str, required=False)],
+    responses={(200, "application/pdf"): bytes},
+)
+class ReportePdfView(ConRestauranteMixin, APIView):
+    roles_permitidos = ROLES_ADMIN
+
+    def get(self, request):
+        try:
+            desde, hasta = leer_periodo(request.query_params.get("desde"), request.query_params.get("hasta"))
+        except PeriodoInvalido as error:
+            raise ValidationError({"detail": str(error)}, code="periodo_invalido")
+        respuesta = HttpResponse(generar_pdf(datos_reporte(request, desde, hasta)), content_type="application/pdf")
+        respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo(desde, hasta)}"'
+        return respuesta
 
 
 @extend_schema(tags=["gestion"])

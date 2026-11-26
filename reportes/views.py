@@ -1,5 +1,9 @@
+from django.contrib import messages
 from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.utils import timezone
+from django.views import View
 from django.views.generic import TemplateView
 
 from caja.models import Pago
@@ -9,6 +13,9 @@ from core.tenancy import filtrar
 from cuentas.views import usuarios_del_restaurante
 from inventario.models import ItemInventario
 from operativo.models import Mesa, Orden
+
+from .pdf import generar_pdf
+from .servicios import PeriodoInvalido, datos_reporte, leer_periodo, nombre_archivo
 
 ROLES_ADMIN = ["ADMINISTRADOR"]
 
@@ -53,4 +60,20 @@ class ReportesView(RoleRequiredMixin, TemplateView):
                 pagos.values("metodo_pago__nombre").annotate(total=Sum("monto"))
             ),
         )
+        desde, hasta = leer_periodo(None, None)
+        contexto.update(desde=desde, hasta=hasta)
         return contexto
+
+
+class ReportePdfView(RoleRequiredMixin, View):
+    roles_permitidos = ROLES_ADMIN
+
+    def get(self, request):
+        try:
+            desde, hasta = leer_periodo(request.GET.get("desde"), request.GET.get("hasta"))
+        except PeriodoInvalido as error:
+            messages.error(request, str(error))
+            return redirect("reportes:reportes")
+        respuesta = HttpResponse(generar_pdf(datos_reporte(request, desde, hasta)), content_type="application/pdf")
+        respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo(desde, hasta)}"'
+        return respuesta

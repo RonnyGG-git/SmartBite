@@ -1,4 +1,4 @@
-from django.db.models import Prefetch
+from django.db.models import Exists, OuterRef, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from caja.models import EnlacePago
 from caja.views import ROLES_CAJA, ROLES_ENTREGA
 from catalogo.models import Producto
 from cocina.services import iniciar_preparacion, marcar_lista
@@ -289,6 +290,9 @@ class PorCobrarView(ConRestauranteMixin, generics.ListAPIView):
             ordenes_del_restaurante(self.request)
             .filter(cuenta_solicitada_en__isnull=False)
             .exclude(estado__in=[Orden.ENTREGADA, Orden.CANCELADA])
+            .annotate(pagara_efectivo=Exists(
+                EnlacePago.objects.filter(orden=OuterRef("pk"), efectivo_solicitado_en__isnull=False)
+            ))
             .order_by("cuenta_solicitada_en")
         )
 
