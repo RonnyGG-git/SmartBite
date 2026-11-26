@@ -99,6 +99,21 @@ def cobrar_orden(request, pk):
     })
 
 
+@rol_requerido(*ROLES_CAJA)
+@require_POST
+def anular_pago(request, pk):
+    pago = get_object_or_404(_pagos_del_restaurante(request), pk=pk)
+    try:
+        servicios.anular_pago_pendiente(
+            pago.pk, usuario=request.user, ip=_ip(request), detalle="Caja anuló un intento de pago sin terminar"
+        )
+    except CobroInvalido as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, "Intento de pago anulado. El saldo quedó libre para cobrar.")
+    return redirect("caja:cobrar_orden", pk=pago.orden_id)
+
+
 @login_required
 def retorno_pago(request):
     pago = get_object_or_404(_pagos_del_restaurante(request), referencia_pasarela=request.GET.get("ref", ""))

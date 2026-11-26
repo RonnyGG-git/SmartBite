@@ -120,6 +120,19 @@ def pagar_cliente(request, token):
     if ctx["vencido"] or ctx["pagada"] or orden.estado == Orden.CANCELADA:
         return render(request, "caja/pagar_cliente.html", ctx)
 
+    intentos = servicios.intentos_en_linea_pendientes(orden).filter(cobrado_por__isnull=True)
+    if request.method == "POST" and request.POST.get("accion") == "anular_intento":
+        intento = intentos.filter(pk=request.POST.get("pago") or 0).first()
+        if intento is not None:
+            try:
+                servicios.anular_pago_pendiente(
+                    intento.pk, ip=request.META.get("REMOTE_ADDR"), detalle="El cliente canceló el pago sin terminar"
+                )
+            except CobroInvalido:
+                pass
+        return redirect("caja:pagar_cliente", token=token)
+
+    ctx["intentos"] = intentos
     ctx["efectivo"] = enlace.efectivo_solicitado_en is not None
     if request.method == "POST" and request.POST.get("accion") == "efectivo":
         try:

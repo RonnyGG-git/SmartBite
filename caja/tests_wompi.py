@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from . import conf, servicios
-from .models import EventoPasarela, Factura, Pago
+from .models import AuditoriaCobro, EventoPasarela, Factura, Pago
 from .pasarelas import EventoPago, WompiPasarela, _checksum_wompi
 from .tests_qr import BaseQRTest
 
@@ -198,3 +198,72 @@ class ConsultaApiWompiTests(BaseQRTest):
         with override_settings(WOMPI={**LLAVES, "PUBLIC_KEY": "pub_prod_real"}):
             self.assertFalse(conf.modo_prueba())
             self.assertEqual(conf.wompi_api_url(), "https://production.wompi.co/v1")
+
+@override_settings(PASARELA_PROVEEDOR="WOMPI", WOMPI=LLAVES)
+class IntentoAbandonadoTests(BaseQRTest):
+    def _abandonar(self):
+        self.client.post(self.url, {"monto": "100000", "propina": ""})
+        return Pago.objects.get(orden=self.orden)
+
+    def _webhook(self, evento):
+        return self.client.post(
+            reverse("caja:webhook", args=["WOMPI"]), data=json.dumps(evento), content_type="application/json"
+        )
+
+    def test_volver_sin_pagar_bloquea_el_saldo_y_muestra_el_intento(self):
+        pago = self._abandonar()
+        r = self.client.get(self.url)
+        self.assertEqual(r.context["saldo"], 0)
+        self.assertEqual(list(r.context["intentos"]), [pago])
+        self.assertContains(r, "cancelar este intento")
+
+    def test_el_cliente_cancela_el_intento_y_puede_volver_a_pagar(self):
+        pago = self._abandonar()
+        r = self.client.post(self.url, {"accion": "anular_intento", "pago": pago.pk})
+        self.assertEqual(r.status_code, 302)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)
+        self.assertEqual(servicios.saldo_disponible(self.orden), Decimal("100000"))
+        self.assertTrue(AuditoriaCobro.objects.filter(accion=AuditoriaCobro.PAGO_ANULADO, pago=pago).exists())
+        r = self.client.post(self.url, {"monto": "100000", "propina": ""})
+        self.assertTrue(r.url.startswith("https://checkout.wompi.co/p/"))
+
+    def test_el_cliente_no_anula_un_cobro_iniciado_por_caja(self):
+        pago = self._abandonar()
+        Pago.objects.filter(pk=pago.pk).update(cobrado_por=self.cajero)
+        self.client.post(self.url, {"accion": "anular_intento", "pago": pago.pk})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+
+    def test_el_cajero_anula_el_intento_y_cobra_en_efectivo(self):
+        pago = self._abandonar()
+        self.client.force_login(self.cajero)
+        r = self.client.post(reverse("caja:anular_pago", args=[pago.pk]))
+        self.assertRedirects(r, reverse("caja:cobrar_orden", args=[self.orden.pk]), fetch_redirect_response=False)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)
+        servicios.registrar_pago_manual(self.orden.pk, metodo=self.efectivo, monto=Decimal("100000"), usuario=self.cajero)
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, "ENTREGADA")
+
+    def test_el_mesero_no_puede_anular(self):
+        pago = self._abandonar()
+        self.client.force_login(self.mesero)
+        self.client.post(reverse("caja:anular_pago", args=[pago.pk]))
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.PENDIENTE)
+
+    def test_si_wompi_aprueba_despues_de_anular_el_pago_se_registra_con_alerta(self):
+        pago = self._abandonar()
+        servicios.anular_pago_pendiente(pago.pk)
+        self._webhook(evento_wompi(pago))
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.APROBADO)
+        self.assertTrue(AuditoriaCobro.objects.filter(accion=AuditoriaCobro.ALERTA, pago=pago).exists())
+
+    def test_un_rechazo_tardio_no_cambia_un_intento_anulado(self):
+        pago = self._abandonar()
+        servicios.anular_pago_pendiente(pago.pk)
+        self._webhook(evento_wompi(pago, estado="DECLINED"))
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.ANULADO)

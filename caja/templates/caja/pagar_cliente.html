@@ -54,6 +54,19 @@
       <div class="monto">{{ saldo|moneda }}</div>
     </div>
 
+    {% for intento in intentos %}
+      <div class="aviso">
+        <b>Tienes un pago en línea sin terminar por {{ intento.total_cobrado|moneda }}.</b><br>
+        Si ya lo completaste, espera unos segundos a que se confirme. Si saliste sin pagar, cancélalo para volver a intentarlo.
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="anular_intento">
+          <input type="hidden" name="pago" value="{{ intento.pk }}">
+          <button class="btn sec" type="submit">No pagué: cancelar este intento</button>
+        </form>
+      </div>
+    {% endfor %}
+
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
 
     {% if efectivo %}

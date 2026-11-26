@@ -128,8 +128,9 @@ def aplicar_evento(pasarela, evento, payload):
             return registro.resultado
 
         orden = Orden.objects.select_for_update().get(pk=pago.orden_id)
+        tardio = pago.estado == Pago.ANULADO and evento.estado == "APROBADO"
 
-        if pago.estado != Pago.PENDIENTE:
+        if pago.estado != Pago.PENDIENTE and not tardio:
             resultado = f"ignorado: el pago ya estaba {pago.estado}"
         elif evento.monto_centavos != int(pago.total_cobrado * 100):
             auditar(AuditoriaCobro.ALERTA, orden, pago=pago, detalle=(
@@ -142,6 +143,10 @@ def aplicar_evento(pasarela, evento, payload):
             pago.referencia_transaccion = evento.id_transaccion
             pago.save(update_fields=["estado", "id_transaccion_pasarela", "referencia_transaccion", "actualizado_en"])
             auditar(AuditoriaCobro.PASARELA_APROBADA, orden, pago=pago, detalle=evento.id_transaccion)
+            if tardio:
+                auditar(AuditoriaCobro.ALERTA, orden, pago=pago, detalle=(
+                    "La pasarela aprobó un intento que se había anulado; el pago quedó registrado. Revisa el saldo."
+                ))
             _cerrar_si_pagada(orden)
             resultado = "aprobado"
         elif evento.estado == "RECHAZADO":
@@ -156,6 +161,24 @@ def aplicar_evento(pasarela, evento, payload):
         registro.resultado = resultado
         registro.save(update_fields=["resultado"])
         return resultado
+
+
+def intentos_en_linea_pendientes(orden):
+    return orden.pagos.filter(
+        estado=Pago.PENDIENTE, creado_en__gte=timezone.now() - VENCIMIENTO_PENDIENTE
+    ).exclude(proveedor="")
+
+
+def anular_pago_pendiente(pago_id, *, usuario=None, ip=None, detalle=""):
+    with transaction.atomic():
+        pago = Pago.objects.select_for_update().get(pk=pago_id)
+        orden = Orden.objects.select_for_update().get(pk=pago.orden_id)
+        if pago.estado != Pago.PENDIENTE:
+            raise CobroInvalido("Ese intento de pago ya no está pendiente.")
+        pago.estado = Pago.ANULADO
+        pago.save(update_fields=["estado", "actualizado_en"])
+        auditar(AuditoriaCobro.PAGO_ANULADO, orden, pago=pago, usuario=usuario, ip=ip, detalle=detalle)
+    return pago
 
 
 def sincronizar_pago(pago, id_transaccion, pasarela=None):

@@ -94,6 +94,7 @@ class AuditoriaCobro(TimestampedModel):
         "COBRO", "PASARELA_INICIADA", "PASARELA_APROBADA", "PASARELA_RECHAZADA", "ALERTA",
     )
     EFECTIVO_SOLICITADO = "EFECTIVO_SOLICITADO"
+    PAGO_ANULADO = "PAGO_ANULADO"
     ACCION_CHOICES = [
         (COBRO, "Cobro registrado"),
         (PASARELA_INICIADA, "Cobro con tarjeta iniciado"),
@@ -101,6 +102,7 @@ class AuditoriaCobro(TimestampedModel):
         (PASARELA_RECHAZADA, "Pasarela rechazó el pago"),
         (ALERTA, "Alerta (inconsistencia)"),
         (EFECTIVO_SOLICITADO, "El cliente pagará en efectivo"),
+        (PAGO_ANULADO, "Intento de pago en línea anulado"),
     ]
 
     accion = models.CharField(max_length=20, choices=ACCION_CHOICES)

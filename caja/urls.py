@@ -9,6 +9,7 @@ urlpatterns = [
     path("por-cobrar/", views.CuentasPorCobrarView.as_view(), name="por_cobrar"),
     path("pagos/", views.PagoListView.as_view(), name="pagos_list"),
     path("pagos/retorno/", views.retorno_pago, name="retorno_pago"),
+    path("pagos/<int:pk>/anular/", views.anular_pago, name="anular_pago"),
     path("ordenes/<int:pk>/cobrar/", views.cobrar_orden, name="cobrar_orden"),
     path("ordenes/<int:pk>/aceptar/", views.aceptar_orden, name="aceptar_orden"),
     path("ordenes/<int:pk>/rechazar/", views.rechazar_orden, name="rechazar_orden"),

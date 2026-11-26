@@ -39,7 +39,14 @@
         <tr>
           <td>{{ p.metodo_pago.nombre }}<br><span style="color:#6b7280; font-size:12px;">{{ p.creado_en|date:"H:i" }}</span></td>
           <td>{{ p.monto|moneda }}{% if p.propina %}<br><span style="color:#6b7280; font-size:12px;">+ propina {{ p.propina|moneda }}</span>{% endif %}</td>
-          <td><span class="badge {% if p.estado == 'APROBADO' %}badge-success{% elif p.estado == 'PENDIENTE' %}badge-warning{% else %}badge-danger{% endif %}">{{ p.get_estado_display }}</span></td>
+          <td><span class="badge {% if p.estado == 'APROBADO' %}badge-success{% elif p.estado == 'PENDIENTE' %}badge-warning{% else %}badge-danger{% endif %}">{{ p.get_estado_display }}</span>
+            {% if p.estado == 'PENDIENTE' and p.proveedor %}
+            <form method="post" action="{% url 'caja:anular_pago' p.pk %}" style="margin-top:6px;" onsubmit="return confirm('¿Anular este intento de pago en línea? Hazlo solo si el cliente no pagó.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary" style="padding:4px 10px; font-size:12px;">Anular intento</button>
+            </form>
+            {% endif %}
+          </td>
         </tr>
         {% empty %}
         <tr><td><div class="empty-state">Aún no hay pagos.</div></td></tr>
