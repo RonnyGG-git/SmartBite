@@ -206,11 +206,12 @@ class Orden(TimestampedModel):
 
     @property
     def total_pagado(self):
-        return sum((p.monto for p in self.pagos.all()), 0)
+        return sum((p.monto for p in self.pagos.all() if p.estado == "APROBADO"), 0)
 
     @property
     def pagada(self):
-        return self.pagos.exists() and self.total_pagado >= self.total
+        pagado = self.total_pagado
+        return pagado > 0 and pagado >= self.total
 
     @property
     def cobrable(self):
